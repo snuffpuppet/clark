@@ -493,17 +493,17 @@ Applied to `solution-register-model.md` on approval of this design, 10 September
 | `ingester/runbooks/S0.md` to `S3.md`, `staged-review.md`, `evaluate.md` | ingester | Operator runbooks | With the ingester |
 | `ingester/bin/` | ingester | Shell scripts for S0, citation check, integrity, S3, ledger update, scoring, the stage driver | With the ingester |
 | `ingester/templates/` | ingester | Empty session sheet, dossier, registers, current-state record, topic ledger, engagement.md | With the ingester |
-| `engagement.md` | engagement | Client, domain, scope taxonomy, glossary, ingester version last used | Bumped on every change |
-| `stakeholders.md` | engagement | Stakeholder register: who people are, their side, role, standing and decision authority | Bumped by S3, or by hand with Source "engagement.md" |
-| `transcripts/unprocessed/` | engagement | VTT files as received, copied in by the first invocation, awaiting S3 | Never edited |
-| `transcripts/processed/` | engagement | VTT files as received, moved here by S3 | Never edited |
-| `transcripts.md` | engagement | Transcript register | Bumped on every row |
-| `topics.md` | engagement | Topic ledger | Bumped by S3 |
-| `current-state-<domain>.md` | engagement | Current-state record | Bumped by S3 |
-| `registers/*.md` | engagement | Six registers | Bumped by S3 |
-| `sessions/Tnnn/` | engagement | Utterance table, session sheet, exchanges, episodes, dossier versions, session log | Each file carries its own version |
-| `evaluation/` | engagement | Reference marking and run reports | Reference versioned; runs numbered |
-| `logs/` | engagement | One log per skill run | Append only |
+| `engagements/<name>/engagement.md` | engagement | Client, domain, scope taxonomy, glossary, ingester version last used | Bumped on every change |
+| `engagements/<name>/stakeholders.md` | engagement | Stakeholder register: who people are, their side, role, standing and decision authority | Bumped by S3, or by hand with Source "engagement.md" |
+| `engagements/<name>/transcripts/unprocessed/` | engagement | VTT files as received, copied in by the first invocation, awaiting S3 | Never edited |
+| `engagements/<name>/transcripts/processed/` | engagement | VTT files as received, moved here by S3 | Never edited |
+| `engagements/<name>/transcripts.md` | engagement | Transcript register | Bumped on every row |
+| `engagements/<name>/topics.md` | engagement | Topic ledger | Bumped by S3 |
+| `engagements/<name>/current-state-<domain>.md` | engagement | Current-state record | Bumped by S3 |
+| `engagements/<name>/registers/*.md` | engagement | Six registers | Bumped by S3 |
+| `engagements/<name>/sessions/Tnnn/` | engagement | Utterance table, session sheet, exchanges, episodes, dossier versions, session log | Each file carries its own version |
+| `engagements/<name>/evaluation/` | engagement | Reference marking and run reports | Reference versioned; runs numbered |
+| `engagements/<name>/logs/` | engagement | One log per skill run | Append only |
 
 The two existing files `solution-register-model.md` and `T001-SANITISED-TechnicalSyncUp.vtt` live in `ingester/` and `engagements/puppy-gloves/transcripts/unprocessed/` respectively. The project lives in the git repository `solution-register` (remote `github.com/snuffpuppet/solution-register`), with `ingester/` and `engagements/` as its two top-level folders. One repository holds both parts; the folder boundary keeps them independent.
 
@@ -540,4 +540,4 @@ The next step is the implementation plan covering the folder layout, the skill, 
 | 0.5 | 10 September 2026 | Stakeholder register added as an engagement file (4.6): STK ids, organisation, role, standing, Mentioned rows for named absentees. S0 matches speakers against it and the skill proposes roles and standing for new ones with citations; a speaker without a confirmed role blocks S1 (R18). Integrity rule I19 Known stakeholder. Session sheet derived from the register. Repository named as `solution-register`; first engagement named `puppy-gloves`. Questions 6, 8 and 13 settled or reframed. |
 | 1.0 | 10 September 2026 | Approved. The session-level approving forum flag is replaced by decision authority on the stakeholder register (4.6 Decides, Role Forum) and rule R19: SMEs accept decisions within their area, architect acceptance leaves a decision Proposed with an OI to the SLT group. R12 and the session sheet updated to match, and "authority check" added to the Needs-a-human reasons. Skill discovery tested: the skill lives at the repository root under `.claude/skills/` and the session starts at the root with the engagement name as argument (7.2). T001 session date recorded as 8 September 2026. Register model 2.16 changes applied. Section 10.2 questions closed. |
 | 1.1 | 10 September 2026 | Optional meeting subject argument on the ingest command (7.2). It guides episode boundaries, titles and topic matching and the reading of noisy terms, and is never a restriction (5.3). Recorded on the session sheet (Q3) and the transcript register (4.5). Episodes gain a Subject field for on, related or off subject. |
-| 1.2 | 10 September 2026 | The transcript file is the ingest command's first argument (7.2). The skill copies it unchanged into `transcripts/unprocessed/`, records its name and SHA-256 in the transcript register (4.5), and S3 moves it to `transcripts/processed/` as its last step. Layout (7.1) and file table (10.1) updated. T001 moved to `unprocessed/`. |
+| 1.2 | 10 September 2026 | The transcript file is the ingest command's first argument (7.2). The skill copies it unchanged into `transcripts/unprocessed/`, records its name and SHA-256 in the transcript register (4.5), and S3 moves it to `transcripts/processed/` as its last step. Layout (7.1) and file table (10.1) updated. T001 moved to `unprocessed/`. File table (10.1) gives full paths from the repository root for engagement files. |
