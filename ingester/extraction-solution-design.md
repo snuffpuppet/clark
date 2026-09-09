@@ -409,7 +409,7 @@ solution-register/                 the git repository
     templates/                       session sheet, dossier, register headers,
                                      current-state record, topic ledger, engagement.md
     VERSION
-  engagements/
+  engagement/
     <engagement-name>/               the what, for one client
       engagement.md                  client, domain, scope taxonomy, glossary of
                                      system names, ingester version
@@ -433,13 +433,13 @@ The ingester is versioned as a whole with a `VERSION` file, and the rules file c
 
 Ingestion is a Claude Code session started from the repository root. The user invokes the ingest skill with the transcript file, the engagement name and, optionally, the meeting subject, for example `/ingest-transcript ~/Downloads/TechnicalSyncUp.vtt puppy-gloves "entity upgrade for multi-gig orders"`. The subject is recorded on the session sheet and the transcript register and guides episode and topic reading (5.3) without restricting it.
 
-**The transcript file is kept as received.** On the first invocation the skill copies the file, unchanged and under its original name, into `engagements/<engagement-name>/transcripts/unprocessed/`, records the file name and its SHA-256 in the transcript register against the new transcript id, and works only from that copy. The file stays in `unprocessed/` through S0, S1 and S2. S3 moves it to `transcripts/processed/` as its last step, after the registers are written, so that the folder a file sits in says whether its session has been written. Nothing ever edits, renames or deletes a transcript file, and a file whose SHA-256 no longer matches the register blocks every stage. Later invocations name the transcript id rather than the file, for example `/ingest-transcript T001 puppy-gloves`, and the skill finds the file by the register.
+**The transcript file is kept as received.** On the first invocation the skill copies the file, unchanged and under its original name, into `engagement/<engagement-name>/transcripts/unprocessed/`, records the file name and its SHA-256 in the transcript register against the new transcript id, and works only from that copy. The file stays in `unprocessed/` through S0, S1 and S2. S3 moves it to `transcripts/processed/` as its last step, after the registers are written, so that the folder a file sits in says whether its session has been written. Nothing ever edits, renames or deletes a transcript file, and a file whose SHA-256 no longer matches the register blocks every stage. Later invocations name the transcript id rather than the file, for example `/ingest-transcript T001 puppy-gloves`, and the skill finds the file by the register.
 
 The skill assigns the next transcript id and runs S0 through the shell scripts, then stops for the session sheet. On the next invocation it finds the signed session sheet, performs S1 in full, and stops with the dossier. On the next invocation it finds the signed dossier and runs S3. If it finds an unsigned file it says so and stops. It never advances past an unsigned gate, and it never edits a signed file. If the reviewer rejects the dossier outright, the skill re-reads with the reviewer's notes as additional context and produces a new dossier version.
 
 The skill file lives at `.claude/skills/ingest-transcript/SKILL.md` in the repository root, where Claude Code discovers project skills, and it is versioned with the ingester. It resolves the ingester and the engagement by relative path from the root, and the engagement's `engagement.md` records which ingester version it was last run with so that a mismatch is visible.
 
-Two arrangements were tested on 10 September 2026 with Claude Code 2.1.266. A session started in `engagements/puppy-gloves/` did find a root-level skill, so no symlink or `CLAUDE.md` pointer is needed, but its reads into `ingester/` fell outside the working directory and were refused in non-interactive mode, with or without a project settings entry. A session started at the repository root read both the ingester and the engagement without any grant. The root is therefore the working directory, and the engagement name is an argument to the skill.
+Two arrangements were tested on 10 September 2026 with Claude Code 2.1.266. A session started in `engagement/puppy-gloves/` did find a root-level skill, so no symlink or `CLAUDE.md` pointer is needed, but its reads into `ingester/` fell outside the working directory and were refused in non-interactive mode, with or without a project settings entry. A session started at the repository root read both the ingester and the engagement without any grant. The root is therefore the working directory, and the engagement name is an argument to the skill.
 
 Everything the skill and the scripts write goes inside the engagement folder: the utterance table, session sheet, working files, dossier, session log, run reports, and a log file per skill run under `logs/` naming the stage, the ingester and rules versions, the files read and written, and the outcome. Nothing is written to the ingester during ingestion. Rule changes that come out of evaluation are made to the ingester deliberately, by hand, as a versioned change.
 
@@ -493,19 +493,19 @@ Applied to `solution-register-model.md` on approval of this design, 10 September
 | `ingester/runbooks/S0.md` to `S3.md`, `staged-review.md`, `evaluate.md` | ingester | Operator runbooks | With the ingester |
 | `ingester/bin/` | ingester | Shell scripts for S0, citation check, integrity, S3, ledger update, scoring, the stage driver | With the ingester |
 | `ingester/templates/` | ingester | Empty session sheet, dossier, registers, current-state record, topic ledger, engagement.md | With the ingester |
-| `engagements/<name>/engagement.md` | engagement | Client, domain, scope taxonomy, glossary, ingester version last used | Bumped on every change |
-| `engagements/<name>/stakeholders.md` | engagement | Stakeholder register: who people are, their side, role, standing and decision authority | Bumped by S3, or by hand with Source "engagement.md" |
-| `engagements/<name>/transcripts/unprocessed/` | engagement | VTT files as received, copied in by the first invocation, awaiting S3 | Never edited |
-| `engagements/<name>/transcripts/processed/` | engagement | VTT files as received, moved here by S3 | Never edited |
-| `engagements/<name>/transcripts.md` | engagement | Transcript register | Bumped on every row |
-| `engagements/<name>/topics.md` | engagement | Topic ledger | Bumped by S3 |
-| `engagements/<name>/current-state-<domain>.md` | engagement | Current-state record | Bumped by S3 |
-| `engagements/<name>/registers/*.md` | engagement | Six registers | Bumped by S3 |
-| `engagements/<name>/sessions/Tnnn/` | engagement | Utterance table, session sheet, exchanges, episodes, dossier versions, session log | Each file carries its own version |
-| `engagements/<name>/evaluation/` | engagement | Reference marking and run reports | Reference versioned; runs numbered |
-| `engagements/<name>/logs/` | engagement | One log per skill run | Append only |
+| `engagement/<name>/engagement.md` | engagement | Client, domain, scope taxonomy, glossary, ingester version last used | Bumped on every change |
+| `engagement/<name>/stakeholders.md` | engagement | Stakeholder register: who people are, their side, role, standing and decision authority | Bumped by S3, or by hand with Source "engagement.md" |
+| `engagement/<name>/transcripts/unprocessed/` | engagement | VTT files as received, copied in by the first invocation, awaiting S3 | Never edited |
+| `engagement/<name>/transcripts/processed/` | engagement | VTT files as received, moved here by S3 | Never edited |
+| `engagement/<name>/transcripts.md` | engagement | Transcript register | Bumped on every row |
+| `engagement/<name>/topics.md` | engagement | Topic ledger | Bumped by S3 |
+| `engagement/<name>/current-state-<domain>.md` | engagement | Current-state record | Bumped by S3 |
+| `engagement/<name>/registers/*.md` | engagement | Six registers | Bumped by S3 |
+| `engagement/<name>/sessions/Tnnn/` | engagement | Utterance table, session sheet, exchanges, episodes, dossier versions, session log | Each file carries its own version |
+| `engagement/<name>/evaluation/` | engagement | Reference marking and run reports | Reference versioned; runs numbered |
+| `engagement/<name>/logs/` | engagement | One log per skill run | Append only |
 
-The two existing files `solution-register-model.md` and `T001-SANITISED-TechnicalSyncUp.vtt` live in `ingester/` and `engagements/puppy-gloves/transcripts/unprocessed/` respectively. The project lives in the git repository `solution-register` (remote `github.com/snuffpuppet/solution-register`), with `ingester/` and `engagements/` as its two top-level folders. One repository holds both parts; the folder boundary keeps them independent.
+The two existing files `solution-register-model.md` and `T001-SANITISED-TechnicalSyncUp.vtt` live in `ingester/` and `engagement/puppy-gloves/transcripts/unprocessed/` respectively. The project lives in the git repository `solution-register` (remote `github.com/snuffpuppet/solution-register`), with `ingester/` and `engagement/` as its two top-level folders. One repository holds both parts; the folder boundary keeps them independent.
 
 ### 10.2 Assumptions and decisions
 
@@ -523,7 +523,7 @@ All settled on approval, 10 September 2026, unless marked open.
 10. **One dossier review per transcript is the default**, with the staged three-stop path available as a fallback. Confirmed.
 11. **Bulk approval of Confident items** is allowed per episode after the reviewer has read them. Confirmed. A kind's grading rule may be loosened after three sessions with zero Confident-but-wrong for that kind.
 12. **Skill discovery.** Tested 10 September 2026 (7.2). The skill lives at the repository root under `.claude/skills/`, no symlink, and the session starts at the root.
-13. **The first engagement folder is `engagements/puppy-gloves/`.** Confirmed. T001 lives in its `transcripts/unprocessed/` folder until S3 moves it to `processed/`.
+13. **The first engagement folder is `engagement/puppy-gloves/`.** Confirmed. T001 lives in its `transcripts/unprocessed/` folder until S3 moves it to `processed/`.
 
 The next step is the implementation plan covering the folder layout, the skill, the shell scripts, the runbooks, the rules file, the templates and the reference marking template.
 
@@ -535,9 +535,10 @@ The next step is the implementation plan covering the folder layout, the skill, 
 |---|---|---|
 | 0.1 | 10 September 2026 | First draft. |
 | 0.2 | 10 September 2026 | Meaning is read at the level of the exchange: speech-act tags, exchange outcomes, citations labelled by exchange part. Roles gain standing, with Internal architect and Consultant distinct. Sessions are segmented into episodes with outcomes and completeness rules. Topic ledger added for cross-session subjects. Pipeline within a transcript and ledger across transcripts named separately. Runbooks per stage added. Worked examples rewritten in exchange form. |
-| 0.3 | 10 September 2026 | Project split into `ingester/` (the mechanism) and `engagements/<name>/` (everything produced for one client), each independent of the other. Claude Code running an ingest skill from the engagement folder is the runtime. Docker model-call scripts and the API key removed. All outputs, logs and artefacts confined to the engagement folder. |
+| 0.3 | 10 September 2026 | Project split into `ingester/` (the mechanism) and `engagement/<name>/` (everything produced for one client), each independent of the other. Claude Code running an ingest skill from the engagement folder is the runtime. Docker model-call scripts and the API key removed. All outputs, logs and artefacts confined to the engagement folder. |
 | 0.4 | 10 September 2026 | Goals and principles added (1): primary goal semantic correctness, secondary goal less human effort, inference first. Three judgement stops collapsed into one whole reading (S1) and one dossier review (S2), organised by episode with evidence inline; the staged path kept as a fallback. Every item graded Confident or Needs a human with a controlled reason (Q3, R16). Confident-but-wrong count added and made the governor of review reduction (Q4). The engagement's existing records read as context, with conflicts and closures surfaced (5.5, R17). Speech acts and exchanges kept as working files, not reviewed on their own. Stages renumbered S0 to S3. Worked examples show grades. Questions 10 and 11 added. |
 | 0.5 | 10 September 2026 | Stakeholder register added as an engagement file (4.6): STK ids, organisation, role, standing, Mentioned rows for named absentees. S0 matches speakers against it and the skill proposes roles and standing for new ones with citations; a speaker without a confirmed role blocks S1 (R18). Integrity rule I19 Known stakeholder. Session sheet derived from the register. Repository named as `solution-register`; first engagement named `puppy-gloves`. Questions 6, 8 and 13 settled or reframed. |
 | 1.0 | 10 September 2026 | Approved. The session-level approving forum flag is replaced by decision authority on the stakeholder register (4.6 Decides, Role Forum) and rule R19: SMEs accept decisions within their area, architect acceptance leaves a decision Proposed with an OI to the SLT group. R12 and the session sheet updated to match, and "authority check" added to the Needs-a-human reasons. Skill discovery tested: the skill lives at the repository root under `.claude/skills/` and the session starts at the root with the engagement name as argument (7.2). T001 session date recorded as 8 September 2026. Register model 2.16 changes applied. Section 10.2 questions closed. |
 | 1.1 | 10 September 2026 | Optional meeting subject argument on the ingest command (7.2). It guides episode boundaries, titles and topic matching and the reading of noisy terms, and is never a restriction (5.3). Recorded on the session sheet (Q3) and the transcript register (4.5). Episodes gain a Subject field for on, related or off subject. |
 | 1.2 | 10 September 2026 | The transcript file is the ingest command's first argument (7.2). The skill copies it unchanged into `transcripts/unprocessed/`, records its name and SHA-256 in the transcript register (4.5), and S3 moves it to `transcripts/processed/` as its last step. Layout (7.1) and file table (10.1) updated. T001 moved to `unprocessed/`. File table (10.1) gives full paths from the repository root for engagement files. |
+| 1.2 | 10 September 2026 | Top-level folder renamed from `engagements/` to `engagement/`. |
