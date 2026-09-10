@@ -60,3 +60,28 @@ vtt_path() { d=$(eng_dir "$1"); f=$(transcript_field "$1" "$2" File) || die "$2 
   for p in "$d/transcripts/unprocessed/$f" "$d/transcripts/processed/$f"; do
     if [ -f "$p" ]; then [ "$(sha256 "$p")" = "$s" ] || die "SHA-256 of $p does not match transcripts.md"; printf '%s\n' "$p"; return 0; fi; done
   die "transcript file $f not found under transcripts/"; }
+
+# header_field file "Field": value of "- Field: value" in a file's header list.
+header_field() { grep -m1 "^- $2:" "$1" | sed "s/^- $2: *//"; }
+
+# sheet_signed file: prints nothing and returns 0 when the session sheet passes F5; otherwise prints the reason.
+sheet_signed() { f=$1
+  [ -n "$(header_field "$f" Approver)" ] || { echo "session sheet has no Approver"; return 1; }
+  [ -n "$(header_field "$f" 'Approved on')" ] || { echo "session sheet has no Approved on"; return 1; }
+  n=$(table_rows "$f" | awk -F'|' '{ v=$(NF-1); gsub(/ /, "", v); if (v == "") n++ } END { print n+0 }')
+  [ "$n" -eq 0 ] || { echo "session sheet has $n row(s) with a blank verdict"; return 1; }
+  return 0; }
+
+# dossier_signed file: F5 for a dossier. A blank verdict on a Confident item in a bulk-accepted episode is Accept.
+dossier_signed() { f=$1
+  [ -n "$(header_field "$f" Approver)" ] || { echo "dossier has no Approver"; return 1; }
+  [ -n "$(header_field "$f" 'Approved on')" ] || { echo "dossier has no Approved on"; return 1; }
+  pend=$("$INGESTER_DIR/bin/dossier2tsv" "$f" | awk -F'\t' '$4 == "" && !($3 == "Confident" && $7 != "") { printf "%s ", $1 }')
+  [ -z "$pend" ] || { echo "dossier has pending verdicts on item(s): $pend"; return 1; }
+  return 0; }
+
+# accepted_items dossier: dossier2tsv rows whose verdict is Accept or Edit, or blank-but-bulk-accepted Confident.
+accepted_items() { "$INGESTER_DIR/bin/dossier2tsv" "$1" | awk -F'\t' '$4 == "Accept" || $4 == "Edit" || ($4 == "" && $3 == "Confident" && $7 != "")'; }
+
+# scope_values engagement: F7 bullets.
+scope_values() { awk '/^## Scope taxonomy/ { on=1; next } /^## / { on=0 } on && /^- / { sub(/^- /, ""); print }' "$(eng_dir "$1")/engagement.md"; }

@@ -1,0 +1,34 @@
+#!/bin/sh
+# dossier2tsv <dossier-or-reference-file>
+# Flattens F4 item blocks to TSV, one row per item:
+#   item  kind  grade  verdict  target  episode  bulk  fields  citations
+# fields is Key=Value pairs joined by \001; citations are F2 lines joined by \002. bulk is the name on
+# the episode's "Bulk accept:" line, so a blank verdict on a Confident item can be resolved to Accept.
+# A second output mode, -e, prints one row per episode: id  title  span  topic  subject  outcome  bulk.
+set -e
+mode=items; [ "$1" = "-e" ] && { mode=episodes; shift; }
+[ $# -eq 1 ] && [ -f "$1" ] || { echo "usage: dossier2tsv [-e] <file>" >&2; exit 1; }
+awk -v mode="$mode" '
+  function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
+  function flush() {
+    if (item == "") return
+    if (mode == "items") printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", item, kind, grade, verdict, target, episode, bulk[epid], fields, cites
+    item = ""; fields = ""; cites = ""; verdict = ""; target = ""; episode = ""; incites = 0
+  }
+  function flush_ep() {
+    if (epid != "" && mode == "episodes") printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", epid, eptitle, span, topic, subject, outcome, bulk[epid]
+  }
+  /^## / { flush(); flush_ep(); epid = ""; eptitle = ""; span = ""; topic = ""; subject = ""; outcome = ""
+           if ($2 ~ /^T[0-9][0-9][0-9]-E[0-9]+$/) { epid = $2; eptitle = $0; sub(/^## [^ ]+ /, "", eptitle) } ; next }
+  /^### Item / { flush(); s = $0; sub(/^### Item +/, "", s); n = split(s, p, / *\| */)
+                 item = trim(p[1]); kind = trim(p[2]); grade = trim(p[3]); inbody = 1; next }
+  item != "" && /^  - / && incites { c = $0; sub(/^  - /, "", c); cites = cites (cites == "" ? "" : "\002") c; next }
+  item != "" && /^- / { incites = 0; s = $0; sub(/^- /, "", s); k = s; sub(/:.*/, "", k); v = s; sub(/^[^:]*: */, "", v); k = trim(k); v = trim(v)
+      if (k == "Citations") { incites = 1; next }
+      if (k == "Episode") episode = v; else if (k == "Target") target = v; else if (k == "Verdict") verdict = v; else if (k == "Grade") grade = v
+      else fields = fields (fields == "" ? "" : "\001") k "=" v; next }
+  epid != "" && item == "" && /^- / { s = $0; sub(/^- /, "", s); k = s; sub(/:.*/, "", k); v = s; sub(/^[^:]*: */, "", v); k = trim(k); v = trim(v)
+      if (k == "Span") span = v; else if (k == "Topic") topic = v; else if (k == "Subject") subject = v; else if (k == "Outcome") outcome = v
+      else if (k == "Bulk accept") bulk[epid] = v; next }
+  END { flush(); flush_ep() }
+' "$1"

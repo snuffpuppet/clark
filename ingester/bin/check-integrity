@@ -1,0 +1,167 @@
+#!/bin/sh
+# check-integrity <engagement> [--proposed <dossier>]
+# Runs integrity rules I1 to I19 (solution-register-model.md 2.16 section 9) over the engagement's six
+# registers, current-state record and stakeholder register. With --proposed, the dossier's accepted items
+# and the session sheet's accepted new stakeholders are merged in as virtual rows first, so links to items
+# created in the same session resolve. Prints FAIL and WARN lines, then OK when nothing failed. Exit 1 on FAIL.
+set -e
+. "$(dirname "$0")/lib.sh"
+[ $# -ge 1 ] || die "usage: check-integrity <engagement> [--proposed <dossier>]"
+eng=$1; d=$(eng_dir "$eng"); dossier=""; [ "${2:-}" = "--proposed" ] && dossier=$3
+[ -d "$d/registers" ] || die "no registers folder in $d"
+facts=$(mktemp)
+
+# Stream: TYPE <tab> ID <tab> KEY <tab> VALUE
+for f in requirements:REQ decisions:DEC limitations:LIM risks:RSK open-items:OI change-requests:CR; do
+  file="$d/registers/${f%%:*}.md"; type=${f##*:}; [ -f "$file" ] || continue
+  hdr=$(table_header "$file")
+  table_rows "$file" | awk -F'|' -v type="$type" -v hdr="$hdr" '
+    BEGIN { n = split(hdr, h, "|"); for (i = 2; i < n; i++) { v = h[i]; gsub(/^ +| +$/, "", v); name[i] = v } }
+    { gsub(/\\\|/, "\001"); $0 = $0; id = $2; gsub(/^ +| +$/, "", id); for (i = 2; i < NF; i++) { v = $i; gsub(/^ +| +$/, "", v); gsub(/\001/, "|", v); printf "%s\t%s\t%s\t%s\n", type, id, name[i], v } }'
+done >> "$facts"
+for cs in "$d"/current-state-*.md; do [ -f "$cs" ] || continue
+  awk '/^## (SYS|PRC)-[0-9]+/ { printf "ELEM\t%s\tID\t%s\n", $2, $2 }
+       /^\| (SYS|PRC)-[0-9]+\.[fs][0-9]+ \|/ { id = $2; split($0, c, "|")
+         if ($2 ~ /^SYS/) { st = c[5] } else { st = c[6] }; gsub(/^ +| +$/, "", st); printf "CLAIM\t%s\tStatus\t%s\n", id, st }' "$cs"
+done >> "$facts"
+table_rows "$d/stakeholders.md" | awk -F'|' '{ gsub(/\\\|/, "\001"); $0 = $0; id=$2; n=$3; v=$4; r=$6; gsub(/^ +| +$/, "", id); gsub(/^ +| +$/, "", n); gsub(/^ +| +$/, "", v); gsub(/^ +| +$/, "", r)
+  printf "STK\t%s\tName\t%s\nSTK\t%s\tVariants\t%s\nSTK\t%s\tRole\t%s\n", id, n, id, v, id, r }' >> "$facts"
+scope_values "$eng" | awk '{ printf "SCOPE\t%s\tvalue\t%s\n", $0, $0 }' >> "$facts"
+
+if [ -n "$dossier" ]; then
+  [ -f "$dossier" ] || die "no such dossier $dossier"
+  tid=$(header_field "$dossier" Transcript); sheet="$(dirname "$dossier")/$tid.session.md"
+  accepted_items "$dossier" | awk -F'\t' '
+    { kind = $2; target = $5; item = $1; fields = $8
+      type = kind; sub(/\..*/, "", type)
+      if (kind == "SYS.fact" || kind == "PRC.step") { id = (target == "new") ? "CLAIM-item" item : target; st = ""
+        n = split(fields, kv, "\001"); for (i = 1; i <= n; i++) { k = kv[i]; sub(/=.*/, "", k); v = kv[i]; sub(/^[^=]*=/, "", v); if (k == "Status") st = v }
+        printf "CLAIM\t%s\tStatus\t%s\n", id, st; printf "ITEMMAP\titem %s\tid\t%s\n", item, id; next }
+      if (kind == "SYS" || kind == "PRC") { id = (target == "new") ? kind "-item" item : target; printf "ELEM\t%s\tID\t%s\n", id, id; printf "ITEMMAP\titem %s\tid\t%s\n", item, id; next }
+      if (type != "REQ" && type != "DEC" && type != "LIM" && type != "RSK" && type != "OI" && type != "CR") next
+      id = (target == "new") ? type "-item" item : target
+      printf "ITEMMAP\titem %s\tid\t%s\n", item, id
+      printf "%s\t%s\tID\t%s\n%s\t%s\tProposed\tyes\n", type, id, id, type, id
+      n = split(fields, kv, "\001"); for (i = 1; i <= n; i++) { k = kv[i]; sub(/=.*/, "", k); v = kv[i]; sub(/^[^=]*=/, "", v); if (k != "Gist") printf "%s\t%s\t%s\t%s\n", type, id, k, v }
+      if ($9 != "") { c = $9; gsub(/\002/, "; ", c); printf "%s\t%s\t%s\t%s\n", type, id, (type == "OI" ? "Raised by" : "Source"), c }
+    }' >> "$facts"
+  if [ -f "$sheet" ]; then
+    awk '/^## New stakeholders/ { on=1 } /^## Notes/ { on=0 } on && /^\| new \|/' "$sheet" | awk -F'|' '{ v=$(NF-1); gsub(/ /, "", v); if (v == "Accept" || v == "Edit") { n=$3; r=$5; gsub(/^ +| +$/, "", n); gsub(/^ +| +$/, "", r); printf "STK\tSTK-new%d\tName\t%s\nSTK\tSTK-new%d\tVariants\t\nSTK\tSTK-new%d\tRole\t%s\n", NR, n, NR, NR, r } }' >> "$facts"
+  fi
+fi
+
+awk -F'\t' -v today="$(today)" '
+  function lc(s) { return tolower(s) }
+  function fail(rule, id, why) { printf "FAIL %s %s: %s\n", rule, id, why; fails++ }
+  function warn(rule, id, why) { printf "WARN %s %s: %s\n", rule, id, why }
+  function has(id, k) { return ((id SUBSEP k) in F) && F[id, k] != "" }
+  function days(dt,   p, m, i) { split(dt, p, " "); if (p[3] == "") return -1
+    split("January February March April May June July August September October November December", mn, " ")
+    for (i = 1; i <= 12; i++) if (mn[i] == p[2]) m = i; if (!m) return -1
+    y = p[3] + 0; if (m <= 2) { y--; m += 12 }; return 365*y + int(y/4) - int(y/100) + int(y/400) + int(30.6*(m+1)) + p[1] }
+  function older14(dt) { d = days(dt); return d > 0 && days(today) - d > 14 }
+  function person_ok(name,   n, i, s) { n = lc(name); gsub(/^ +| +$/, "", n)
+    if (n == "" || n == "joint" || n ~ /^vendor/) return 1
+    for (s in STK) { if (lc(STKname[s]) == n) return 1; if (STKrole[s] == "Forum" && lc(STKname[s]) == n) return 1
+      m = split(STKvar[s], vv, /, */); for (i = 1; i <= m; i++) { x = lc(vv[i]); gsub(/^ +| +$/, "", x); if (x != "" && x == n) return 1 } }
+    return 0 }
+  function mentioned(name,   s, n) { n = lc(name); for (s in STK) if (lc(STKname[s]) == n && STKrole[s] == "Mentioned") return 1; return 0 }
+  function resolve(tok) { return ((("item " tok) in MAP) ? MAP["item " tok] : tok) }
+  function linked_oi_has_owner(id,   n, i, t) { n = split(F[id, "Links"], parts, /;/)
+    for (i = 1; i <= n; i++) { t = parts[i]; if (match(t, /OI-[0-9a-z]+/)) { o = substr(t, RSTART, RLENGTH); if (has(o, "Owner")) return 1 }
+      if (match(t, /item [0-9]+/)) { o = resolve(substr(t, RSTART + 5, RLENGTH - 5)); if (has(o, "Owner")) return 1 } }
+    return 0 }
+  { type = $1; id = $2; key = $3; val = $4
+    if (type == "ITEMMAP") { MAP[id] = val; next }
+    if (type == "SCOPE") { SCOPE[val] = 1; next }
+    if (type == "STK") { STK[id] = 1; if (key == "Name") STKname[id] = val; if (key == "Variants") STKvar[id] = val; if (key == "Role") STKrole[id] = val; next }
+    if (type == "ELEM") { ELEM[id] = 1; next }
+    if (type == "CLAIM") { CLAIM[id] = val; next }
+    if (!(id in T)) { T[id] = type; order[++cnt] = id; seen[id]++ } else if (T[id] != type || key == "ID") seen[id]++
+    F[id, key] = val }
+  END {
+    split("Draft Agreed Designed Delivered Verified Deferred Withdrawn", a, " "); for (i in a) V["REQ", a[i]] = 1
+    split("Proposed Accepted Superseded Rejected", a, " "); for (i in a) V["DEC", a[i]] = 1
+    split("Identified Under assessment|Accepted|Change requested|Resolved", a, "|"); V["LIM", "Identified"] = 1; V["LIM", "Under assessment"] = 1; V["LIM", "Accepted"] = 1; V["LIM", "Change requested"] = 1; V["LIM", "Resolved"] = 1
+    split("Identified Mitigating Realised Retired", a, " "); for (i in a) V["RSK", a[i]] = 1
+    split("Open In progress|Blocked|Closed", a, "|"); V["OI", "Open"] = 1; V["OI", "In progress"] = 1; V["OI", "Blocked"] = 1; V["OI", "Closed"] = 1
+    split("Proposed Options|For approval|Approved|Submitted|Deferred|Delivered|Withdrawn|Rejected", a, "|"); V["CR", "Proposed"] = 1; V["CR", "Options"] = 1; V["CR", "For approval"] = 1; V["CR", "Approved"] = 1; V["CR", "Submitted"] = 1; V["CR", "Deferred"] = 1; V["CR", "Delivered"] = 1; V["CR", "Withdrawn"] = 1; V["CR", "Rejected"] = 1
+    TERM["REQ Verified"] = TERM["REQ Deferred"] = TERM["REQ Withdrawn"] = TERM["DEC Superseded"] = TERM["DEC Rejected"] = 1
+    TERM["LIM Accepted"] = TERM["LIM Change requested"] = TERM["LIM Resolved"] = TERM["RSK Realised"] = TERM["RSK Retired"] = TERM["OI Closed"] = 1
+    TERM["CR Delivered"] = TERM["CR Withdrawn"] = TERM["CR Rejected"] = 1
+    for (i = 1; i <= cnt; i++) { id = order[i]; t = T[id]; st = F[id, "Status"]; term = ((t " " st) in TERM)
+      # I1
+      if (seen[id] > 1 || (id in ELEM) || (id in STK)) fail("I1", id, "id appears more than once")
+      # I2
+      if (!((t SUBSEP st) in V)) fail("I2", id, "status \"" st "\" is not a " t " status")
+      if (t == "REQ") { if (!has(id, "MoSCoW")) fail("I2", id, "no MoSCoW"); if (!has(id, "Raised on")) fail("I2", id, "no Raised on") }
+      if (t == "LIM") { if (!has(id, "Identified on")) fail("I2", id, "no Identified on"); if (st != "Identified" && !has(id, "Impact")) fail("I2", id, "no Impact past Identified")
+        if ((st == "Accepted" || st == "Change requested") && (split(F[id, "Options"], oo, /[0-9]+\. /) < 3 || !has(id, "Chosen option"))) fail("I2", id, "needs two Options and a Chosen option") }
+      if (t == "RSK") { if (!has(id, "Identified on")) fail("I2", id, "no Identified on"); if (st == "Mitigating" && (!has(id, "Trigger") || !has(id, "Mitigation"))) fail("I2", id, "Mitigating needs Trigger and Mitigation") }
+      if (t == "CR") { if (!has(id, "Raised on") || !has(id, "Raised by")) fail("I2", id, "needs Raised on and Raised by")
+        if (st != "Proposed" && !has(id, "Reason")) fail("I2", id, "no Reason past Proposed")
+        if (st != "Proposed" && st != "Options" && st != "Deferred" && split(F[id, "Options"], oo, /[0-9]+\. /) < 3) fail("I2", id, "needs two Options past Options")
+        if ((st == "Approved" || st == "Submitted" || st == "Delivered") && !has(id, "Consulted")) fail("I2", id, "no Consulted past For approval")
+        if ((st == "Approved" || st == "Submitted" || st == "Delivered") && !has(id, "Chosen option")) fail("I2", id, "no Chosen option")
+        if ((st == "Approved" || st == "Submitted" || st == "Delivered" || st == "Deferred") && !has(id, "Phase")) fail("I2", id, "no Phase")
+        if (st == "Submitted" && F[id, "Implemented by"] == "Vendor" && !has(id, "Vendor ref")) fail("I2", id, "Submitted with Implemented by Vendor needs Vendor ref") }
+      # I3
+      if ((t == "REQ" || t == "OI") && !term && !has(id, "Owner")) fail("I3", id, "no Owner")
+      if ((t == "DEC" || t == "LIM" || t == "RSK" || t == "CR") && !has(id, "Raised by")) fail("I3", id, "no Raised by")
+      if (((t == "DEC" && st == "Proposed") || (t == "REQ" && st == "Draft") || (t == "LIM" && st == "Under assessment") || (t == "CR" && (st == "Proposed" || st == "Options" || st == "For approval" || st == "Submitted"))) && !linked_oi_has_owner(id)) fail("I3", id, t " in " st " needs an open item in Links with an Owner")
+      # I4
+      if (t == "OI" && st != "Closed" && (!has(id, "Next action") || !has(id, "Due"))) fail("I4", id, "open item needs Next action and Due")
+      if (t == "RSK" && !term && !has(id, "Due")) fail("I4", id, "risk needs Due as its review date")
+      # I5
+      if (has(id, "Scope") && !(F[id, "Scope"] in SCOPE)) fail("I5", id, "scope \"" F[id, "Scope"] "\" is not in the taxonomy")
+      else if (!has(id, "Scope") && t != "OI") fail("I5", id, "no Scope")
+      # I6 and I18
+      links = F[id, "Links"]; n = split(links, lk, /;/)
+      for (j = 1; j <= n; j++) { l = lk[j]
+        while (match(l, /item [0-9]+/)) { r = resolve(substr(l, RSTART + 5, RLENGTH - 5)); l = substr(l, 1, RSTART - 1) r substr(l, RSTART + RLENGTH) }
+        if (match(l, /(SYS|PRC)-[0-9a-z]+\.[fs][0-9]+/) || match(l, /CLAIM-item[0-9]+/)) { c = substr(l, RSTART, RLENGTH)
+          if (!(c in CLAIM)) fail("I18", id, "link target " c " is not in the current-state record")
+          else if (l ~ /(replaces|preserves)/ && (CLAIM[c] == "Retired" || CLAIM[c] == "Withdrawn")) fail("I18", id, c " is " CLAIM[c] " and cannot be replaced or preserved") }
+        else if (match(l, /(REQ|DEC|LIM|RSK|OI|CR)-[0-9a-z]+/)) { c = substr(l, RSTART, RLENGTH); if (!(c in T)) fail("I6", id, "link target " c " does not exist") } }
+      # I7
+      if (t == "LIM") { dr = F[id, "Disposition record"]
+        if (st == "Accepted" && !(dr in T && T[dr] == "DEC" && F[dr, "Status"] == "Accepted")) fail("I7", id, "Accepted needs a Disposition record that is a DEC in Accepted")
+        if (st == "Change requested" && !(dr in T && T[dr] == "CR" && F[dr, "Status"] != "Withdrawn" && F[dr, "Status"] != "Rejected")) fail("I7", id, "Change requested needs a live CR as Disposition record")
+        if ((st == "Identified" || st == "Under assessment") && dr != "") fail("I7", id, "has a Disposition record before disposition")
+        if (links ~ /previously dispositioned by/ && match(links, /previously dispositioned by CR-[0-9]+/)) { p = substr(links, RSTART + 27, RLENGTH - 27); if (!(p in T) || (F[p, "Status"] != "Withdrawn" && F[p, "Status"] != "Rejected")) fail("I7", id, "previously dispositioned by must name a CR in Withdrawn or Rejected") } }
+      # I8
+      if (t == "DEC" && st == "Superseded") { if (!match(links, /superseded by DEC-[0-9a-z]+/)) fail("I8", id, "Superseded needs a superseded by link"); else { s2 = substr(links, RSTART + 14, RLENGTH - 14); if (!(s2 in T) || (F[s2, "Status"] != "Accepted" && F[s2, "Status"] != "Proposed")) fail("I8", id, "superseded by must point at a DEC in Accepted or Proposed") } }
+      # I9
+      if (t == "OI") { if (st == "Closed" && (!has(id, "Resolution") || !has(id, "Closed on"))) fail("I9", id, "Closed needs Resolution and Closed on")
+        if (st == "Blocked" && !has(id, "Blocked by")) fail("I9", id, "Blocked needs Blocked by"); if (st != "Blocked" && has(id, "Blocked by")) fail("I9", id, "Blocked by set while not Blocked") }
+      # I10
+      if (t == "CR" && (st == "Approved" || st == "Submitted" || st == "Delivered" || st == "Deferred" || st == "Withdrawn" || st == "Rejected") && (!has(id, "Approved by") || !has(id, "Approved on"))) fail("I10", id, st " needs Approved by and Approved on")
+      # I11
+      if (t == "DEC") { if ((st == "Accepted" || st == "Rejected") && (!has(id, "Approved by") || !has(id, "Decided on") || !has(id, "Consulted"))) fail("I11", id, st " needs Approved by, Decided on and Consulted"); if (!has(id, "Raised by")) fail("I11", id, "no Raised by") }
+      # I12
+      if ((t == "REQ" || t == "DEC" || t == "LIM" || t == "CR") && F[id, "Implemented by"] !~ /^(Vendor|Internal|Both)$/) fail("I12", id, "Implemented by must be Vendor, Internal or Both")
+      # I13
+      if (t == "RSK" && st == "Realised" && links !~ /realised as (OI-[0-9a-z]+|item [0-9]+)/) fail("I13", id, "Realised needs a realised as OI link")
+      # I14
+      if (t != "OI" && !has(id, "Source")) fail("I14", id, "no Source")
+      if (t == "OI" && (!has(id, "Raised on") || !has(id, "Raised by"))) fail("I14", id, "open item needs Raised on and Raised by")
+      # I15
+      if (t == "DEC" && st == "Proposed" && older14(F[id, "Updated"])) warn("I15", id, "Proposed for more than 14 days")
+      if (t == "REQ" && st == "Draft" && older14(F[id, "Raised on"])) warn("I15", id, "Draft for more than 14 days")
+      # I16
+      if (t == "DEC" && links !~ /addresses (REQ-[0-9a-z]+|item [0-9]+)/ && lc(F[id, "Rationale"]) !~ /accept/) warn("I16", id, "no addresses REQ link and no accepts wording in Rationale")
+      # I17
+      if (t == "CR") { if (st == "Deferred" && (!has(id, "Phase") || links ~ /OI-[0-9a-z]+/)) fail("I17", id, "Deferred needs a Phase and no open item in Links")
+        if (links !~ /triggered by ((LIM|REQ)-[0-9a-z]+|item [0-9]+)/) fail("I17", id, "no triggered by LIM or REQ link")
+        else { l2 = links; while (match(l2, /item [0-9]+/)) { r = resolve(substr(l2, RSTART + 5, RLENGTH - 5)); l2 = substr(l2, 1, RSTART - 1) r substr(l2, RSTART + RLENGTH) }
+          if (match(l2, /triggered by LIM-[0-9a-z]+/)) { lim = substr(l2, RSTART + 13, RLENGTH - 13); if ((lim in T) && F[lim, "Status"] == "Change requested" && F[lim, "Disposition record"] != id) fail("I17", id, "triggered by " lim " in Change requested but is not its Disposition record") } } }
+      # I19
+      split("Owner Raised by Approved by", pf, " ")
+      for (j = 1; j <= 3; j++) { v = F[id, pf[j]]; if (v == "" || v ~ /T[0-9][0-9][0-9]\// || v ~ /[0-9] [A-Z][a-z]+ [0-9][0-9][0-9][0-9]/) continue
+        if (!person_ok(v)) fail("I19", id, pf[j] " \"" v "\" is not a known stakeholder")
+        if (pf[j] == "Owner" && mentioned(v)) fail("I19", id, "Owner \"" v "\" has Role Mentioned") }
+      if (has(id, "Consulted")) { m = split(F[id, "Consulted"], cc, /, */); for (j = 1; j <= m; j++) if (!person_ok(cc[j])) fail("I19", id, "Consulted \"" cc[j] "\" is not a known stakeholder") }
+    }
+    if (fails) { printf "%d integrity failure(s)\n", fails; exit 1 } print "OK" }
+' "$facts" && rc=0 || rc=$?
+rm -f "$facts"; exit $rc

@@ -1,0 +1,171 @@
+#!/bin/sh
+# s3-write <engagement> <Tnnn>
+# The write stage. Checks every gate, then writes the accepted dossier items into the registers, the
+# current-state record, the topic ledger and the stakeholder register, bumps every touched document,
+# writes the session log and moves the transcript to processed/. Refuses on any failed gate.
+set -e
+. "$(dirname "$0")/lib.sh"
+[ $# -eq 2 ] || die "usage: s3-write <engagement> <Tnnn>"
+eng=$1; tid=$2; d=$(eng_dir "$eng"); sdir="$d/sessions/$tid"
+sheet="$sdir/$tid.session.md"; dossier="$sdir/$tid.dossier.md"; log="$sdir/$tid.session-log.md"
+TODAY=$(today)
+
+# Gates.
+vtt=$(vtt_path "$eng" "$tid")
+case "$vtt" in */processed/*) die "$tid is already processed; nothing written" ;; esac
+[ -f "$sheet" ] || die "no session sheet"; [ -f "$dossier" ] || die "no dossier"
+r=$(sheet_signed "$sheet") || die "gate: $r"
+r=$(dossier_signed "$dossier") || die "gate: $r"
+[ ! -f "$log" ] || die "session log already exists; $tid has been written"
+US=$(printf '\003'); items=$(mktemp); accepted_items "$dossier" | tr "\t" "\003" > "$items"
+acc=$(mktemp); cut -f9 "$items" | tr '\002' '\n' | grep . | sed 's/^/  - /' > "$acc" || true
+r=$("$INGESTER_DIR/bin/check-citations" "$eng" "$tid" "$acc") || die "gate: citation check failed on accepted items: $r"
+r=$("$INGESTER_DIR/bin/check-integrity" "$eng" --proposed "$dossier") || die "gate: integrity failed on the proposed set: $r"
+rm -f "$acc"
+
+# Snapshot so a failure part-way leaves the engagement as it was.
+snap=$(mktemp -d); ok=0
+for f in "$d"/stakeholders.md "$d"/transcripts.md "$d"/engagement.md "$d"/topics.md "$d"/registers/*.md "$d"/current-state-*.md; do [ -f "$f" ] && mkdir -p "$snap/$(dirname "${f#$d/}")" && cp "$f" "$snap/${f#$d/}"; done
+rollback() { [ "$ok" = 1 ] && { rm -rf "$snap"; return; }
+  (cd "$snap" && find . -type f | while IFS= read -r f; do cp "$f" "$d/$f"; done)
+  for f in "$d"/current-state-*.md; do [ -f "$f" ] && [ ! -f "$snap/${f#$d/}" ] && rm -f "$f"; done
+  rm -f "$log"; rm -rf "$snap"; echo "S3 failed; the engagement was restored to its state before the write" >&2; }
+trap rollback EXIT
+
+session_date=$(header_field "$sheet" 'Session date'); domain=$(header_field "$sheet" Domain)
+sheet_appr=$(header_field "$sheet" Approver); sheet_on=$(header_field "$sheet" 'Approved on')
+dos_appr=$(header_field "$dossier" Approver); dos_on=$(header_field "$dossier" 'Approved on')
+cs="$d/current-state-$(printf '%s' "$domain" | tr 'A-Z ' 'a-z-').md"
+touched=""
+touch_doc() { case " $touched " in *" $1 "*) ;; *) touched="$touched $1" ;; esac; }
+fill_template "$INGESTER_DIR/templates/session-log.md" "$log" "TID=$tid" "DATE=$TODAY" "INGESTER_VERSION=$(ingester_version)" "RULES_VERSION=$(rules_version)" "SHEET_APPROVER=$sheet_appr" "DOSSIER_APPROVER=$dos_appr"
+logrow() { printf '| %s | %s | %s | %s | %s |\n' "$1" "$2" "$(printf '%s' "$3" | sed "s#^$d/##")" "$4" "$TODAY" >> "$log"; }
+
+# Field helpers on one dossier2tsv row.
+fld() { printf '%s' "$1" | tr '\001' '\n' | awk -F= -v k="$2" '$1 == k { sub(/^[^=]*=/, ""); print; exit }'; }
+cites_cell() { printf '%s' "$1" | tr '\002' '\n' | grep . | escape_pipes | paste -sd';' - | sed 's/;/; /g'; }
+resolve_items() { s=$1; for pair in $IDMAP; do it=${pair%%=*}; id=${pair#*=}; s=$(printf '%s' "$s" | sed "s/item $it\b/$id/g; s/item $it\$/$id/g; s/item $it\([^0-9]\)/$id\1/g"); done; printf '%s' "$s"; }
+reg_file() { case $1 in REQ) echo requirements;; DEC) echo decisions;; LIM) echo limitations;; RSK) echo risks;; OI) echo open-items;; CR) echo change-requests;; esac; }
+
+# build_row header id type fields cites: one register row in header order.
+build_row() { printf '%s' "$1" | awk -F'|' '{ for (i=2;i<NF;i++) { v=$i; gsub(/^ +| +$/, "", v); print v } }' | {
+  out=""; while IFS= read -r col; do
+    case $col in
+      ID) v=$2 ;;
+      Updated) v=$TODAY ;;
+      Source) v=$(fld "$4" Source); [ -n "$5" ] && v=$(cites_cell "$5") ;;
+      "Raised by") v=$(fld "$4" "Raised by"); [ "$3" = OI ] && [ -n "$5" ] && v=$(cites_cell "$5") ;;
+      Links) v=$(resolve_items "$(fld "$4" Links)" | escape_pipes) ;;
+      *) v=$(fld "$4" "$col" | escape_pipes) ;;
+    esac
+    out="$out| $v "; done; printf '%s|' "$out"; }; }
+
+# 1. Stakeholders from the session sheet: accepted new rows, and Sessions for known attendees.
+stk="$d/stakeholders.md"; STKMAP=""
+awk '/^## New stakeholders/ { on=1 } /^## Notes/ { on=0 } on && /^\| new \|/' "$sheet" | while IFS= read -r row; do
+  v=$(cell "$row" 8); [ "$v" = Accept ] || [ "$v" = Edit ] || continue
+  id=$(next_id STK "$stk"); name=$(cell "$row" 2)
+  printf '| %s | %s |  | %s | %s | %s | %s | Active | %s | %s | %s | %s |\n' "$id" "$name" "$(cell "$row" 3 | escape_pipes)" "$(cell "$row" 4)" "$(cell "$row" 5 | escape_pipes)" "$(cell "$row" 6 | escape_pipes)" "$tid" "$tid" "$(cell "$row" 7 | escape_pipes)" "$TODAY" >> "$stk"
+  logrow "$id" created "$stk" "$name"
+done
+touch_doc "$stk"
+attendee_ids=$(awk '/^## Attendees/ { on=1 } /^## New/ { on=0 } on && /^\| / && !/Speaker tag/ && !/^\|---/' "$sheet" | while IFS= read -r row; do
+  s=$(cell "$row" 2); n=$(cell "$row" 1)
+  if [ "$s" = new ]; then s=$(table_rows "$stk" | awk -F'|' -v n="$n" '{ x=$3; gsub(/^ +| +$/, "", x); if (x == n) { y=$2; gsub(/ /, "", y); print y; exit } }'); fi
+  [ -n "$s" ] && printf '%s\n' "$s"; done | sort -u | paste -sd',' - | sed 's/,/, /g')
+for s in $(printf '%s' "$attendee_ids" | tr -d ','); do
+  awk -F'|' -v id="$s" -v tid="$tid" -v today="$TODAY" 'BEGIN{OFS="|"} { gsub(/\\\|/, "\001"); $0 = $0 } $2 == " " id " " { if ($11 !~ tid) { v=$11; gsub(/ +$/, "", v); $11 = (v ~ /[A-Za-z0-9]/ ? v ", " tid " " : " " tid " ") } $13 = " " today " " } { gsub(/\001/, "\\|"); print }' "$stk" > "$stk.tmp" && mv "$stk.tmp" "$stk"
+done
+
+# 2. Items, in dossier order. Pass one assigns ids so links between new items resolve.
+IDMAP=""
+regs="$d/registers/requirements.md $d/registers/decisions.md $d/registers/limitations.md $d/registers/risks.md $d/registers/open-items.md $d/registers/change-requests.md"
+while IFS="$US" read -r item kind grade verdict target episode bulk fields cites; do
+  type=${kind%%.*}
+  case $kind in
+    REQ|DEC|LIM|RSK|OI|CR) id=$target; [ "$target" = new ] && id=$(next_id "$type" $regs "$log") && logrow "$id" reserved "$d/registers/$(reg_file "$type").md" "item $item" ;;
+    SYS|PRC) id=$target; [ "$target" = new ] && id=$(next_id "$type" "$cs" "$log" 2>/dev/null) && logrow "$id" reserved "$cs" "item $item" ;;
+    *) continue ;;
+  esac
+  IDMAP="$IDMAP $item=$id"
+done < "$items"
+# Claim ids depend on their element, so they are assigned in pass two.
+
+[ -f "$cs" ] || { [ -n "$domain" ] || die "no Domain on the session sheet"; fill_template "$INGESTER_DIR/templates/current-state.md" "$cs" "DOMAIN=$domain" "DATE=$TODAY"; awk '/^## (SYS|PRC)-000 / { skip=1 } !skip { print } /^<!-- end (SYS|PRC)-000 -->/ { skip=0 }' "$cs" > "$cs.tmp" && mv "$cs.tmp" "$cs"; }
+touch_doc "$cs"
+
+while IFS="$US" read -r item kind grade verdict target episode bulk fields cites; do
+  type=${kind%%.*}; id=""; for pair in $IDMAP; do [ "${pair%%=*}" = "$item" ] && id=${pair#*=}; done
+  case $kind in
+    REQ|DEC|LIM|RSK|OI|CR)
+      file="$d/registers/$(reg_file "$type").md"; hdr=$(table_header "$file")
+      row=$(build_row "$hdr" "$id" "$type" "$fields" "$cites")
+      if [ "$target" = new ]; then printf '%s\n' "$row" >> "$file"; logrow "$id" created "$file" "$(fld "$fields" Title)"
+      else awk -v id="$id" -v new="$row" '$0 ~ "^\\| " id " \\|" { print new; next } { print }' "$file" > "$file.tmp" && mv "$file.tmp" "$file"; logrow "$id" updated "$file" "$(fld "$fields" Title)"; fi
+      touch_doc "$file" ;;
+    SYS|PRC)
+      if [ "$target" = new ]; then
+        if [ "$type" = SYS ]; then printf '\n## %s %s\n\n- Name: %s\n- Operated by: %s\n- Role today: %s\n\n| ID | Kind | Description | Status | Confidence | Asserted by | Evidence | Episode | Session |\n|---|---|---|---|---|---|---|---|---|\n\nQuestions:\n\n<!-- end %s -->\n' "$id" "$(fld "$fields" Name)" "$(fld "$fields" Name)" "$(fld "$fields" 'Operated by')" "$(fld "$fields" 'Role today')" "$id" >> "$cs"
+        else printf '\n## %s %s\n\n- Title: %s\n- Trigger: %s\n- Performed by: %s\n- Frequency: %s\n- Systems: %s\n\n| ID | Description | Performed by | System | Status | Confidence | Evidence | Episode | Session |\n|---|---|---|---|---|---|---|---|---|\n\nQuestions:\n\n<!-- end %s -->\n' "$id" "$(fld "$fields" Title)" "$(fld "$fields" Title)" "$(fld "$fields" Trigger)" "$(fld "$fields" 'Performed by')" "$(fld "$fields" Frequency)" "$(resolve_items "$(fld "$fields" Systems)")" "$id" >> "$cs"; fi
+        logrow "$id" created "$cs" "$(fld "$fields" Name)$(fld "$fields" Title)"
+      else logrow "$id" noted "$cs" "element update proposed in item $item; apply by hand"; fi ;;
+    SYS.fact|PRC.step)
+      if [ "$target" = new ]; then
+        parent=$(resolve_items "$(fld "$fields" System)$(fld "$fields" Process)")
+        grep -q "^<!-- end $parent -->" "$cs" || die "item $item names $parent, which is not in $cs"
+        suffix=f; [ "$type" = PRC ] && suffix=s
+        n=$(grep -o "^| $parent\.$suffix[0-9]*" "$cs" | sed "s/.*$suffix//" | sort -n | tail -1); cid="$parent.$suffix$(( ${n:-0} + 1 ))"
+        ev=$(cites_cell "$cites"); sess="$tid $session_date"
+        if [ "$type" = SYS ]; then row=$(printf '| %s | %s | %s | %s | %s | %s | %s | %s | %s |' "$cid" "$(fld "$fields" Kind)" "$(fld "$fields" Title | escape_pipes)" "$(fld "$fields" Status)" "$(fld "$fields" Confidence)" "$(fld "$fields" 'Asserted by')" "$ev" "$episode" "$sess")
+        else row=$(printf '| %s | %s | %s | %s | %s | %s | %s | %s | %s |' "$cid" "$(fld "$fields" Title | escape_pipes)" "$(fld "$fields" 'Performed by')" "$(resolve_items "$(fld "$fields" System)")" "$(fld "$fields" Status)" "$(fld "$fields" Confidence)" "$ev" "$episode" "$sess"); fi
+        # Insert before the blank line that precedes "Questions:" in this element's section.
+        awk -v p="$parent" -v new="$row" '$0 == "## " p || index($0, "## " p " ") == 1 { on=1 } on && /^Questions:/ { sub(/\n$/, "", buf); print new; on=0 } on && /^$/ && seen_table { print new; on=0; seen_table=0 } on && /^\|/ { seen_table=1 } { print }' "$cs" > "$cs.tmp" && mv "$cs.tmp" "$cs"
+        IDMAP="$IDMAP $item=$cid"; logrow "$cid" created "$cs" "$(fld "$fields" Title)"
+      else
+        st=$(fld "$fields" Status); conf=$(fld "$fields" Confidence)
+        awk -F'|' -v id="$target" -v st="$st" -v conf="$conf" -v sys="$( [ "$type" = SYS ] && echo 1 || echo 0 )" 'BEGIN{OFS="|"} { gsub(/\\\|/, "\001"); $0 = $0 } $2 == " " id " " { si = sys ? 5 : 6; if (st != "") $si = " " st " "; if (conf != "") $(si+1) = " " conf " " } { gsub(/\001/, "\\|"); print }' "$cs" > "$cs.tmp" && mv "$cs.tmp" "$cs"
+        logrow "$target" updated "$cs" "$(fld "$fields" Title)"
+      fi ;;
+    TOP)
+      top="$d/topics.md"; tgt=$target
+      if [ "$tgt" = new ]; then tgt=$(next_id TOP "$top"); printf '| %s | %s | %s | %s |  |  | %s | %s |\n' "$tgt" "$(fld "$fields" Title | escape_pipes)" "$(fld "$fields" Scope)" "$episode" "$(fld "$fields" Position | escape_pipes)" "$TODAY" >> "$top"; logrow "$tgt" created "$top" "$(fld "$fields" Title)"
+      else awk -F'|' -v id="$tgt" -v ep="$episode" -v pos="$(fld "$fields" Position | escape_pipes)" -v today="$TODAY" 'BEGIN{OFS="|"} { gsub(/\\\|/, "\001"); $0 = $0 } $2 == " " id " " { v=$5; gsub(/^ +| +$/, "", v); $5 = " " (v == "" ? ep : v ", " ep) " "; if (pos != "") $8 = " " pos " "; $9 = " " today " " } { gsub(/\001/, "\\|"); print }' "$top" > "$top.tmp" && mv "$top.tmp" "$top"; logrow "$tgt" updated "$top" "episode $episode"; fi
+      touch_doc "$top" ;;
+    STK.edit)
+      for k in Role Standing Decides Organisation Variants; do v=$(fld "$fields" "$k"); [ -n "$v" ] || continue
+        ci=$(col_index "$stk" "$k"); awk -F'|' -v id="$target" -v ci="$ci" -v v="$(printf '%s' "$v" | escape_pipes)" -v today="$TODAY" 'BEGIN{OFS="|"} $2 == " " id " " { $(ci+1) = " " v " "; $13 = " " today " " } { gsub(/\001/, "\\|"); print }' "$stk" > "$stk.tmp" && mv "$stk.tmp" "$stk"; done
+      logrow "$target" updated "$stk" "$(fld "$fields" Title)" ;;
+    Question) ;;
+  esac
+done < "$items"
+rm -f "$items"
+
+# 3. Topic ledger: open items and closing records per episode.
+top="$d/topics.md"
+if [ -f "$top" ] && table_rows "$top" | grep -q .; then
+  acc2=$(mktemp); accepted_items "$dossier" > "$acc2"
+  table_rows "$log" | grep '| created |' | while IFS= read -r r; do
+    id=$(cell "$r" 1); case $id in OI-*|DEC-*|REQ-*) ;; *) continue ;; esac
+    ep=$(awk -F'\t' -v it="$(cell "$r" 4 | sed 's/^item //')" '$1 == it { print $6; exit }' "$acc2")
+    [ -n "$ep" ] || continue
+    col=5; [ "${id%%-*}" = OI ] && col=6 || col=7
+    awk -F'|' -v ep="$ep" -v id="$id" -v col="$col" 'BEGIN{OFS="|"} { gsub(/\\\|/, "\001"); $0 = $0 } index($5, ep) { v=$col; gsub(/^ +| +$/, "", v); $col = " " (v == "" ? id : v ", " id) " " } { gsub(/\001/, "\\|"); print }' "$top" > "$top.tmp" && mv "$top.tmp" "$top"
+  done
+  rm -f "$acc2"
+fi
+
+# 4. Transcript register, engagement.md, versions.
+treg="$d/transcripts.md"
+awk -F'|' -v id="$tid" -v sd="$session_date" -v att="$attendee_ids" -v dom="$domain" -v sa="$sheet_appr" -v so="$sheet_on" -v da="$dos_appr" -v do_="$dos_on" -v title="$(header_field "$dossier" 'Inferred purpose' | escape_pipes)" 'BEGIN{OFS="|"} $2 == " " id " " { $5 = " " sd " "; if (title != "") $6 = " " title " "; $8 = " " att " "; $9 = " " dom " "; $10 = " " sa " "; $11 = " " so " "; $12 = " " da " "; $13 = " " do_ " " } { gsub(/\001/, "\\|"); print }' "$treg" > "$treg.tmp" && mv "$treg.tmp" "$treg"
+touch_doc "$treg"
+engf="$d/engagement.md"
+sed -i '' "s/^- Ingester version last used:.*/- Ingester version last used: $(ingester_version)/; s/^- Rules version last used:.*/- Rules version last used: $(rules_version)/; s/^- Domain: to be set at S0/- Domain: $domain/" "$engf"
+touch_doc "$engf"
+for f in $touched; do bump_version "$f"; done
+
+# 5. Move the transcript last.
+mkdir -p "$d/transcripts/processed"; mv "$vtt" "$d/transcripts/processed/"
+[ "$(sha256 "$d/transcripts/processed/$(basename "$vtt")")" = "$(transcript_field "$eng" "$tid" SHA-256)" ] || die "SHA-256 mismatch after move; check $d/transcripts/processed"
+ok=1
+log_run "$eng" "$tid" S3 "written" "$sheet $dossier" "$touched $log" > /dev/null
+printf 'S3: wrote %s id(s); see %s\n' "$(table_rows "$log" | grep -c '| created \|| updated ')" "$log"

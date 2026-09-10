@@ -1,0 +1,12 @@
+#!/bin/sh
+# new-engagement <name>: creates engagements/<name>/ from the templates. Refuses if any engagement file exists.
+set -e
+. "$(dirname "$0")/lib.sh"
+[ $# -eq 1 ] || die "usage: new-engagement <name>"
+name=$1; d=$(eng_dir "$name"); D=$(today)
+for f in engagement.md stakeholders.md transcripts.md topics.md registers; do [ ! -e "$d/$f" ] || die "$d/$f already exists"; done
+mkdir -p "$d/registers" "$d/transcripts/unprocessed" "$d/transcripts/processed" "$d/sessions" "$d/evaluation" "$d/logs"
+for f in engagement stakeholders transcripts topics; do fill_template "$INGESTER_DIR/templates/$f.md" "$d/$f.md" "ENGAGEMENT=$name" "DATE=$D" "INGESTER_VERSION=$(ingester_version)" "RULES_VERSION=$(rules_version)"; done
+for f in "$INGESTER_DIR"/templates/registers/*.md; do fill_template "$f" "$d/registers/$(basename "$f")" "ENGAGEMENT=$name" "DATE=$D"; done
+for sub in sessions evaluation logs transcripts/unprocessed transcripts/processed; do touch "$d/$sub/.gitkeep"; done
+printf 'created %s\n' "$d"; ls "$d"
