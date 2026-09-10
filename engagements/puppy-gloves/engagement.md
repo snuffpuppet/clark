@@ -4,7 +4,7 @@ Version 0.3, 10 September 2026.
 
 - Client: puppy-gloves (sanitised name)
 - Domain: to be set at S0
-- Ingester version last used: 0.1.0
+- Ingester version last used: 0.5.1
 - Rules version last used: 1.1
 
 ## Phases

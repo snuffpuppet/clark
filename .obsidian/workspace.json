@@ -188,8 +188,12 @@
       "bases:Create new base": false
     }
   },
-  "active": "09672812e3da2441",
+  "active": "5180da806ef7177c",
   "lastOpenFiles": [
+    "engagements/puppy-gloves/LOG.md",
+    "engagements/puppy-gloves/CLAUDE.md",
+    "ingester/templates/LOG.md",
+    "ingester/templates/CLAUDE.md",
     "engagements/puppy-gloves/sessions/T001/TASKS.md",
     "ingester/bin/tasks"
   ]
