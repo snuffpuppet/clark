@@ -1,0 +1,67 @@
+#!/bin/sh
+# score <engagement> <Tnnn> <reference-file> [<dossier-file>]
+# Scores a drafted dossier against a reference in the dossier shape (design Q4) and writes
+# evaluation/Tnnn-run-nn.md from the run-report template. Prints the counts table.
+set -e
+. "$(dirname "$0")/lib.sh"
+[ $# -ge 3 ] || die "usage: score <engagement> <Tnnn> <reference> [dossier]"
+eng=$1; tid=$2; ref=$3; d=$(eng_dir "$eng"); dos=${4:-$d/sessions/$tid/$tid.dossier.md}
+[ -f "$ref" ] || die "no reference at $ref"; [ -f "$dos" ] || die "no dossier at $dos"
+mkdir -p "$d/evaluation"
+n=$(ls "$d/evaluation" | grep -o "^$tid-run-[0-9][0-9]" | sed 's/.*-//' | sort -n | tail -1); run=$(printf '%02d' $(( ${n:-0} + 1 )))
+prev=""; [ -n "$n" ] && prev="$d/evaluation/$tid-run-$n.md"
+out="$d/evaluation/$tid-run-$run.md"
+R=$(mktemp); Dd=$(mktemp); Er=$(mktemp); Ed=$(mktemp); F=$(mktemp); P=$(mktemp)
+"$INGESTER_DIR/bin/dossier2tsv" "$ref" > "$R"; "$INGESTER_DIR/bin/dossier2tsv" "$dos" > "$Dd"
+"$INGESTER_DIR/bin/dossier2tsv" -e "$ref" > "$Er"; "$INGESTER_DIR/bin/dossier2tsv" -e "$dos" > "$Ed"
+"$INGESTER_DIR/bin/check-citations" "$eng" "$tid" "$dos" > "$F" 2>&1 || true
+[ -n "$prev" ] && awk '/^\| [A-Za-z.\/]+ \| [0-9]+ \|/ { gsub(/ /, ""); print }' "$prev" > "$P"
+
+awk -F'\t' -v refname="$ref" -v dosname="$dos" -v fails="$F" -v prevf="$P" -v tid="$tid" '
+  function utts(cites,   s, n, i, m, tok, set) { set = ""; n = split(cites, c, "\002")
+    for (i = 1; i <= n; i++) { s = c[i]; while (match(s, /T[0-9][0-9][0-9]\/[0-9][0-9:, -]*/)) { tok = substr(s, RSTART + 5, RLENGTH - 5); s = substr(s, RSTART + RLENGTH)
+        m = split(tok, parts, /, */); for (j = 1; j <= m; j++) { u = parts[j]; sub(/:.*/, "", u); set = set " " u " " } } }
+    return set }
+  function overlap(a, b,   n, i, t) { n = split(a, t, " "); for (i = 1; i <= n; i++) if (t[i] != "" && index(b, " " t[i] " ")) return 1; return 0 }
+  function fld(fields, k,   n, i, kv) { n = split(fields, kv, "\001"); for (i = 1; i <= n; i++) { if (index(kv[i], k "=") == 1) return substr(kv[i], length(k) + 2) } return "" }
+  function kindclass(k) { return (k == "Question" || k == "OI") ? "OI/Question" : k }
+  function span_utts(sp,   a, b) { if (match(sp, /^[0-9]+/)) a = substr(sp, RSTART, RLENGTH) + 0; if (match(sp, /to [0-9]+/)) b = substr(sp, RSTART + 3, RLENGTH - 3) + 0; return a " " b }
+  FILENAME == ARGV[1] { nr++; rk[nr] = $2; ru[nr] = utts($9); rst[nr] = fld($8, "Status"); rit[nr] = $1; rep[nr] = $6; next }
+  FILENAME == ARGV[2] { nd++; dk[nd] = $2; du[nd] = utts($9); dg[nd] = $3; dv[nd] = $4; dst[nd] = fld($8, "Status"); dit[nd] = $1; dep[nd] = $6; dc[nd] = $9; next }
+  FILENAME == ARGV[3] { ner++; ers[ner] = span_utts($3); next }
+  FILENAME == ARGV[4] { ned++; eds[ned] = span_utts($3); edo[ned] = $6; edid[ned] = $1; next }
+  END {
+    while ((getline line < fails) > 0) if (line ~ /^FAIL /) { sub(/^FAIL [a-z]+ /, "", line); sub(/;.*/, "", line); badc[line] = 1 }
+    # Items
+    for (i = 1; i <= nd; i++) { kinds[kindclass(dk[i])] = 1; if (dg[i] != "Confident") needs++
+      bad = 0; m = split(dc[i], cs, "\002"); for (j = 1; j <= m; j++) { cc = cs[j]; sub(/^[a-z]+ \| /, "", cc); sub(/ \| "[^"]*"$/, "", cc); if (cc in badc) bad = 1 }
+      match_i = 0
+      for (r = 1; r <= nr; r++) if (!used[r] && kindclass(rk[r]) == kindclass(dk[i]) && (overlap(du[i], ru[r]) || (du[i] == "" && ru[r] == "" && dep[i] == rep[r]))) { match_i = r; used[r] = 1; break }
+      if (bad || !match_i) { inv[kindclass(dk[i])]++; tag[++nt] = "Item " dit[i] " | " dk[i] " | Invented |  |  | " (bad ? "citation failed" : "no match in the reference") }
+      else if (dv[i] == "Accept" || dv[i] == "") right[kindclass(dk[i])]++
+      else { wrong[kindclass(dk[i])]++; tag[++nt] = "Item " dit[i] " | " dk[i] " | Wrong |  |  | matched reference item " rit[match_i] ", verdict " dv[i] }
+      if (dg[i] == "Confident" && dv[i] != "Accept" && dv[i] != "") { cbw++; tag[++nt] = "Item " dit[i] " | " dk[i] " | Confident but wrong |  |  | overconfident-grade" }
+      if (match_i && (rst[match_i] == "Retired" || rst[match_i] == "Current, not needed") && (dk[i] == "REQ" || dst[i] == "Current")) { res++; tag[++nt] = "Item " dit[i] " | " dk[i] " | Resurrection |  |  | reference item " rit[match_i] " is " rst[match_i] }
+    }
+    for (r = 1; r <= nr; r++) { kinds[kindclass(rk[r])] = 1; if (!used[r]) { missed[kindclass(rk[r])]++; tag[++nt] = "Reference item " rit[r] " | " rk[r] " | Missed |  |  | no draft item on utterances" ru[r] } }
+    # Episodes
+    for (e = 1; e <= ned; e++) { if (edo[e] == "Settled" || edo[e] == "Parked" || edo[e] == "Unsettled") { own = 0; for (i = 1; i <= nd; i++) if (dep[i] == edid[e]) own = 1; if (!own) { empty++; tag[++nt] = "Episode " edid[e] " | episode | Empty episode |  |  | outcome " edo[e] " with no item" } } }
+    # Previous
+    while ((getline line < prevf) > 0) { split(line, p, "|"); pk = p[2]; prv[pk] = p[3] "|" p[4] "|" p[5] "|" p[6] }
+    tr = tw = tm = ti = 0
+    for (k in kinds) { rr = right[k] + 0; ww = wrong[k] + 0; mm = missed[k] + 0; ii = inv[k] + 0; tr += rr; tw += ww; tm += mm; ti += ii
+      split(prv[k], pp, "|"); rows = rows sprintf("| %s | %d | %d | %d | %d | %s | %s | %s | %s |\n", k, rr, ww, mm, ii, pp[1], pp[2], pp[3], pp[4]) }
+    rows = rows sprintf("| All | %d | %d | %d | %d |  |  |  |  |", tr, tw, tm, ti)
+    invrate = nd ? sprintf("%.1f", 100 * ti / nd) : "n/a"; misrate = nr ? sprintf("%.1f", 100 * tm / nr) : "n/a"; share = nd ? sprintf("%.2f", needs / nd) : "n/a"
+    tags = ""; for (t = 1; t <= nt; t++) tags = tags "| " tag[t] " |\n"; sub(/\n$/, "", tags)
+    printf "COUNTS\n%s\nINVRATE %s\nMISRATE %s\nSHARE %s\nRES %d\nEMPTY %d\nCBW %d\nTAGS\n%s\nEND\n", rows, invrate, misrate, share, res + 0, empty + 0, cbw + 0, tags
+  }' "$R" "$Dd" "$Er" "$Ed" > "$R.out"
+
+counts=$(awk '/^COUNTS$/ { on=1; next } /^INVRATE/ { on=0 } on' "$R.out"); tags=$(awk '/^TAGS$/ { on=1; next } /^END$/ { on=0 } on' "$R.out")
+get() { awk -v k="$1" '$1 == k { sub(/^[A-Z]+ /, ""); print; exit }' "$R.out"; }
+fill_template "$INGESTER_DIR/templates/run-report.md" "$out" "TID=$tid" "RUN=$run" "DATE=$(today)" "REFERENCE=$(printf '%s' "$ref" | sed "s#^$d/##")" "REFERENCE_VERSION=$(header_field "$ref" 'Reference version')" "DOSSIER=$(printf '%s' "$dos" | sed "s#^$d/##")" "INGESTER_VERSION=$(ingester_version)" "RULES_VERSION=$(header_field "$dos" 'Rules version')" "PREVIOUS=${prev:+$(basename "$prev")}" "INVENTED_RATE=$(get INVRATE)" "MISSED_RATE=$(get MISRATE)" "HUMAN_SHARE=$(get SHARE)" "RESURRECTIONS=$(get RES)" "EMPTY_EPISODES=$(get EMPTY)" "CONFIDENT_WRONG=$(get CBW)"
+[ -z "$prev" ] && sed -i '' 's/^- Previous run: $/- Previous run: none/' "$out"
+printf '%s\n' "$counts" > "$R.c"; printf '%s\n' "$tags" > "$R.t"
+awk -v c="$R.c" -v t="$R.t" '/^\{\{COUNTS\}\}$/ { while ((getline l < c) > 0) print l; next } /^\{\{TAG_ROWS\}\}$/ { while ((getline l < t) > 0) if (l != "") print l; next } { print }' "$out" > "$out.tmp" && mv "$out.tmp" "$out"
+rm -f "$R" "$Dd" "$Er" "$Ed" "$F" "$P" "$R.out" "$R.c" "$R.t"
+printf 'wrote %s\n' "$out"; printf '%s\n' "$counts"; printf 'Resurrections %s, empty episodes %s, confident but wrong %s\n' "$(get RES 2>/dev/null || sed -n 's/^- Resurrections: //p' "$out")" "$(sed -n 's/^- Empty episodes: //p' "$out")" "$(sed -n 's/^- Confident but wrong: //p' "$out")"
