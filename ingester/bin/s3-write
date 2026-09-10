@@ -16,7 +16,7 @@ case "$vtt" in */processed/*) die "$tid is already processed; nothing written" ;
 [ -f "$sheet" ] || die "no session sheet"; [ -f "$dossier" ] || die "no dossier"
 r=$(sheet_signed "$sheet") || die "gate: $r"
 r=$(dossier_signed "$dossier") || die "gate: $r"
-[ ! -f "$log" ] || die "session log already exists; $tid has been written"
+[ ! -f "$log" ] || ! grep -q "^- S3 written on:" "$log" || die "session log says $tid has been written"
 US=$(printf '\003'); items=$(mktemp); accepted_items "$dossier" | tr "\t" "\003" > "$items"
 acc=$(mktemp); cut -f9 "$items" | tr '\002' '\n' | grep . | sed 's/^/  - /' > "$acc" || true
 r=$("$INGESTER_DIR/bin/check-citations" "$eng" "$tid" "$acc") || die "gate: citation check failed on accepted items: $r"
@@ -25,11 +25,12 @@ rm -f "$acc"
 
 # Snapshot so a failure part-way leaves the engagement as it was.
 snap=$(mktemp -d); ok=0
+[ -f "$log" ] && cp "$log" "$snap/sessions-log"
 for f in "$d"/stakeholders.md "$d"/transcripts.md "$d"/engagement.md "$d"/topics.md "$d"/registers/*.md "$d"/current-state-*.md; do [ -f "$f" ] && mkdir -p "$snap/$(dirname "${f#$d/}")" && cp "$f" "$snap/${f#$d/}"; done
 rollback() { [ "$ok" = 1 ] && { rm -rf "$snap"; return; }
-  (cd "$snap" && find . -type f | while IFS= read -r f; do cp "$f" "$d/$f"; done)
+  (cd "$snap" && find . -type f ! -name sessions-log | while IFS= read -r f; do cp "$f" "$d/$f"; done)
   for f in "$d"/current-state-*.md; do [ -f "$f" ] && [ ! -f "$snap/${f#$d/}" ] && rm -f "$f"; done
-  rm -f "$log"; rm -rf "$snap"; echo "S3 failed; the engagement was restored to its state before the write" >&2; }
+  [ -f "$snap/sessions-log" ] && cp "$snap/sessions-log" "$log" || rm -f "$log"; rm -rf "$snap"; echo "S3 failed; the engagement was restored to its state before the write" >&2; }
 trap rollback EXIT
 
 session_date=$(header_field "$sheet" 'Session date'); domain=$(header_field "$sheet" Domain)
@@ -38,7 +39,8 @@ dos_appr=$(header_field "$dossier" Approver); dos_on=$(header_field "$dossier" '
 cs="$d/current-state-$(printf '%s' "$domain" | tr 'A-Z ' 'a-z-').md"
 touched=""
 touch_doc() { case " $touched " in *" $1 "*) ;; *) touched="$touched $1" ;; esac; }
-fill_template "$INGESTER_DIR/templates/session-log.md" "$log" "TID=$tid" "DATE=$TODAY" "INGESTER_VERSION=$(ingester_version)" "RULES_VERSION=$(rules_version)" "SHEET_APPROVER=$sheet_appr" "DOSSIER_APPROVER=$dos_appr"
+"$INGESTER_DIR/bin/s1-stakeholders" "$eng" "$tid" > /dev/null
+sed -i '' "s/^- Dossier approver: .*/- Dossier approver: $dos_appr/" "$log"
 logrow() { printf '| %s | %s | %s | %s | %s |\n' "$1" "$2" "$(printf '%s' "$3" | sed "s#^$d/##")" "$4" "$TODAY" >> "$log"; }
 
 # Field helpers on one dossier2tsv row.
@@ -60,22 +62,12 @@ build_row() { printf '%s' "$1" | awk -F'|' '{ for (i=2;i<NF;i++) { v=$i; gsub(/^
     esac
     out="$out| $v "; done; printf '%s|' "$out"; }; }
 
-# 1. Stakeholders from the session sheet: accepted new rows, and Sessions for known attendees.
-stk="$d/stakeholders.md"; STKMAP=""
-awk '/^## New stakeholders/ { on=1 } /^## Notes/ { on=0 } on && /^\| new \|/' "$sheet" | while IFS= read -r row; do
-  v=$(cell "$row" 8); [ "$v" = Accept ] || [ "$v" = Edit ] || continue
-  id=$(next_id STK "$stk"); name=$(cell "$row" 2)
-  printf '| %s | %s |  | %s | %s | %s | %s | Active | %s | %s | %s | %s |\n' "$id" "$name" "$(cell "$row" 3 | escape_pipes)" "$(cell "$row" 4)" "$(cell "$row" 5 | escape_pipes)" "$(cell "$row" 6 | escape_pipes)" "$tid" "$tid" "$(cell "$row" 7 | escape_pipes)" "$TODAY" >> "$stk"
-  logrow "$id" created "$stk" "$name"
-done
-touch_doc "$stk"
+# 1. Stakeholders were written by s1-stakeholders when the sheet was signed. Collect attendee ids.
+stk="$d/stakeholders.md"; touch_doc "$stk"
 attendee_ids=$(awk '/^## Attendees/ { on=1 } /^## New/ { on=0 } on && /^\| / && !/Speaker tag/ && !/^\|---/' "$sheet" | while IFS= read -r row; do
   s=$(cell "$row" 2); n=$(cell "$row" 1)
   if [ "$s" = new ]; then s=$(table_rows "$stk" | awk -F'|' -v n="$n" '{ x=$3; gsub(/^ +| +$/, "", x); if (x == n) { y=$2; gsub(/ /, "", y); print y; exit } }'); fi
   [ -n "$s" ] && printf '%s\n' "$s"; done | sort -u | paste -sd',' - | sed 's/,/, /g')
-for s in $(printf '%s' "$attendee_ids" | tr -d ','); do
-  awk -F'|' -v id="$s" -v tid="$tid" -v today="$TODAY" 'BEGIN{OFS="|"} { gsub(/\\\|/, "\001"); $0 = $0 } $2 == " " id " " { if ($11 !~ tid) { v=$11; gsub(/ +$/, "", v); $11 = (v ~ /[A-Za-z0-9]/ ? v ", " tid " " : " " tid " ") } $13 = " " today " " } { gsub(/\001/, "\\|"); print }' "$stk" > "$stk.tmp" && mv "$stk.tmp" "$stk"
-done
 
 # 2. Items, in dossier order. Pass one assigns ids so links between new items resolve.
 IDMAP=""
@@ -166,6 +158,7 @@ for f in $touched; do bump_version "$f"; done
 # 5. Move the transcript last.
 mkdir -p "$d/transcripts/processed"; mv "$vtt" "$d/transcripts/processed/"
 [ "$(sha256 "$d/transcripts/processed/$(basename "$vtt")")" = "$(transcript_field "$eng" "$tid" SHA-256)" ] || die "SHA-256 mismatch after move; check $d/transcripts/processed"
+awk -v d="$TODAY" '!done && /^- Stakeholders written on:/ { print; print "- S3 written on: " d; done=1; next } { print }' "$log" > "$log.tmp" && mv "$log.tmp" "$log"
 ok=1
 log_run "$eng" "$tid" S3 "written" "$sheet $dossier" "$touched $log" > /dev/null
 printf 'S3: wrote %s id(s); see %s\n' "$(table_rows "$log" | grep -c '| created \|| updated ')" "$log"

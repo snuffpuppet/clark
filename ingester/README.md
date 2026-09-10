@@ -1,6 +1,6 @@
 # The ingester
 
-Version 0.1, 10 September 2026. Owner: Adam Moyes. Implements `extraction-solution-design.md` 1.2 against `solution-register-model.md` 2.16. Built to `IMPLEMENTATION-PLAN.md` 0.1.
+Version 0.2, 10 September 2026.
 
 ## Purpose
 
@@ -48,9 +48,9 @@ The skill finds the next unsigned gate and acts on it, or says which file is wai
 | Stage | Done by | Input | Output | Gate to the next |
 |---|---|---|---|---|
 | S0 Prepare | `bin/s0-prepare`, then the skill proposes roles | VTT, stakeholder register | `Tnnn.utterances.tsv`, `Tnnn.session.md` | Session sheet signed, every verdict filled |
-| S1 Read | The skill | Utterance table, signed sheet, rules, the engagement's records | `Tnnn.exchanges.md`, `Tnnn.episodes.md`, `Tnnn.dossier.md` | Dossier signed, every verdict filled |
+| S1 Read | `bin/s1-stakeholders` writes the accepted stakeholder rows, then the skill reads | Utterance table, signed sheet, rules, the engagement's records | `Tnnn.exchanges.md`, `Tnnn.episodes.md`, `Tnnn.dossier.md` | Dossier signed, every verdict filled |
 | S2 Review | The human | Dossier | Dossier with verdicts | As above |
-| S3 Write | `bin/s3-write` | Both signed files | Registers, record, ledger, stakeholders, session log; VTT moved to `processed/` | None |
+| S3 Write | `bin/s3-write` | Both signed files | Registers, record, ledger, stakeholder edits, session log; VTT moved to `processed/` | None |
 | Evaluate | `bin/score`, then the human tags | Dossier and reference | `evaluation/Tnnn-run-nn.md` | None |
 
 ## Formats
@@ -78,6 +78,7 @@ All in `bin/`, POSIX sh with awk, sed, grep, shasum and date. `ENGAGEMENTS_ROOT`
 | `new-engagement` | `new-engagement <name>` | Creates an engagement folder from the templates. |
 | `register-transcript` | `register-transcript <engagement> <vtt> ["subject"]` | Copies the file into `unprocessed/` unless already there, records name and SHA-256, assigns the next Tnnn, prints it. |
 | `s0-prepare` | `s0-prepare <engagement> <Tnnn>` | Verifies the SHA, writes the utterance table and the session sheet with speakers matched against the stakeholder register. |
+| `s1-stakeholders` | `s1-stakeholders <engagement> <Tnnn>` | Runs when the signed session sheet opens the S1 gate. Writes the accepted new stakeholder rows into `stakeholders.md`, extends Sessions for attendees, starts the session log. Once per transcript. |
 | `check-citations` | `check-citations <engagement> <Tnnn> <file>` | Checks every F2 citation in a file against the utterance table. Exit 1 on any failure. |
 | `check-integrity` | `check-integrity <engagement> [--proposed <dossier>]` | Runs I1 to I19 over the engagement, optionally merged with the accepted items of a dossier. |
 | `dossier2tsv` | `dossier2tsv <file>` | Flattens F4 item blocks to one TSV row per item. |

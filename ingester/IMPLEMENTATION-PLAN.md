@@ -1,6 +1,6 @@
 # Ingester implementation plan
 
-Version 0.1, 10 September 2026. Owner: Adam Moyes. Implements `extraction-solution-design.md` version 1.2 against `solution-register-model.md` version 2.16, in the build order given in `HANDOFF.md`.
+Version 0.2, 10 September 2026.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: use superpowers:executing-plans to implement this plan step by step. Steps use checkbox (`- [ ]`) syntax for tracking. Commit after every numbered step. Nothing is pushed.
 
@@ -346,3 +346,7 @@ Negative tests: blank one Verdict and confirm `s3-write` exits 1 naming the pend
 - 7.3 runbooks and driver: 7 and 6.4.
 - 10.1 file list: every file has a step; `current-state-<domain>.md` is created by the first S3 or by hand once the domain is set at S0.
 - Not in this plan: the first S1 run, the run report and any 1.3 design changes from the colleague's review. Those follow Adam's signature on the session sheet.
+
+## Change after step 10
+
+**Stakeholder rows are written when the sheet is signed.** Agreed with Adam on 10 September 2026. `bin/s1-stakeholders` runs when `stage` opens the S1 gate: it writes the accepted New stakeholders rows into `stakeholders.md`, extends Sessions for attendees, starts the session log and marks it `- Stakeholders written on:`. `s3-write` calls the same script (a no-op when the marker is present) and then applies only `STK.edit` items. The gate F5 is unchanged. Rollback in S3 restores the session log as it was after S1.

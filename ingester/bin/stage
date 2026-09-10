@@ -24,7 +24,7 @@ case $cmd in
   S0) s=$(status); [ "$s" = needs-s0 ] || die "S0 refused: state is $s"
       out=$("$INGESTER_DIR/bin/s0-prepare" "$eng" "$tid"); printf '%s\n' "$out"
       log_run "$eng" "$tid" S0 "prepared" "transcripts.md stakeholders.md $(basename "$(vtt_path "$eng" "$tid")")" "sessions/$tid/$tid.utterances.tsv sessions/$tid/$tid.session.md" ;;
-  S1) s=$(status); if [ "$s" = needs-s1 ]; then echo "S1 is performed by the skill; gate open"; log_run "$eng" "$tid" S1 "gate open" "$sheet" "" > /dev/null
+  S1) s=$(status); if [ "$s" = needs-s1 ]; then "$INGESTER_DIR/bin/s1-stakeholders" "$eng" "$tid"; echo "S1 is performed by the skill; gate open"; log_run "$eng" "$tid" S1 "gate open" "$sheet" "" > /dev/null
       else r=$(sheet_signed "$sheet" 2>&1 || true); die "S1 refused: state is $s${r:+ ($r)}"; fi ;;
   S3) s=$(status); [ "$s" = needs-s3 ] || { r=""; [ -f "$dossier" ] && r=$(dossier_signed "$dossier" || true); die "S3 refused: state is $s${r:+ ($r)}"; }
       "$INGESTER_DIR/bin/s3-write" "$eng" "$tid" ;;

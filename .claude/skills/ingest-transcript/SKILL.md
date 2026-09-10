@@ -5,7 +5,7 @@ description: Ingest a discovery transcript (WebVTT) for a named engagement throu
 
 # ingest-transcript
 
-Version 0.1.0 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `ingester/bin/` do every deterministic step; you do the reading. Follow `ingester/runbooks/` for each stage.
+Version 0.1.1 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `ingester/bin/` do every deterministic step; you do the reading. Follow `ingester/runbooks/` for each stage.
 
 ## Arguments
 
@@ -67,7 +67,7 @@ It prints one word and act only on that word:
 
 ## S1 Read
 
-Precondition: `stage` said `needs-s1`, which means the session sheet is signed and every verdict is filled. Do not start otherwise.
+Precondition: `stage` said `needs-s1`, which means the session sheet is signed and every verdict is filled. Do not start otherwise. Run `ingester/bin/stage <engagement> TID S1` first: it writes the accepted stakeholder rows into `ENG/stakeholders.md` and prints `gate open`.
 
 Read, in this order: `ingester/extraction-rules.md` in full; the signed session sheet; `ENG/stakeholders.md`; `ENG/engagement.md` (scope taxonomy and glossary); `ENG/current-state-*.md`; the six files in `ENG/registers/`; `ENG/topics.md`; then the whole utterance table end to end.
 

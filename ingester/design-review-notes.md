@@ -1,6 +1,6 @@
 # Notes for design 1.3
 
-Version 0.1, 10 September 2026. Findings made during the build that belong in the next design revision. Folded into `extraction-solution-design.md` as 1.3 by hand.
+Version 0.2, 10 September 2026.
 
 | Found | Section | Note |
 |---|---|---|
@@ -11,3 +11,4 @@ Version 0.1, 10 September 2026. Findings made during the build that belong in th
 | 10 September 2026, step 10 | Q2 | The citation label list (asked, answered, proposed, restated, accepted, challenged, deferred, hedged) has no label for a passage cited only to show that someone was present, such as a greeting on the session sheet. `aside` is a speech act in 5.2 and the checker now accepts it as a label. Add it to the Q2 list or say the sheet cites differently. |
 | 10 September 2026, step 6 | 7.2, S3 | A write that fails part-way (for example a claim naming an element that does not exist) restores every touched file and removes the session log, so a failed S3 leaves the engagement as it was. Worth stating in the design. |
 | 10 September 2026, step 6 | 4.6 | S0 leaves the Session date blank for the skill to propose; the VTT carries no date. The handoff date is written as a proposal marked for confirmation. |
+| 10 September 2026, after step 10 | 4.6, 5.5, 10.1 | Accepted stakeholder rows are written into `stakeholders.md` as soon as the session sheet is signed (the first act of S1, `bin/s1-stakeholders`), not at S3. The human gate is unchanged; the register is current for S1 and for any second transcript started before S3. The file table line "Bumped by S3" becomes "Bumped when a session sheet is signed, and by S3 for standing extensions". Agreed with Adam. |
