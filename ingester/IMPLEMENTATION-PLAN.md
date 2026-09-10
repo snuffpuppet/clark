@@ -1,6 +1,6 @@
 # Ingester implementation plan
 
-Version 0.3, 10 September 2026.
+Version 0.4, 10 September 2026.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: use superpowers:executing-plans to implement this plan step by step. Steps use checkbox (`- [ ]`) syntax for tracking. Commit after every numbered step. Nothing is pushed.
 
@@ -350,3 +350,176 @@ Negative tests: blank one Verdict and confirm `s3-write` exits 1 naming the pend
 ## Change after step 10
 
 **Stakeholder rows are written when the sheet is signed.** Agreed with Adam on 10 September 2026. `bin/s1-stakeholders` runs when `stage` opens the S1 gate: it writes the accepted New stakeholders rows into `stakeholders.md`, extends Sessions for attendees, starts the session log and marks it `- Stakeholders written on:`. `s3-write` calls the same script (a no-op when the marker is present) and then applies only `STK.edit` items. The gate F5 is unchanged. Rollback in S3 restores the session log as it was after S1.
+
+---
+
+## Addendum A: one file per item, four-digit ids, stakeholder Segment and Department
+
+Written 10 September 2026 after Adam's review. Not yet built. Register model 2.18, design 1.4, ingester 0.3.0. Nothing has been written to any register, so there is no migration. The T001 session sheet is unsigned and gains two columns; the utterance table does not change.
+
+### A.1 What changes and why
+
+| Change | Why | Source |
+|---|---|---|
+| Every register item, claim element, stakeholder, topic and transcript is one markdown file with YAML frontmatter, named by its id | A change to one item is a diff on one file; the item's history is `git log` on that file; no pipe escaping, no end markers, no row surgery | Adam, 10 September 2026 |
+| Ids are four digits: `REQ-0004`, `PRC-0005`, `STK-0003`, claims `SYS-0002.f1` | Engagements will exceed 999 requirements | Adam |
+| Transcript ids stay `T001`, episode ids `T001-E02` | Typed by hand often; never near a thousand | Recommended, to confirm |
+| Stakeholders gain Segment (Residential, BE&G, Wholesale, or blank) and Department (free text such as product, operations, finance) | A BE&G SME speaks for BE&G; a Finance SME speaks for the whole business, so blank means not segment-specific. Department says where they sit | Adam |
+| Change requests removed from the model and the ingester | Clogging the design; can return later as a model version with no id collisions | Adam |
+| Generated index tables replace the hand-maintained registers as the meeting view | The model's "open it in a meeting" goal still needs a table; a script renders one from frontmatter | Consequence of the first change |
+
+Segment and Department are stakeholder fields only for now. They are not copied onto register items and no rule reads them yet. Once they exist on the register the skill can use them as context (a BE&G SME describing "our process" is describing the BE&G process), and that becomes a rule change when the evidence says it is needed.
+
+### A.2 Layout
+
+```
+engagements/<name>/
+  engagement.md                      unchanged, minus the scope taxonomy
+  requirements/REQ-0001.md
+  decisions/DEC-0001.md
+  limitations/LIM-0001.md
+  risks/RSK-0001.md
+  open-items/OI-0001.md
+  processes/PRC-0001.md              steps are sections in the file
+  systems/SYS-0001.md                facts are sections in the file
+  stakeholders/STK-0001.md
+  topics/TOP-0001.md
+  transcripts/T001.md                the transcript register row; the VTT stays under transcripts/unprocessed|processed/
+  index/                             generated, never edited: requirements.md, decisions.md, ..., stakeholders.md, outstanding.md
+  sessions/Tnnn/                     unchanged: utterance table, session sheet, dossier, session log
+  evaluation/, logs/                 unchanged
+```
+
+`stakeholders.md`, `transcripts.md`, `topics.md`, `registers/` and `current-state-<domain>.md` go. The domain moves to a frontmatter field on each process and system file, so one engagement can hold several domains without several record files.
+
+### A.3 Item file shape
+
+Frontmatter holds the short fields the checker and the index read. The body holds the long fields under fixed headings. Field names are the model's, in kebab-case in the frontmatter.
+
+```markdown
+---
+id: REQ-0004
+title: Legacy PRIORITY-MARK and tagged services migrated to the new platform can be modified
+status: Draft
+moscow: Should
+phase: Day one
+raised-on: 8 September 2026
+owner: Elena Marchetti
+implemented-by: Both
+vendor-ref:
+links:
+  - OI-0002
+  - replaces SYS-0001.f1
+updated: 10 September 2026
+---
+
+## Source
+
+- proposed | T001/165:2-4, 166:0-3, 168:0 | Elena Marchetti | 00:09:25 | "If we're going to bring the services onto the new platform ..."
+
+## Notes
+
+Reviewer set MoSCoW Should. The gist recorded two alternatives; split if needed.
+```
+
+Per type, the body headings are: REQ Source, Notes. DEC Rationale, Source, Notes. LIM Impact, Options (numbered list), Source, Notes. RSK Trigger, Mitigation, Source, Notes. OI Raised by (citations), Next action, Resolution, Notes.
+
+A system file:
+
+```markdown
+---
+id: SYS-0002
+name: CONFIG-MGMT
+domain: Access provisioning
+operated-by: Us
+role-today: Configuration management for services on the current platform
+updated: 10 September 2026
+---
+
+## f1 Does not natively support PRIORITY-MARK or tagged templates
+
+- kind: Cannot
+- status: Current
+- confidence: Stated
+- asserted-by: Martin Vasquez
+- episode: T001-E01
+- session: T001, 8 September 2026
+- evidence:
+  - asked | T001/630:1-2 | Elena Marchetti | 00:35:34 | "Do you know if we support these templates natively out of CONFIG-MGMT then?"
+  - answered | T001/631:0, 632:0 | Martin Vasquez | 00:35:40 | "but the PRIORITY-MARK and the tagged ones. Absolutely not."
+
+## Questions
+
+- ...
+```
+
+A process file has the same shape with `trigger`, `performed-by`, `frequency`, `systems` in the frontmatter and `## s1 <description>` sections carrying `performed-by`, `system`, `status`, `confidence`, `episode`, `session`, `evidence`. Claim ids are `<file id>.<section id>`, so `SYS-0002.f1` is section `f1` of `systems/SYS-0002.md`. Sections are never renumbered or deleted; a wrong claim becomes `status: Withdrawn` with a `replaced-by:` line.
+
+A stakeholder file:
+
+```markdown
+---
+id: STK-0003
+name: Martin Vasquez
+variants:
+  - Marty
+organisation: Us
+role: Internal SME
+segment:
+department: Operations
+standing: Internal orchestration code and workflows; CONFIG-MGMT; NETCO portal and bill
+decides: Technical orchestration approach within current business policy
+status: Active
+first-seen: T001
+sessions:
+  - T001
+updated: 10 September 2026
+---
+
+## Source
+
+- answered | T001/921:0-3 | Martin Vasquez | 01:00:49 | "we definitely support service transfer ... I can see that in our code."
+```
+
+`segment` is one of `Residential`, `BE&G`, `Wholesale` or blank. `department` is free text; the index lists the distinct values so they converge.
+
+A topic file has `id, title, episodes, open-items, closed-by, position, updated` and a body. A transcript file has the 4.5 fields in frontmatter.
+
+### A.4 Frontmatter parsing in awk
+
+One function in `lib.sh`, `fm file key`, prints a scalar; `fm_list file key` prints list items one per line. Frontmatter is the block between the first two `---` lines. Keys are `^key: value`; list items are `^  - value` under a key with an empty value. Nothing else in YAML is used, so no YAML library is needed. Section fields in claim files are `^- key: value` lines under a `## f1` or `## s1` heading, read by `claim_field file section key`.
+
+### A.5 Steps
+
+Each step ends with the fixture test from step 6.5 rerun in the new shape and a commit.
+
+**A.5.1 Model 2.18 and design 1.4.** Model 4.1 ids to four digits with the transcript exception; 4.6 in the design gains Segment and Department; model section 7 becomes "one file per item, index generated"; change requests removed from 1, 3, 4, 5, 7, 8, 9 and 10, with the limitation disposition reduced to Accepted (DEC) or Resolved, and "ask the vendor for a change" recorded as a DEC with Implemented by Vendor and the vendor's reference in Vendor ref; I2, I3, I7, I10, I17 lose their CR clauses. Design 7.1 layout, 10.1 file table and section 4 field lists updated. Change logs written.
+
+**A.5.2 Templates.** `templates/items/REQ.md, DEC.md, LIM.md, RSK.md, OI.md, PRC.md, SYS.md, STK.md, TOP.md, T.md` replace the register and current-state templates. `session.md` gains Segment and Department columns in both tables. `dossier.md` item blocks are unchanged except that a SYS.fact or PRC.step names its parent with `- System: SYS-0002` or `- Process: item 03`.
+
+**A.5.3 lib.sh.** `next_id` scans filenames in the type folder and prints four digits (`T` stays three). `fm`, `fm_list`, `claim_field`, `write_item` (renders a template with values), `bump_updated`. `table_rows`, `cell`, `col_index`, `escape_pipes`, `unescape_pipes` remain for the session sheet, the dossier and the utterance table only.
+
+**A.5.4 s0-prepare and s1-stakeholders.** S0 matches speaker tags against `stakeholders/*.md` by `name` and `variants`, and carries Segment and Department into the Attendees table. `s1-stakeholders` writes one file per accepted row, with Segment and Department, and appends `Tnnn` to `sessions` in existing files. `register-transcript` writes `transcripts/T001.md`.
+
+**A.5.5 check-integrity.** Reads frontmatter from every item file into the same TYPE/ID/KEY/VALUE stream, and claims from section fields. Rules unchanged except the CR clauses go. Adds a check that `segment` is one of the three values or blank.
+
+**A.5.6 s3-write.** Writes one new file per accepted item from the templates, or edits fields in an existing file with `fm_set`. Claims append a `## fN` section to the parent file. Topics append to the `episodes`, `open-items` and `closed-by` lists. Rollback snapshots the item folders. The per-document version bumps go; `updated` on each item and git carry the history. `engagement.md` keeps its version line.
+
+**A.5.7 render-index.** New script `render-index <engagement>`: one table per type under `index/`, columns as model section 7, one row per file, and `index/outstanding.md` following model section 8. Run at the end of S3 and by hand. The index files carry a "generated, do not edit" line.
+
+**A.5.8 score, dossier2tsv, skill, runbooks, README.** Kind list loses CR; parent references for claims; the skill's S1 reads item folders instead of register files; the skill's S0 proposes Segment and Department for each speaker with the same citation; runbooks and README updated; VERSION 0.3.0.
+
+**A.5.9 puppy-gloves.** Recreate the empty folders from the new templates; regenerate the T001 session sheet's two tables with the new columns and re-propose Segment and Department for the seven speakers (all blank Segment on the evidence in T001, which is a vendor sync-up; Department proposed as Operations for Martin and Daniel, Architecture for Elena, left blank for the vendor rows and Simon).
+
+### A.6 Verification on T001
+
+- S0 rerun produces the same utterance table (identical SHA-256) and a session sheet with nine columns per table.
+- The fixture dossier writes to `requirements/REQ-0001.md`, four `systems/SYS-000n.md` files each with one `## f1` section, four `open-items/`, one `decisions/`, two `topics/`, eight `stakeholders/` with Segment and Department; `render-index` produces seven tables whose row counts match; `check-integrity` prints OK; `git status` after the write lists exactly the new files and the edited `engagement.md`.
+- Negative tests from step 6.5 repeated, plus `segment: Enterprise` fails integrity.
+- `score` against the fixture reference gives the same counts as before.
+
+### A.7 Open for Adam
+
+- Phases: the model's "this phase / next phase" still has no list of phase names. Proposed: `## Phases` in `engagement.md`, in order, current marked; `phase` on a requirement takes a value from it; an integrity rule checks it. Not built until confirmed.
+- Whether the model should carry a summary of the current-state record's process and system elements so a reader of the model alone can see them.
+- Transcript and episode ids staying at three digits.
