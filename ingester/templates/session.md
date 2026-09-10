@@ -15,19 +15,19 @@ Version 0.1, {{DATE}}.
 
 ## How to review
 
-Confirm the session date and domain. For each attendee, Verdict is Correct or Edit; edit the Role, Standing or Decides cells in place before writing Edit. For each proposed stakeholder, Verdict is Accept, Edit or Reject. Every Verdict cell must be filled, then write your name in Approver and the date in Approved on. A blank verdict is pending and blocks S1. Review path is dossier or staged.
+Confirm the session date and domain. For each attendee, Verdict is Correct or Edit; edit the Role, Segment, Department, Standing or Decides cells in place before writing Edit. Segment is Residential, BE&G, Wholesale, or blank when the person speaks for the whole business. Department is where they sit, such as Product or Operations. For each proposed stakeholder, Verdict is Accept, Edit or Reject. Every Verdict cell must be filled, then write your name in Approver and the date in Approved on. A blank verdict is pending and blocks S1. Review path is dossier or staged.
 
 ## Attendees
 
-| Speaker tag | STK | Role | Standing | Decides | Utterances | Verdict |
-|---|---|---|---|---|---|---|
+| Speaker tag | STK | Role | Segment | Department | Standing | Decides | Utterances | Verdict |
+|---|---|---|---|---|---|---|---|---|
 
 ## New stakeholders
 
 Speakers not in the register, and people named as owners or deciders who were not present. Role and standing are proposed from the transcript with the passage that suggested them.
 
-| Proposed | Name | Organisation | Role | Standing | Decides | Passage | Verdict |
-|---|---|---|---|---|---|---|---|
+| Proposed | Name | Organisation | Role | Segment | Department | Standing | Decides | Passage | Verdict |
+|---|---|---|---|---|---|---|---|---|---|
 
 ## Notes for the reviewer
 
