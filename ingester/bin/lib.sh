@@ -107,3 +107,6 @@ dossier_signed() { f=$1
   [ -z "$pend" ] || { echo "dossier has pending verdicts on item(s): $pend"; return 1; }
   return 0; }
 accepted_items() { "$INGESTER_DIR/bin/dossier2tsv" "$1" | awk -F'\t' '$4 == "Accept" || $4 == "Edit" || ($4 == "" && $3 == "Confident" && $7 != "")'; }
+# phases engagement: phase names in order; current_phase engagement: the one marked (current).
+phases() { awk '/^## Phases/ { on=1; next } /^## / { on=0 } on && /^- / { sub(/^- /, ""); sub(/ \(current\)$/, ""); print }' "$(eng_dir "$1")/engagement.md"; }
+current_phase() { awk '/^## Phases/ { on=1; next } /^## / { on=0 } on && /^- .* \(current\)$/ { sub(/^- /, ""); sub(/ \(current\)$/, ""); print; exit }' "$(eng_dir "$1")/engagement.md"; }

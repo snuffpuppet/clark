@@ -1,6 +1,6 @@
 # The ingester
 
-Version 0.4, 10 September 2026.
+Version 0.5, 10 September 2026.
 
 ## Purpose
 

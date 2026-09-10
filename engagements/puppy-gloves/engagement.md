@@ -1,11 +1,18 @@
 # Engagement: puppy-gloves
 
-Version 0.2, 10 September 2026.
+Version 0.3, 10 September 2026.
 
 - Client: puppy-gloves (sanitised name)
 - Domain: to be set at S0
 - Ingester version last used: 0.1.0
-- Rules version last used: 1.0
+- Rules version last used: 1.1
+
+## Phases
+
+In delivery order, one per bullet. Mark the current phase with `(current)`. A requirement's `phase` takes one of these names; a requirement for a later phase is excluded from the outstanding view. Rename these to the names the programme uses.
+
+- Day one (current)
+- Later phase
 
 ## Glossary of system names
 

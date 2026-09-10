@@ -5,7 +5,7 @@ description: Ingest a discovery transcript (WebVTT) for a named engagement throu
 
 # ingest-transcript
 
-Version 0.3.0 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `ingester/bin/` do every deterministic step; you do the reading. Follow `ingester/runbooks/` for each stage.
+Version 0.3.1 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `ingester/bin/` do every deterministic step; you do the reading. Follow `ingester/runbooks/` for each stage.
 
 ## Arguments
 
@@ -80,7 +80,7 @@ Then produce three files in `ENG/sessions/TID/`.
 **`TID.dossier.md`** from `ingester/templates/dossier.md`, organised by episode, every item in the F4 block form shown in the template. For each exchange apply the rules:
 
 - Present tense about today is a SYS.fact or PRC.step, never a REQ (R1). Confidence from standing: Stated, Second-hand, Hedged or Contested (R3, R4, R7). Legacy language is a Retired claim and nothing else (R5). "We do X but we don't need it" is Current, not needed with the reason quoted (R6).
-- Commitment language about the solution from an Internal architect or SME is a REQ in Draft (R2). A vendor's "we need to support" is a DEC in Proposed raised by the vendor, or an OI (R2, R12).
+- Commitment language about the solution from an Internal architect or SME is a REQ in Draft (R2). Its Phase is a name from the Phases list in `ENG/engagement.md`: the current phase unless the speakers place it later ("day two", "next release"), in which case the later phase named there. A vendor's "we need to support" is a DEC in Proposed raised by the vendor, or an OI (R2, R12).
 - A vendor describing how their build will behave is a DEC in Proposed. It is Accepted only when an internal party whose Decides covers the subject accepted it in the exchange, and then it is graded Needs a human: authority check (R12, R19).
 - A vendor Cannot fact about their own platform that blocks a stated need also yields a LIM with Identified on = session date (R7).
 - An explicit deferral is an OI, with the named party in the Gist so the reviewer sets Owner (R8). A hedge is a Hedged claim plus a Question (R3). An unsettled challenge is Contested claims on both sides plus a Question (R4).

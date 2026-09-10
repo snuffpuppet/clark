@@ -4,7 +4,7 @@
 # (requirements/, decisions/, limitations/, risks/, open-items/, processes/, systems/, stakeholders/).
 # With --proposed, the dossier's accepted items and the session sheet's accepted new stakeholders are
 # merged in as virtual rows first, so links to items created in the same session resolve.
-# Prints FAIL and WARN lines, then OK when nothing failed. Exit 1 on FAIL. I5, I10 and I17 are retired.
+# Prints FAIL and WARN lines, then OK when nothing failed. Exit 1 on FAIL. I10 and I17 are retired; I5 is Phase valid.
 . "$(dirname "$0")/lib.sh"
 [ $# -ge 1 ] || die "usage: check-integrity <engagement> [--proposed <dossier>]"
 eng=$1; d=$(eng_dir "$eng"); dossier=""; [ "${2:-}" = "--proposed" ] && dossier=$3
@@ -33,6 +33,7 @@ for f in "$d"/systems/SYS-*.md "$d"/processes/PRC-*.md; do [ -f "$f" ] || contin
   id=$(fm "$f" id); printf 'ELEM\t%s\tID\t%s\n' "$id" "$id"
   for s in $(claim_sections "$f"); do printf 'CLAIM\t%s.%s\tStatus\t%s\n' "$id" "$s" "$(claim_field "$f" "$s" status)"; done
 done >> "$facts"
+phases "$eng" | awk '{ printf "PHASE\t%s\tvalue\t%s\n", $0, $0 }' >> "$facts"
 for f in "$d"/stakeholders/STK-*.md; do [ -f "$f" ] || continue
   id=$(fm "$f" id); printf 'STK\t%s\tName\t%s\nSTK\t%s\tVariants\t%s\nSTK\t%s\tRole\t%s\nSTK\t%s\tSegment\t%s\n' "$id" "$(fm "$f" name)" "$id" "$(fm_list "$f" variants | paste -sd, -)" "$id" "$(fm "$f" role)" "$id" "$(fm "$f" segment)"
 done >> "$facts"
@@ -79,6 +80,7 @@ awk -F'\t' -v today="$(today)" '
     return 0 }
   { type = $1; id = $2; key = $3; val = $4
     if (type == "ITEMMAP") { MAP[id] = val; next }
+    if (type == "PHASE") { PHASE[val] = 1; nphase++; next }
     if (type == "STK") { STK[id] = 1; if (key == "Name") STKname[id] = val; if (key == "Variants") STKvar[id] = val; if (key == "Role") STKrole[id] = val; if (key == "Segment") STKseg[id] = val; next }
     if (type == "ELEM") { if (id in ELEM) dupe[id] = 1; ELEM[id] = 1; next }
     if (type == "CLAIM") { CLAIM[id] = val; next }
@@ -106,6 +108,7 @@ awk -F'\t' -v today="$(today)" '
       if (((t == "DEC" && st == "Proposed") || (t == "REQ" && st == "Draft") || (t == "LIM" && st == "Under assessment")) && !linked_oi_has_owner(id)) fail("I3", id, t " in " st " needs an open item in Links with an Owner")
       if (t == "OI" && st != "Closed" && (!has(id, "Next action") || !has(id, "Due"))) fail("I4", id, "open item needs Next action and Due")
       if (t == "RSK" && !term && !has(id, "Due")) fail("I4", id, "risk needs Due as its review date")
+      if (t == "REQ" && nphase && has(id, "Phase") && !(F[id, "Phase"] in PHASE)) fail("I5", id, "phase \"" F[id, "Phase"] "\" is not in the Phases list in engagement.md")
       links = F[id, "Links"]; n = split(links, lk, /;/)
       for (j = 1; j <= n; j++) { l = lk[j]
         while (match(l, /item [0-9]+/)) { r = resolve(substr(l, RSTART + 5, RLENGTH - 5)); l = substr(l, 1, RSTART - 1) r substr(l, RSTART + RLENGTH) }

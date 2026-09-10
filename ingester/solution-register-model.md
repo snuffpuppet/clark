@@ -1,6 +1,6 @@
 # Solution register model
 
-Version 2.18, 10 September 2026. Owner: Adam Moyes. Version 2.17 removed the Scope field, the scope taxonomy and integrity rule I5. Version 2.18 removes the change request type (to return in a later version when needed), makes ids four digits, adds Segment and Department to the stakeholder register, and replaces the register tables with one file per item plus generated index tables (section 7). Both at Adam's direction on review, 10 September 2026.
+Version 2.19, 10 September 2026. Owner: Adam Moyes. Version 2.19 names phases: the engagement lists them in order with the current one marked, a requirement's Phase takes one of those names, and I5 becomes Phase valid. Version 2.17 removed the Scope field, the scope taxonomy and integrity rule I5. Version 2.18 removes the change request type (to return in a later version when needed), makes ids four digits, adds Segment and Department to the stakeholder register, and replaces the register tables with one file per item plus generated index tables (section 7). Both at Adam's direction on review, 10 September 2026.
 
 This file describes how we track the artifacts of solution architecture on a project where we are the design authority and a vendor builds the platform. It is tool-agnostic. It says what the item types are, how they relate, how each one moves, and what a healthy register looks like. It does not say how to build or populate the registers in any particular tool; that belongs in a separate runner document.
 
@@ -75,7 +75,7 @@ Terminal states are marked *.
 
 | Type | Prefix | States | Type-specific fields |
 |---|---|---|---|
-| Requirement | REQ | Draft, Agreed, Designed, Delivered, Verified*, Deferred*, Withdrawn* | MoSCoW (Must / Should / Could / Won't), Phase (this phase / next phase), Raised on (date the need was stated) |
+| Requirement | REQ | Draft, Agreed, Designed, Delivered, Verified*, Deferred*, Withdrawn* | MoSCoW (Must / Should / Could / Won't), Phase (a name from the engagement's Phases list, which is kept in order with the current phase marked), Raised on (date the need was stated) |
 | Decision | DEC | Proposed, Accepted, Superseded*, Rejected* | Rationale (short, naming the rejected option where there was one), Raised by (who proposed it), Consulted (vendor, SMEs, stakeholder groups who had input), Approved by (the person or forum on our side who made it stick; a forum is a stakeholder register row with Role Forum), Decided on (date of acceptance or rejection) |
 | Limitation | LIM | Identified, Under assessment, Accepted*, Resolved* | Identified on (date), Impact (one line: what it means for the customer or the operation), Options (numbered list, each `n. <option>; impact: <cost and time, or effort and who>; phase: <phase>`; accept it, work around it manually and ask the vendor for a change are the usual options), Chosen option (the option number), Disposition record (id of the DEC that carries the outcome) |
 | Risk | RSK | Identified, Mitigating, Realised*, Retired* | Identified on (date), Raised by (person, or the review it came from), Likelihood (L/M/H), Impact (L/M/H), Trigger (the observable event that says the risk has become real), Mitigation (what is being done, as text) |
@@ -93,7 +93,7 @@ Terminal states are marked *.
 
 ### 4.4 Transition rules
 
-- Requirement: the Owner is the person who stated the need, and Raised on is when they stated it. MoSCoW is required from Draft onwards. Won't means agreed as out of this project and is recorded rather than deleted; a need wanted later is Must, Should or Could with Phase = next phase. A requirement row carries no next action: work to get it agreed, designed or verified is an open item in Links, and a requirement in Draft must have one. Designed means a section of a design document, ours or the vendor's, covers it, and Source or Links points at that section. A decision link is needed only where a real choice was made. Most requirements never have a decision.
+- Requirement: the Owner is the person who stated the need, and Raised on is when they stated it. MoSCoW is required from Draft onwards. Won't means agreed as out of this project and is recorded rather than deleted; a need wanted later is Must, Should or Could with Phase set to a later phase from the engagement's list. A requirement row carries no next action: work to get it agreed, designed or verified is an open item in Links, and a requirement in Draft must have one. Designed means a section of a design document, ours or the vendor's, covers it, and Source or Links points at that section. A decision link is needed only where a real choice was made. Most requirements never have a decision.
 - Decision: while Proposed, an open item in Links carries the owner, next action and due date; the decision row itself has none. Accepted or Rejected needs Approved by, Decided on and at least one Consulted entry, and Approved by is ours. Accepted is immutable. To change an accepted decision, create a new one, mark the old one Superseded, and write "superseded by DEC-nnn" in the old one's Links.
 - Limitation: Identified on is set when the row is created. Under assessment needs an open item in Links carrying the owner and next action. Impact, at least two Options, each with an impact and a phase, and a Chosen option must be filled before the limitation leaves assessment by Accepted; a vendor estimate is an input to Options, not a state. From Under assessment, exactly one of Accepted (the chosen option is to live with it, to work around it, or to ask the vendor for a change; needs a DEC id, and where the choice is a vendor change the DEC has Implemented by Vendor and carries the vendor's reference in Vendor ref once they assign one) or Resolved (needs evidence in Source or Links; no options needed). The disposition is written in Disposition record; Links holds the other relationships (constrains, introduced by, the assessing open item). If the vendor later declines a requested change, the accepting DEC is Superseded by a new one and the limitation is dispositioned again.
 - Risk: Identified on and Raised by are set when the row is created. Mitigating needs Trigger and Mitigation filled and a Due date for the next review; the review happens in the weekly routine, and whoever runs it updates Likelihood, Impact, Mitigation and the next Due. Realised is set when the Trigger is observed, and must create an OI. Retired needs a one-line reason in Mitigation. Mitigation is text on the row; there is no "mitigated by" link. Where the mitigation is a decision, Links carries "raised by DEC-nnn" or the DEC carries "raises", and that is enough.
@@ -168,7 +168,7 @@ The meeting view is:
 4. Decisions in Proposed older than 14 days.
 5. Requirements in Draft older than 14 days, measured from Raised on.
 
-Requirements with Phase = next phase are excluded from this view and appear on a separate next-phase view, reviewed at phase planning rather than in the weekly meeting.
+Requirements whose Phase is later than the current phase are excluded from this view and appear on a separate later-phase view, reviewed at phase planning rather than in the weekly meeting.
 
 Anything on the outstanding view without an owner, a next action and a due date on it or on its open item is a defect in the register, not a discussion point.
 
@@ -182,7 +182,7 @@ Run against a proposed set of registers before writing them, and on request duri
 | I2 Valid status | Every status is an exact 4.2 value for its type. Every requirement has a MoSCoW value and a Raised on date. Every limitation has an Identified on date; Impact once it is past Identified; and at least two Options and a Chosen option once it is Accepted. Every risk has an Identified on date, and Trigger and Mitigation once it is Mitigating. |
 | I3 Owner present | Every non-terminal requirement and open item has an Owner that is a person, "Vendor: <name>" or "Joint". Every decision, limitation and risk has Raised by. Decisions and limitations are exempt from Owner, but a decision in Proposed, a requirement in Draft and a limitation in Under assessment must each have an open item in Links whose Owner is set. |
 | I4 Next action present | Every open item not Closed has Next action and Due. Every non-terminal risk has Due as its review date. |
-| I5 | Removed in 2.17 (was Scope valid). |
+| I5 Phase valid | Every requirement's Phase is a name in the engagement's Phases list. |
 | I6 Link targets exist | Every id in Links exists in some register. |
 | I7 Limitation disposition | Every LIM in Accepted has a Disposition record naming a DEC in Accepted, and no LIM in Identified or Under assessment has one. A LIM whose Links carry "previously dispositioned by" must name a DEC in Superseded there. |
 | I8 Decision supersession | Every DEC in Superseded has a "superseded by" link pointing at a DEC in Accepted or Proposed. |
@@ -198,7 +198,7 @@ Run against a proposed set of registers before writing them, and on request duri
 | I18 Current-state links | Every `replaces`, `preserves` and `clarifies` target exists in the current-state record, and no `replaces` or `preserves` target is Retired or Withdrawn. |
 | I19 Known stakeholder | Every person named in Owner, Raised by, Approved by and Consulted resolves to a row in the engagement's stakeholder register, or is "Vendor: <name>", "Joint" or a Forum row. A row with Role Mentioned cannot be Owner. |
 
-I1 to I4, I6 to I9, I11 to I14, I18 and I19 are failures. I15 and I16 are warnings.
+I1 to I9, I11 to I14, I18 and I19 are failures. I15 and I16 are warnings.
 
 ## 10. Maintenance routine
 
