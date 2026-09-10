@@ -5,7 +5,7 @@ description: Ingest a discovery transcript (WebVTT) for a named engagement throu
 
 # ingest-transcript
 
-Version 0.2.0 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `ingester/bin/` do every deterministic step; you do the reading. Follow `ingester/runbooks/` for each stage.
+Version 0.3.0 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `ingester/bin/` do every deterministic step; you do the reading. Follow `ingester/runbooks/` for each stage.
 
 ## Arguments
 
@@ -19,7 +19,7 @@ Everything below uses `ENG` for the engagement folder `engagements/<engagement>`
 
 ## Rules you never break
 
-- Nothing is written to a register, the current-state record, the topic ledger or the stakeholder register except by `ingester/bin/s3-write`, and only after both review files are signed with no pending verdicts. Silence is not approval.
+- Nothing is written to an item file (requirements/, decisions/, limitations/, risks/, open-items/, processes/, systems/, topics/) except by `ingester/bin/s3-write`, and only after both review files are signed with no pending verdicts. Stakeholder files are written by `ingester/bin/s1-stakeholders` once the session sheet is signed. Silence is not approval.
 - Never edit a signed file. Never advance past an unsigned gate: say which file is waiting and stop.
 - Never edit, rename or delete a transcript file. A SHA-256 mismatch reported by any script blocks everything; report it and stop.
 - Write nothing under `ingester/`. Every output goes under `ENG/`.
@@ -56,9 +56,9 @@ It prints one word and act only on that word:
 
 ## S0 Prepare
 
-1. Run `ingester/bin/stage <engagement> TID S0`. It writes `ENG/sessions/TID/TID.utterances.tsv` and `ENG/sessions/TID/TID.session.md` with every speaker matched against `ENG/stakeholders.md`. Speakers it could not match appear in Attendees with STK `new` and again in New stakeholders with empty cells.
+1. Run `ingester/bin/stage <engagement> TID S0`. It writes `ENG/sessions/TID/TID.utterances.tsv` and `ENG/sessions/TID/TID.session.md` with every speaker matched against `ENG/stakeholders/*.md` by name or variant. Speakers it could not match appear in Attendees with STK `new` and again in New stakeholders with empty cells.
 2. Read the whole utterance table.
-3. For every `new` speaker, fill the New stakeholders row: Organisation (Us, Vendor, or a named third party), Role (Internal SME, Internal architect, Internal other, Vendor, Consultant), Standing (the systems, processes or domains they show they own or operate, as text), Decides (the subjects on which they may accept a decision; blank for architects and vendors), and Passage: one F2 citation for the utterance that best shows the role. Read the role from what they say and how others address them, never from the name alone. A `(Vendor)` suffix on the speaker tag is evidence, not proof.
+3. For every `new` speaker, fill the New stakeholders row: Organisation (Us, Vendor, or a named third party), Role (Internal SME, Internal architect, Internal other, Vendor, Consultant), Segment (Residential, BE&G or Wholesale when the person speaks for one customer segment; blank when they speak for the whole business, as a Finance SME does; blank for vendors and consultants), Department (where they sit, such as Product, Operations, Finance, Architecture; blank when the transcript gives no clue), Standing (the systems, processes or domains they show they own or operate, as text), Decides (the subjects on which they may accept a decision; blank for architects and vendors), and Passage: one F2 citation for the utterance that best shows the role. Read the role from what they say and how others address them, never from the name alone. A `(Vendor)` suffix on the speaker tag is evidence, not proof.
 4. Propose Mentioned rows for people, roles or bodies named as owners or deciders who did not speak: "someone from the business", "ask NETCO", a named colleague, an approving group. Role Mentioned, or Forum for an approving body on our side, with Decides naming what that body approves. One citation each.
 5. Propose the Session date from the invitation, the reviewer's instruction, or the transcript, in `D Month YYYY` form, and the Domain. Fill the Meeting subject if one was given. Write anything the reviewer should know, including the purpose you infer for the session, under Notes for the reviewer.
 6. Leave every Verdict cell blank. Leave Approver and Approved on blank.
@@ -67,9 +67,9 @@ It prints one word and act only on that word:
 
 ## S1 Read
 
-Precondition: `stage` said `needs-s1`, which means the session sheet is signed and every verdict is filled. Do not start otherwise. Run `ingester/bin/stage <engagement> TID S1` first: it writes the accepted stakeholder rows into `ENG/stakeholders.md` and prints `gate open`.
+Precondition: `stage` said `needs-s1`, which means the session sheet is signed and every verdict is filled. Do not start otherwise. Run `ingester/bin/stage <engagement> TID S1` first: it writes one `ENG/stakeholders/STK-nnnn.md` per accepted row and prints `gate open`.
 
-Read, in this order: `ingester/extraction-rules.md` in full; the signed session sheet; `ENG/stakeholders.md`; `ENG/engagement.md` (glossary); `ENG/current-state-*.md`; the six files in `ENG/registers/`; `ENG/topics.md`; then the whole utterance table end to end.
+Read, in this order: `ingester/extraction-rules.md` in full; the signed session sheet; every file under `ENG/stakeholders/`; `ENG/engagement.md` (glossary); every file under `ENG/systems/` and `ENG/processes/`; every file under `ENG/requirements/`, `ENG/decisions/`, `ENG/limitations/`, `ENG/risks/` and `ENG/open-items/`; every file under `ENG/topics/`; then the whole utterance table end to end. The tables under `ENG/index/` are a quick overview and are regenerated by S3; the item files are the truth.
 
 Then produce three files in `ENG/sessions/TID/`.
 

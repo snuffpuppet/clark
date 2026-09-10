@@ -1,6 +1,6 @@
 # Ingester implementation plan
 
-Version 0.4, 10 September 2026.
+Version 0.5, 10 September 2026.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: use superpowers:executing-plans to implement this plan step by step. Steps use checkbox (`- [ ]`) syntax for tracking. Commit after every numbered step. Nothing is pushed.
 
@@ -355,7 +355,7 @@ Negative tests: blank one Verdict and confirm `s3-write` exits 1 naming the pend
 
 ## Addendum A: one file per item, four-digit ids, stakeholder Segment and Department
 
-Written 10 September 2026 after Adam's review. Not yet built. Register model 2.18, design 1.4, ingester 0.3.0. Nothing has been written to any register, so there is no migration. The T001 session sheet is unsigned and gains two columns; the utterance table does not change.
+Written 10 September 2026 after Adam's review. Built the same day as ingester 0.3.0. Register model 2.18, design 1.4, ingester 0.3.0. Nothing has been written to any register, so there is no migration. The T001 session sheet is unsigned and gains two columns; the utterance table does not change.
 
 ### A.1 What changes and why
 
