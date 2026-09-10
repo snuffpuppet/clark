@@ -64,4 +64,5 @@ fill_template "$INGESTER_DIR/templates/run-report.md" "$out" "TID=$tid" "RUN=$ru
 printf '%s\n' "$counts" > "$R.c"; printf '%s\n' "$tags" > "$R.t"
 awk -v c="$R.c" -v t="$R.t" '/^\{\{COUNTS\}\}$/ { while ((getline l < c) > 0) print l; next } /^\{\{TAG_ROWS\}\}$/ { while ((getline l < t) > 0) if (l != "") print l; next } { print }' "$out" > "$out.tmp" && mv "$out.tmp" "$out"
 rm -f "$R" "$Dd" "$Er" "$Ed" "$F" "$P" "$R.out" "$R.c" "$R.t"
+eng_log "$eng" "$tid scored: run $run against $(basename "$ref")."
 printf 'wrote %s\n' "$out"; printf '%s\n' "$counts"; printf 'Resurrections %s, empty episodes %s, confident but wrong %s\n' "$(get RES 2>/dev/null || sed -n 's/^- Resurrections: //p' "$out")" "$(sed -n 's/^- Empty episodes: //p' "$out")" "$(sed -n 's/^- Confident but wrong: //p' "$out")"

@@ -16,4 +16,5 @@ for f in "$d"/transcripts/T[0-9]*.md; do [ -f "$f" ] && [ "$(fm "$f" sha256)" = 
 tid=$(next_id "$eng" T)
 vals; set_val ID "$tid"; set_val FILE "$name"; set_val SHA256 "$sum"; set_val SUBJECT "$subject"; set_val INGESTER_VERSION "$(ingester_version)"; set_val RULES_VERSION "$(rules_version)"; set_val DATE "$(today)"
 render "$INGESTER_DIR/templates/items/T.md" "$(item_path "$eng" "$tid")"; vals_done
+eng_log "$eng" "$tid registered from $name${subject:+ (subject: $subject)}."
 printf '%s\n' "$tid"

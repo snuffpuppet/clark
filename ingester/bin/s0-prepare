@@ -51,4 +51,5 @@ awk -v att="$sheet.att" -v nr="$sheet.new" '
 rm -f "$sheet.att" "$sheet.new"
 
 printf 'S0: %s cues, %s speakers, %s not in the stakeholder register\n' "$rows" "$(printf '%s\n' "$attendees" | wc -l | tr -d ' ')" "$(printf '%s\n' "$newrows" | grep -c '^| new')"
+eng_log "$eng" "$tid S0 run: $rows cues, session sheet written, awaiting signature."
 printf 'wrote %s\nwrote %s\n' "$tsv" "$sheet"

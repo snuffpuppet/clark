@@ -413,7 +413,9 @@ solution-register/                 the git repository
     VERSION
   engagements/
     <engagement-name>/               the what, for one client
-      engagement.md                  client, domain, glossary of system names,
+      CLAUDE.md                      how to start a session here and reach the ingester
+      LOG.md                         running log, one line per event
+      engagement.md                  client, domain, phases, glossary of system names,
                                      ingester version
       stakeholders/STK-nnnn.md       stakeholder register (4.6), one file each
       transcripts/Tnnn.md            transcript register (4.5), one file each

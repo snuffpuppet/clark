@@ -110,3 +110,5 @@ accepted_items() { "$INGESTER_DIR/bin/dossier2tsv" "$1" | awk -F'\t' '$4 == "Acc
 # phases engagement: phase names in order; current_phase engagement: the one marked (current).
 phases() { awk '/^## Phases/ { on=1; next } /^## / { on=0 } on && /^- / { sub(/^- /, ""); sub(/ \(current\)$/, ""); print }' "$(eng_dir "$1")/engagement.md"; }
 current_phase() { awk '/^## Phases/ { on=1; next } /^## / { on=0 } on && /^- .* \(current\)$/ { sub(/^- /, ""); sub(/ \(current\)$/, ""); print; exit }' "$(eng_dir "$1")/engagement.md"; }
+# eng_log engagement "message": appends one dated line to the engagement's LOG.md.
+eng_log() { f="$(eng_dir "$1")/LOG.md"; [ -f "$f" ] || printf '# Log: %s\n\nRunning log of this engagement, newest last.\n\n' "$1" > "$f"; printf -- '- %s: %s\n' "$(today)" "$2" >> "$f"; }

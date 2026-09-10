@@ -5,7 +5,7 @@ description: Ingest a discovery transcript (WebVTT) through stages S0 to S3, sto
 
 # ingest-transcript
 
-Version 0.5.0 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `$ROOT/ingester/bin/` do every deterministic step; you do the reading. Follow `ingester/runbooks/` for each stage.
+Version 0.5.1 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `$ROOT/ingester/bin/` do every deterministic step; you do the reading. Follow `ingester/runbooks/` for each stage.
 
 ## Where you run
 
@@ -84,7 +84,7 @@ It prints one word and act only on that word.
 5. Propose the Session date from the invitation, the reviewer's instruction, or the transcript, in `D Month YYYY` form, and the Domain. Fill the Meeting subject if one was given. Write anything the reviewer should know, including the purpose you infer for the session, under Notes for the reviewer.
 6. Leave every Verdict cell blank. Leave Approver and Approved on blank.
 7. Run `$ROOT/ingester/bin/check-citations <engagement> TID ENG/sessions/TID/TID.session.md`. Fix any FAIL and rerun until OK.
-8. Tell the reviewer the sheet path, how many speakers were matched and how many are new, and stop.
+8. Append a line to `ENG/LOG.md`: `- <today>: TID S0 proposals written for <n> speakers; awaiting the session sheet.` Tell the reviewer the sheet path, how many speakers were matched and how many are new, and stop.
 
 ## S1 Read
 
@@ -126,7 +126,7 @@ Fill Closing: Questions for the SMEs (every Question item, one line each); Empty
 4. No Confident item carries a hedge word in its content citation (probably, I think, my guess, maybe, I'm not sure, you'd have to ask).
 5. Every episode that is Settled, Parked or Unsettled owns at least one item.
 
-Write a run log with `$ROOT/ingester/bin/stage <engagement> TID log S1 "<outcome>"`. Tell the reviewer the dossier path, the item count, the count graded Needs a human, and stop.
+Write a run log with `$ROOT/ingester/bin/stage <engagement> TID log S1 "<outcome>"`. Append to `ENG/LOG.md`: `- <today>: TID S1 read; dossier v<n> with <items> items, <needs> needing a human; awaiting review.` Tell the reviewer the dossier path, the item count, the count graded Needs a human, and stop.
 
 **Rejected dossier.** When the reviewer has written `Reject` in the dossier header's Approver line or asked for a re-read, read their notes, produce `TID.dossier.v2.md` with `- Dossier version: 2`, and leave the rejected file untouched.
 

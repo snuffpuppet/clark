@@ -156,4 +156,5 @@ mkdir -p "$d/transcripts/processed"; mv "$vtt" "$d/transcripts/processed/"
 [ "$(sha256 "$d/transcripts/processed/$(basename "$vtt")")" = "$(transcript_field "$eng" "$tid" sha256)" ] || die "SHA-256 mismatch after move"
 ok=1
 log_run "$eng" "$tid" S3 "written" "$sheet $dossier" "$FOLDERS transcripts/$tid.md engagement.md $log" > /dev/null
+eng_log "$eng" "$tid S3 written: $(table_rows "$log" | grep -c "| created ") id(s) created, $(table_rows "$log" | grep -c "| updated ") updated; dossier signed by $dos_appr; transcript moved to processed/."
 printf 'S3: wrote %s id(s); see %s\n' "$(table_rows "$log" | grep -c '| created \|| updated ')" "$log"

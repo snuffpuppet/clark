@@ -7,4 +7,6 @@ name=$1; d=$(eng_dir "$name")
 [ ! -e "$d/engagement.md" ] || die "$d/engagement.md already exists"
 for sub in requirements decisions limitations risks open-items processes systems stakeholders topics transcripts/unprocessed transcripts/processed index sessions evaluation logs; do mkdir -p "$d/$sub"; touch "$d/$sub/.gitkeep"; done
 fill_template "$INGESTER_DIR/templates/engagement.md" "$d/engagement.md" "ENGAGEMENT=$name" "DATE=$(today)" "INGESTER_VERSION=$(ingester_version)" "RULES_VERSION=$(rules_version)"
+fill_template "$INGESTER_DIR/templates/CLAUDE.md" "$d/CLAUDE.md" "ENGAGEMENT=$name"
+fill_template "$INGESTER_DIR/templates/LOG.md" "$d/LOG.md" "ENGAGEMENT=$name" "DATE=$(today)" "INGESTER_VERSION=$(ingester_version)"
 printf 'created %s\n' "$d"; ls "$d"

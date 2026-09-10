@@ -32,3 +32,4 @@ awk '/^## Attendees/ { on=1 } /^## New/ { on=0 } on && /^\| / && !/Speaker tag/ 
 done
 awk -v d="$TODAY" '!done && /^- Dossier approver:/ { print; print "- Stakeholders written on: " d; done=1; next } { print }' "$log" > "$log.tmp" && mv "$log.tmp" "$log"
 printf 's1-stakeholders: %s stakeholder file(s) created; see %s\n' "$(grep -c '| created | stakeholders/' "$log")" "$log"
+eng_log "$eng" "$tid session sheet signed by $(header_field "$sheet" Approver); $(grep -c "| created | stakeholders/" "$log") stakeholder file(s) written; S1 open."
