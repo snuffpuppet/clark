@@ -28,25 +28,18 @@ rows=$(( $(wc -l < "$tsv") - 1 ))
 [ "$rows" -gt 0 ] || die "no cues parsed from $vtt"
 
 # 2. Session sheet from the template.
-file=$(transcript_field "$eng" "$tid" File); sum=$(transcript_field "$eng" "$tid" SHA-256)
-subject=$(transcript_field "$eng" "$tid" "Meeting subject")
+file=$(transcript_field "$eng" "$tid" file); sum=$(transcript_field "$eng" "$tid" sha256)
+subject=$(transcript_field "$eng" "$tid" meeting-subject)
 fill_template "$INGESTER_DIR/templates/session.md" "$sheet" "TID=$tid" "DATE=$(today)" "FILE=$file" "SHA256=$sum" \
   "SUBJECT=$subject" "SESSION_DATE=" "INGESTER_VERSION=$(ingester_version)"
 
-# 3. Attendees: each speaker tag matched against stakeholders.md by Name or Variants, case-insensitive.
-stk="$d/stakeholders.md"
+# 3. Attendees: each speaker tag matched against stakeholders/*.md by name or variant, case-insensitive.
 attendees=$(sed 1d "$tsv" | cut -f5 | sort | uniq -c | sed 's/^ *//' | awk '{ n=$1; $1=""; sub(/^ /, ""); print $0 "\t" n }' |
   while IFS="$TAB" read -r tag n; do
-    lc=$(printf '%s' "$tag" | tr 'A-Z' 'a-z')
-    match=$(table_rows "$stk" | while IFS= read -r row; do
-      name=$(cell "$row" 2 | tr 'A-Z' 'a-z'); vars=$(cell "$row" 3 | tr 'A-Z' 'a-z' | tr ',' '\n' | sed 's/^ *//; s/ *$//')
-      if [ "$name" = "$lc" ] || printf '%s\n' "$vars" | grep -qx "$lc"; then printf '%s\n' "$row"; break; fi; done)
-    if [ -n "$match" ]; then
-      printf '| %s | %s | %s | %s | %s | %s |  |\n' "$tag" "$(cell "$match" 1)" "$(cell "$match" 5 | escape_pipes)" "$(cell "$match" 6 | escape_pipes)" "$(cell "$match" 7 | escape_pipes)" "$n"
-    else
-      printf '| %s | new |  |  |  | %s |  |\n' "$tag" "$n"
-    fi; done)
-newrows=$(printf '%s\n' "$attendees" | awk -F'|' '$3 ~ /^ new $/ { t=$2; gsub(/^ +| +$/, "", t); printf "| new | %s |  |  |  |  |  |  |\n", t }')
+    if id=$(stk_lookup "$eng" "$tag"); then f=$(item_path "$eng" "$id")
+      printf '| %s | %s | %s | %s | %s | %s | %s | %s |  |\n' "$tag" "$id" "$(fm "$f" role)" "$(fm "$f" segment)" "$(fm "$f" department | escape_pipes)" "$(fm "$f" standing | escape_pipes)" "$(fm "$f" decides | escape_pipes)" "$n"
+    else printf '| %s | new |  |  |  |  |  | %s |  |\n' "$tag" "$n"; fi; done)
+newrows=$(printf '%s\n' "$attendees" | awk -F'|' '$3 ~ /^ new $/ { t=$2; gsub(/^ +| +$/, "", t); printf "| new | %s |  |  |  |  |  |  |  |  |\n", t }')
 
 printf '%s\n' "$attendees" > "$sheet.att"
 printf '%s\n' "$newrows" | grep '^| new' > "$sheet.new" || true

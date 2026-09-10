@@ -1,27 +1,19 @@
 #!/bin/sh
 # register-transcript <engagement> <vtt-path> ["meeting subject"]
-# Copies the file unchanged into transcripts/unprocessed/ unless it is already there, records name and
-# SHA-256 against the next Tnnn in transcripts.md, bumps the register and prints the id.
+# Copies the file unchanged into transcripts/unprocessed/ unless already there, writes transcripts/Tnnn.md
+# with the file name and SHA-256, and prints the id.
 set -e
 . "$(dirname "$0")/lib.sh"
 [ $# -ge 2 ] || die "usage: register-transcript <engagement> <vtt-path> [\"meeting subject\"]"
-eng=$1; src=$2; subject=${3:-}
-d=$(eng_dir "$eng"); reg="$d/transcripts.md"
-[ -f "$reg" ] || die "no transcripts.md in $d"
+eng=$1; src=$2; subject=${3:-}; d=$(eng_dir "$eng")
+[ -f "$d/engagement.md" ] || die "no engagement at $d"
 [ -f "$src" ] || die "no such file $src"
-name=$(basename "$src"); sum=$(sha256 "$src")
-dest="$d/transcripts/unprocessed/$name"
-if [ -f "$dest" ]; then
-  [ "$(sha256 "$dest")" = "$sum" ] || die "$dest exists with a different SHA-256; nothing changed"
-elif [ -f "$d/transcripts/processed/$name" ]; then
-  die "$name is already processed; nothing changed"
-else
-  mkdir -p "$d/transcripts/unprocessed"; cp "$src" "$dest"
-  [ "$(sha256 "$dest")" = "$sum" ] || die "copy failed its SHA-256 check"
-fi
-if table_rows "$reg" | grep -q "| $sum |"; then die "a transcript with this SHA-256 is already registered"; fi
-tid=$(next_id T "$reg")
-esc_subject=$(printf '%s' "$subject" | escape_pipes)
-printf '| %s | %s | %s |  |  | %s |  |  |  |  |  |  | %s | %s |\n' "$tid" "$name" "$sum" "$esc_subject" "$(ingester_version)" "$(rules_version)" >> "$reg"
-bump_version "$reg"
+name=$(basename "$src"); sum=$(sha256 "$src"); dest="$d/transcripts/unprocessed/$name"
+if [ -f "$dest" ]; then [ "$(sha256 "$dest")" = "$sum" ] || die "$dest exists with a different SHA-256; nothing changed"
+elif [ -f "$d/transcripts/processed/$name" ]; then die "$name is already processed; nothing changed"
+else mkdir -p "$d/transcripts/unprocessed"; cp "$src" "$dest"; [ "$(sha256 "$dest")" = "$sum" ] || die "copy failed its SHA-256 check"; fi
+for f in "$d"/transcripts/T[0-9]*.md; do [ -f "$f" ] && [ "$(fm "$f" sha256)" = "$sum" ] && die "this file is already registered as $(fm "$f" id)"; done
+tid=$(next_id "$eng" T)
+vals; set_val ID "$tid"; set_val FILE "$name"; set_val SHA256 "$sum"; set_val SUBJECT "$subject"; set_val INGESTER_VERSION "$(ingester_version)"; set_val RULES_VERSION "$(rules_version)"; set_val DATE "$(today)"
+render "$INGESTER_DIR/templates/items/T.md" "$(item_path "$eng" "$tid")"; vals_done
 printf '%s\n' "$tid"

@@ -1,33 +1,34 @@
 #!/bin/sh
 # s1-stakeholders <engagement> <Tnnn>
-# Runs once the session sheet is signed, before S1 reads. Writes the accepted New stakeholders rows into
-# stakeholders.md, extends Sessions for known attendees, starts the session log with those ids and marks
-# the log so this is done once. S3 calls it too, so a sheet signed and written by hand is still covered.
+# Runs once the session sheet is signed, before S1 reads. Writes one stakeholders/STK-nnnn.md per accepted
+# New stakeholders row, adds Tnnn to sessions on known attendees, starts the session log and marks it so
+# this happens once. S3 calls it too, so a sheet signed and written by hand is still covered.
 set -e
 . "$(dirname "$0")/lib.sh"
 [ $# -eq 2 ] || die "usage: s1-stakeholders <engagement> <Tnnn>"
 eng=$1; tid=$2; d=$(eng_dir "$eng"); sdir="$d/sessions/$tid"
-sheet="$sdir/$tid.session.md"; log="$sdir/$tid.session-log.md"; stk="$d/stakeholders.md"; TODAY=$(today)
+sheet="$sdir/$tid.session.md"; log="$sdir/$tid.session-log.md"; TODAY=$(today)
 [ -f "$sheet" ] || die "no session sheet"
 r=$(sheet_signed "$sheet") || die "gate: $r"
 if [ -f "$log" ] && grep -q '^- Stakeholders written on:' "$log"; then echo "stakeholders already written for $tid"; exit 0; fi
 [ -f "$log" ] || fill_template "$INGESTER_DIR/templates/session-log.md" "$log" "TID=$tid" "DATE=$TODAY" "INGESTER_VERSION=$(ingester_version)" "RULES_VERSION=$(rules_version)" "SHEET_APPROVER=$(header_field "$sheet" Approver)" "DOSSIER_APPROVER="
 logrow() { printf '| %s | %s | %s | %s | %s |\n' "$1" "$2" "$3" "$4" "$TODAY" >> "$log"; }
-n=0
+mkdir -p "$d/stakeholders"
 awk '/^## New stakeholders/ { on=1 } /^## Notes/ { on=0 } on && /^\| new \|/' "$sheet" | while IFS= read -r row; do
-  v=$(cell "$row" 8); [ "$v" = Accept ] || [ "$v" = Edit ] || continue
-  name=$(cell "$row" 2)
-  if table_rows "$stk" | awk -F'|' '{ gsub(/\\\|/, "\001"); $0 = $0; x=$3; gsub(/^ +| +$/, "", x); print x }' | grep -qxF "$name"; then continue; fi
-  id=$(next_id STK "$stk")
-  printf '| %s | %s |  | %s | %s | %s | %s | Active | %s | %s | %s | %s |\n' "$id" "$name" "$(cell "$row" 3 | escape_pipes)" "$(cell "$row" 4)" "$(cell "$row" 5 | escape_pipes)" "$(cell "$row" 6 | escape_pipes)" "$tid" "$tid" "$(cell "$row" 7 | escape_pipes)" "$TODAY" >> "$stk"
-  logrow "$id" created stakeholders.md "$name"
+  v=$(cell "$row" 10); [ "$v" = Accept ] || [ "$v" = Edit ] || continue
+  name=$(cell "$row" 2); stk_lookup "$eng" "$name" > /dev/null && continue
+  seg=$(cell "$row" 5); case "$seg" in ""|Residential|"BE&G"|Wholesale) ;; *) die "segment \"$seg\" for $name is not Residential, BE&G, Wholesale or blank" ;; esac
+  id=$(next_id "$eng" STK)
+  vals; set_val ID "$id"; set_val NAME "$name"; set_val ORGANISATION "$(cell "$row" 3)"; set_val ROLE "$(cell "$row" 4)"; set_val SEGMENT "$seg"; set_val DEPARTMENT "$(cell "$row" 6)"
+  set_val STANDING "$(cell "$row" 7)"; set_val DECIDES "$(cell "$row" 8)"; set_val TID "$tid"; set_val DATE "$TODAY"; set_val SOURCE "$(cell "$row" 9 | sed 's/^./- &/')"; set_list VARIANTS ""
+  render "$INGESTER_DIR/templates/items/STK.md" "$(item_path "$eng" "$id")"; vals_done
+  logrow "$id" created "stakeholders/$id.md" "$name"
 done
 awk '/^## Attendees/ { on=1 } /^## New/ { on=0 } on && /^\| / && !/Speaker tag/ && !/^\|---/' "$sheet" | while IFS= read -r row; do
   s=$(cell "$row" 2); [ "$s" = new ] && continue
-  awk -F'|' -v id="$s" -v tid="$tid" -v today="$TODAY" 'BEGIN{OFS="|"} { gsub(/\\\|/, "\001"); $0 = $0 } $2 == " " id " " { if ($11 !~ tid) { v=$11; gsub(/ +$/, "", v); $11 = (v ~ /[A-Za-z0-9]/ ? v ", " tid " " : " " tid " ") ; $13 = " " today " " } } { gsub(/\001/, "\\|"); print }' "$stk" > "$stk.tmp" && mv "$stk.tmp" "$stk"
-  logrow "$s" updated stakeholders.md "Sessions extended"
+  f=$(item_path "$eng" "$s"); [ -f "$f" ] || continue
+  fm_list "$f" sessions | grep -qx "$tid" && continue
+  fm_list_add "$f" sessions "$tid"; fm_set "$f" updated "$TODAY"; logrow "$s" updated "stakeholders/$s.md" "sessions extended"
 done
-bump_version "$stk"
-# Marker goes in the header list, before the table.
 awk -v d="$TODAY" '!done && /^- Dossier approver:/ { print; print "- Stakeholders written on: " d; done=1; next } { print }' "$log" > "$log.tmp" && mv "$log.tmp" "$log"
-printf 's1-stakeholders: %s stakeholder row(s) created; see %s\n' "$(grep -c '| created | stakeholders.md |' "$log")" "$log"
+printf 's1-stakeholders: %s stakeholder file(s) created; see %s\n' "$(grep -c '| created | stakeholders/' "$log")" "$log"
