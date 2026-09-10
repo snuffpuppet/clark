@@ -53,7 +53,7 @@ item_dir() { case $1 in REQ) echo requirements;; DEC) echo decisions;; LIM) echo
 item_path() { p=${2%%-*}; case $2 in T[0-9]*) p=T;; esac; printf '%s/%s/%s.md\n' "$(eng_dir "$1")" "$(item_dir "$p")" "$2"; }
 # next_id engagement PREFIX: next free id from the filenames in the type folder. Four digits; T is three.
 next_id() { dir="$(eng_dir "$1")/$(item_dir "$2")"; sep="-"; w=4; [ "$2" = T ] && { sep=""; w=3; }
-  n=$(ls "$dir" 2>/dev/null | grep -o "^$2$sep[0-9]*" | sed "s/^$2$sep//" | sort -n | tail -1)
+  n=$(ls "$dir" 2>/dev/null | grep -o "^$2$sep[0-9]*" | sed "s/^$2$sep//" | sort -n | tail -1 | sed 's/^0*//')
   printf "%s%s%0${w}d\n" "$2" "$sep" $(( ${n:-0} + 1 )); }
 # fm file key: scalar value from the frontmatter block.
 fm() { awk -v k="$2" 'NR==1 && $0 != "---" { exit } NR>1 && /^---$/ { exit } NR>1 && index($0, k ": ") == 1 { sub(/^[^:]*: */, ""); print; exit } NR>1 && $0 == k ":" { print ""; exit }' "$1"; }
@@ -77,7 +77,7 @@ render() { awk -v dir="$VALDIR" '
       line = substr(line, 1, RSTART - 1) val substr(line, RSTART + RLENGTH) }
     if (line != "\001SKIP") { sub(/[ \t]+$/, "", line); print line } }' "$1" > "$2"; }
 # vals: start a fresh value set. set_val KEY value. set_list KEY "line\nline" writes list items.
-vals() { VALDIR=$(mktemp -d); export VALDIR; }
+vals() { VALDIR=$(mktemp -d "${TMPDIR:-/tmp}/ing.XXXXXXXX"); export VALDIR; }
 set_val() { printf '%s' "$2" > "$VALDIR/$1"; }
 set_list() { printf '%s\n' "$2" | grep . | sed 's/^/  - /' > "$VALDIR/$1" || true; }
 vals_done() { rm -rf "$VALDIR"; unset VALDIR; }
@@ -101,8 +101,10 @@ sheet_signed() { f=$1
   [ "$n" -eq 0 ] || { echo "session sheet has $n row(s) with a blank verdict"; return 1; }
   return 0; }
 dossier_signed() { f=$1
-  [ -n "$(header_field "$f" Approver)" ] || { echo "dossier has no Approver"; return 1; }
-  [ -n "$(header_field "$f" 'Approved on')" ] || { echo "dossier has no Approved on"; return 1; }
+  by=$(header_field "$f" 'Completed by'); [ -n "$by" ] || by=$(header_field "$f" Approver)
+  on=$(header_field "$f" 'Completed on'); [ -n "$on" ] || on=$(header_field "$f" 'Approved on')
+  [ -n "$by" ] || { echo "dossier has no Completed by"; return 1; }
+  [ -n "$on" ] || { echo "dossier has no Completed on"; return 1; }
   pend=$("$INGESTER_DIR/bin/dossier2tsv" "$f" | awk -F'\t' '$4 == "" && !($3 == "Confident" && $7 != "") { printf "%s ", $1 }')
   [ -z "$pend" ] || { echo "dossier has pending verdicts on item(s): $pend"; return 1; }
   return 0; }

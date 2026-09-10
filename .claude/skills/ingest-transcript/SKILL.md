@@ -5,7 +5,7 @@ description: Ingest a discovery transcript (WebVTT) through stages S0 to S3, sto
 
 # ingest-transcript
 
-Version 0.5.1 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `$ROOT/ingester/bin/` do every deterministic step; you do the reading. Follow `ingester/runbooks/` for each stage.
+Version 0.5.9 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `$ROOT/ingester/bin/` do every deterministic step; you do the reading. Follow `ingester/runbooks/` for each stage.
 
 ## Where you run
 
@@ -68,9 +68,9 @@ It prints one word and act only on that word.
 | Status | What you do |
 |---|---|
 | `needs-s0` | Run S0 below. |
-| `awaiting-session-sheet` | Tell the reviewer that `ENG/sessions/TID/TID.session.md` is waiting for their verdicts and signature. Stop. |
+| `awaiting-session-sheet` | Re-present the review table from S0 step 8, tell the reviewer that `ENG/sessions/TID/TID.session.md` is waiting for their verdicts and signature, and that a verdict given in the terminal is enough because you will write it into the sheet. Stop. |
 | `needs-s1` | Run S1 below. |
-| `awaiting-dossier` | Tell the reviewer that `ENG/sessions/TID/TID.dossier.md` is waiting. Stop. |
+| `awaiting-dossier` | The dossier is written but not yet complete. Follow **Completing the dossier** below: if every Verdict is filled, mark it complete and go straight to S3; otherwise present the items still without a verdict and stop. |
 | `needs-s3` | Run S3 below. |
 | `done` | Say the transcript has been written and point at `ENG/sessions/TID/TID.session-log.md`. Stop. |
 | `blocked: <reason>` | Report the reason verbatim. Stop. |
@@ -79,12 +79,12 @@ It prints one word and act only on that word.
 
 1. Run `$ROOT/ingester/bin/stage <engagement> TID S0`. It writes `ENG/sessions/TID/TID.utterances.tsv` and `ENG/sessions/TID/TID.session.md` with every speaker matched against `ENG/stakeholders/*.md` by name or variant. Speakers it could not match appear in Attendees with STK `new` and again in New stakeholders with empty cells.
 2. Read the whole utterance table.
-3. For every `new` speaker, fill the New stakeholders row: Organisation (Us, Vendor, or a named third party), Role (Internal SME, Internal architect, Internal other, Vendor, Consultant), Segment (Residential, BE&G or Wholesale when the person speaks for one customer segment; blank when they speak for the whole business, as a Finance SME does; blank for vendors and consultants), Department (where they sit, such as Product, Operations, Finance, Architecture; blank when the transcript gives no clue), Standing (the systems, processes or domains they show they own or operate, as text), Decides (the subjects on which they may accept a decision; blank for architects and vendors), and Passage: one F2 citation for the utterance that best shows the role. Read the role from what they say and how others address them, never from the name alone. A `(Vendor)` suffix on the speaker tag is evidence, not proof.
+3. For every `new` speaker, fill the New stakeholders row: Organisation (the real company name, never a positional label: the client's own name for internal people, the vendor's name for the vendor, and every other party by name), Role (Internal SME, Internal architect, Internal other, Vendor, Consultant), Segment (Residential, BE&G or Wholesale when the person speaks for one customer segment; blank when they speak for the whole business, as a Finance SME does; blank for vendors and consultants), Department (where they sit, such as Product, Operations, Finance, Architecture; blank when the transcript gives no clue), Standing (the systems, processes or domains they show they own or operate, as text), Decides (the subjects on which they may accept a decision; blank for architects and vendors), and Passage: one F2 citation for the utterance that best shows the role. Read the role from what they say and how others address them, never from the name alone. A `(Vendor)` suffix on the speaker tag is evidence, not proof.
 4. Propose Mentioned rows for people, roles or bodies named as owners or deciders who did not speak: "someone from the business", "ask NETCO", a named colleague, an approving group. Role Mentioned, or Forum for an approving body on our side, with Decides naming what that body approves. One citation each.
 5. Propose the Session date from the invitation, the reviewer's instruction, or the transcript, in `D Month YYYY` form, and the Domain. Fill the Meeting subject if one was given. Write anything the reviewer should know, including the purpose you infer for the session, under Notes for the reviewer.
 6. Leave every Verdict cell blank. Leave Approver and Approved on blank.
 7. Run `$ROOT/ingester/bin/check-citations <engagement> TID ENG/sessions/TID/TID.session.md`. Fix any FAIL and rerun until OK.
-8. Append a line to `ENG/LOG.md`: `- <today>: TID S0 proposals written for <n> speakers; awaiting the session sheet.` Tell the reviewer the sheet path, how many speakers were matched and how many are new, and stop.
+8. Append a line to `ENG/LOG.md`: `- <today>: TID S0 proposals written for <n> speakers; awaiting the session sheet.` Then present the proposals for review **in the terminal**, so the reviewer never has to open the sheet to check them. Write a markdown table in the reply, one row per proposed stakeholder, with the columns Name, Org, Role, Segment, Department, Utterances (blank for people who did not speak) and Verdict (left blank for them to fill). Follow it with a Decision authority list giving the full Decides text for every row that has one, because that is the field R19 reads at S1 and it is too long for the table; then one line naming any row whose evidence is thin. Give the sheet path, the count matched and the count new. Say that verdicts can be given here in the terminal and that you will write them, the Approver and the Approved on date into the sheet on their word, and that they may edit the sheet by hand instead if they prefer. Then stop.
 
 ## S1 Read
 
@@ -126,9 +126,23 @@ Fill Closing: Questions for the SMEs (every Question item, one line each); Empty
 4. No Confident item carries a hedge word in its content citation (probably, I think, my guess, maybe, I'm not sure, you'd have to ask).
 5. Every episode that is Settled, Parked or Unsettled owns at least one item.
 
-Write a run log with `$ROOT/ingester/bin/stage <engagement> TID log S1 "<outcome>"`. Append to `ENG/LOG.md`: `- <today>: TID S1 read; dossier v<n> with <items> items, <needs> needing a human; awaiting review.` Tell the reviewer the dossier path, the item count, the count graded Needs a human, and stop.
+**Accept the Confident items.** Before the run log, write `- Verdict: Accept` on every item graded Confident. Leave every item graded Needs a human blank: those are the reviewer's. Add a short section at the end of Closing, `### How the Confident items were accepted`, recording that the verdicts were written by the skill under this rule rather than marked one by one, and giving the count. This does not sign the dossier; Approver, Approved on and the Needs a human verdicts still gate S3.
 
-**Rejected dossier.** When the reviewer has written `Reject` in the dossier header's Approver line or asked for a re-read, read their notes, produce `TID.dossier.v2.md` with `- Dossier version: 2`, and leave the rejected file untouched.
+Write a run log with `$ROOT/ingester/bin/stage <engagement> TID log S1 "<outcome>"`. Append to `ENG/LOG.md`: `- <today>: TID S1 read; dossier v<n> with <items> items, <needs> needing a human; awaiting review.` Tell the reviewer the dossier path, the item count, the count graded Needs a human, that you have accepted the Confident items and how many, and stop.
+
+**Rejected dossier.** When the reviewer has written `Reject` on the dossier header's Completed by line or asked for a re-read, read their notes, produce `TID.dossier.v2.md` with `- Dossier version: 2`, and leave the rejected file untouched.
+
+
+## Completing the dossier
+
+A dossier is complete when every Verdict is filled and both self-checks pass. There is no separate approval step and you never stop to ask for one.
+
+When `stage` says `awaiting-dossier`, read the dossier and check every Verdict.
+
+- **Any Verdict blank.** Present the outstanding items in the terminal, grouped by the reason each was graded Needs a human, one line each saying what you need in order to fill it. Say which fields are still missing on the items that need one, such as an Owner or a MoSCoW. Stop.
+- **Every Verdict filled.** Run `$ROOT/ingester/bin/check-citations` and `$ROOT/ingester/bin/check-integrity <engagement> --proposed` on the dossier and fix what you can. Then write `- Completed by:` with the reviewer's name and `- Completed on:` with today's date into the header, add a short `### How this dossier was completed` section at the end of Closing recording the rule and where the verdicts came from, and go straight to S3. Report what was written.
+
+Never mark a dossier complete while a Verdict is blank, and never invent a verdict to get there. A Confident item in an episode carrying `Bulk accept:` counts as filled.
 
 ## S3 Write
 

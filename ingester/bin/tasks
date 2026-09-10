@@ -34,7 +34,7 @@ phases_named=todo; [ "$(phases "$eng" | grep -c .)" -gt 0 ] && [ "$(phases "$eng
   mark "Human: review and sign the session sheet (every Verdict filled, Approver and Approved on)" $sheet_ok
   mark "S1 gate: stakeholder files written to \`stakeholders/\` from the signed sheet" $stk
   mark "S1 Read: the skill reads the whole transcript and writes \`$tid.exchanges.md\`, \`$tid.episodes.md\` and \`$tid.dossier.md\`, self-checked" $s1
-  mark "Human: review and sign the dossier (verdict on every item, questions dispositioned, Approver and Approved on)" $s2
+  mark "Human: give a verdict on every dossier item; the skill then marks it Completed by and writes" $s2
   mark "S3 Write: item files, claims, topics, transcript file, session log, index tables; transcript moved to \`processed/\`" $s3
   printf '\n## After the run\n\n'
   mark "Score the drafted dossier against the reference (\`stage $eng $tid score ...\`); $runs run report(s) so far" $score

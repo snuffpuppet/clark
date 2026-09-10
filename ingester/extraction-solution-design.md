@@ -146,7 +146,7 @@ One file per element under `processes/` and `systems/`, each carrying its domain
 |---|---|
 | ID | SYS plus a four-digit zero-padded number (SYS-0002). Never reused. One file per system, `systems/SYS-0002.md`, with each fact as a section. |
 | Name | The name the SMEs use. |
-| Operated by | Us, Vendor, or a named third party. |
+| Operated by | The real company name of whoever runs it, never a positional label: the client's own name, the vendor's name, or a third party by name. Add "(third party)" after the name where it helps the reader. |
 | Role today | One line. |
 | Facts | Numbered claims SYS-nnn.f1, f2, and so on. Each fact has: Kind, description, Status, Confidence, Evidence. |
 | Fact kind | Does (a capability in use); Holds (data it keeps); Cannot (a stated inability or constraint); Expected use (what the solution is expected to do with it). |
@@ -189,7 +189,7 @@ One file per stakeholder under `stakeholders/`. Together they are the single sou
 |---|---|
 | ID | STK plus a four-digit zero-padded number (STK-0003). Never reused. One file per stakeholder, `stakeholders/STK-0003.md`. |
 | Name | As the transcript renders it, with known variants (Martin, Marty) listed so that speaker tags and mentions resolve to one row. |
-| Organisation | Us, Vendor, or a named third party. |
+| Organisation | The real company name, never a positional label: the client's own name for internal people, the vendor's name for the vendor, and every other party by name. |
 | Role | Internal SME, Internal architect, Internal other, Vendor, Consultant, Forum (a named approving body on our side, such as the SLT group), or Mentioned (named in a session but never present). |
 | Segment | Residential, BE&G, Wholesale, or blank. Set when the person speaks for one customer segment, so that their description of "our process" is read as that segment's process. Blank means they speak for the whole business, as a Finance SME does. Stakeholder field only for now; no extraction rule reads it until the evidence says one should. |
 | Department | Where the person sits, as free text such as Product, Operations, Finance, Architecture. The generated stakeholder index lists the distinct values so they converge. |
@@ -397,7 +397,7 @@ On approval: a fact on the LEGACY-CARRIER handoff, tagging is applied on the han
 The project is split into the ingester, which holds the mechanism, and the engagements, which hold everything produced for a client. The ingester contains nothing that belongs to one client. An engagement contains nothing that describes how ingestion works. Either can change without touching the other, and an engagement folder can be handed over, archived or deleted on its own.
 
 ```
-solution-register/                 the git repository
+paper-trail/                       the git repository
   .claude/skills/ingest-transcript/SKILL.md
                                      the ingest skill, at the root so that
                                      Claude Code finds it; part of the ingester
@@ -526,7 +526,7 @@ All settled on approval, 10 September 2026, unless marked open.
 5. **The session date for T001** is 8 September 2026, the Tuesday before approval, as given by Adam. To be confirmed on the session sheet at S0.
 6. **Speaker roles for T001 are settled during ingestion.** The stakeholder register starts empty for puppy-gloves, S0 lists the seven speakers, the skill proposes a role, standing and decision authority for each with citations, and the reviewer confirms on the session sheet. There is no session-level approving forum flag. Authority sits with people and subjects: SMEs can accept decisions within their area of expertise, architects normally cannot and their acceptance goes to the SLT group as an OI (4.6 Decides, R19).
 7. **Claude Code is the runtime.** All judgement is the ingest skill inside a Claude Code session started at the repository root, with the engagement name as the skill's argument. No API key, no Docker, no other software. Confirmed.
-8. **One git repository, `solution-register`, holds both parts.** Created 10 September 2026. Confirmed.
+8. **One git repository, `paper-trail`, holds both parts.** Created 10 September 2026. Confirmed.
 9. **The first hand-marked reference is made by Adam** before the first run, in the dossier format. Confirmed.
 10. **One dossier review per transcript is the default**, with the staged three-stop path available as a fallback. Confirmed.
 11. **Bulk approval of Confident items** is allowed per episode after the reviewer has read them. Confirmed. A kind's grading rule may be loosened after three sessions with zero Confident-but-wrong for that kind.

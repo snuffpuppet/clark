@@ -9,7 +9,7 @@
 [ $# -ge 1 ] || die "usage: check-integrity <engagement> [--proposed <dossier>]"
 eng=$1; d=$(eng_dir "$eng"); dossier=""; [ "${2:-}" = "--proposed" ] && dossier=$3
 [ -f "$d/engagement.md" ] || die "no engagement at $d"
-facts=$(mktemp)
+facts=$(mktemp "${TMPDIR:-/tmp}/ing.XXXXXXXX")
 
 # Stream: TYPE <tab> ID <tab> KEY <tab> VALUE. Frontmatter keys become model field names; body sections too.
 for type in REQ DEC LIM RSK OI; do dir="$d/$(item_dir "$type")"
@@ -106,8 +106,9 @@ awk -F'\t' -v today="$(today)" '
       if ((t == "REQ" || t == "OI") && !term && !has(id, "Owner")) fail("I3", id, "no Owner")
       if ((t == "DEC" || t == "LIM" || t == "RSK") && !has(id, "Raised by")) fail("I3", id, "no Raised by")
       if (((t == "DEC" && st == "Proposed") || (t == "REQ" && st == "Draft") || (t == "LIM" && st == "Under assessment")) && !linked_oi_has_owner(id)) fail("I3", id, t " in " st " needs an open item in Links with an Owner")
-      if (t == "OI" && st != "Closed" && (!has(id, "Next action") || !has(id, "Due"))) fail("I4", id, "open item needs Next action and Due")
-      if (t == "RSK" && !term && !has(id, "Due")) fail("I4", id, "risk needs Due as its review date")
+      if (t == "OI" && st != "Closed" && !has(id, "Next action")) fail("I4", id, "open item needs Next action")
+      if (t == "OI" && st != "Closed" && !has(id, "Due")) warn("I4", id, "open item has no Due")
+      if (t == "RSK" && !term && !has(id, "Due")) warn("I4", id, "risk has no Due as its review date")
       if (t == "REQ" && nphase && has(id, "Phase") && !(F[id, "Phase"] in PHASE)) fail("I5", id, "phase \"" F[id, "Phase"] "\" is not in the Phases list in engagement.md")
       links = F[id, "Links"]; n = split(links, lk, /;/)
       for (j = 1; j <= n; j++) { l = lk[j]

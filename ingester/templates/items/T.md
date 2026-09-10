@@ -10,8 +10,8 @@ attendees:
 domain: {{DOMAIN}}
 session-sheet-approver: {{SHEET_APPROVER}}
 session-sheet-approved-on: {{SHEET_ON}}
-dossier-approver: {{DOSSIER_APPROVER}}
-dossier-approved-on: {{DOSSIER_ON}}
+dossier-completed-by: {{DOSSIER_COMPLETED_BY}}
+dossier-completed-on: {{DOSSIER_ON}}
 ingester-version: {{INGESTER_VERSION}}
 rules-version: {{RULES_VERSION}}
 registered-on: {{DATE}}

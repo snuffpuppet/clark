@@ -15,12 +15,12 @@ Version 0.1, {{DATE}}.
 
 ## How to review
 
-Confirm the session date and domain. For each attendee, Verdict is Correct or Edit; edit the Role, Segment, Department, Standing or Decides cells in place before writing Edit. Segment is Residential, BE&G, Wholesale, or blank when the person speaks for the whole business. Department is where they sit, such as Product or Operations. For each proposed stakeholder, Verdict is Accept, Edit or Reject. Every Verdict cell must be filled, then write your name in Approver and the date in Approved on. A blank verdict is pending and blocks S1. Review path is dossier or staged.
+Confirm the session date and domain. For each attendee, Verdict is Correct or Edit, confirming the speaker is who the STK column says; a change to an existing stakeholder's role or standing is raised as an STK.edit item in the dossier, not here. For each proposed stakeholder, check Role, Segment, Department, Standing and Decides, edit the cells in place, and write Accept, Edit or Reject. Segment is Residential, BE&G, Wholesale, or blank when the person speaks for the whole business. Department is where they sit, such as Product or Operations. Every Verdict cell must be filled, then write your name in Approver and the date in Approved on. A blank verdict is pending and blocks S1. Review path is dossier or staged. You can give all of this to the skill in the terminal instead and let it write the verdicts and the signature here.
 
 ## Attendees
 
-| Speaker tag | STK | Role | Segment | Department | Standing | Decides | Utterances | Verdict |
-|---|---|---|---|---|---|---|---|---|
+| Speaker tag | STK | Utterances | Verdict |
+|---|---|---|---|
 
 ## New stakeholders
 

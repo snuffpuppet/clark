@@ -11,7 +11,7 @@ mkdir -p "$d/evaluation"
 n=$(ls "$d/evaluation" | grep -o "^$tid-run-[0-9][0-9]" | sed 's/.*-//' | sort -n | tail -1); run=$(printf '%02d' $(( ${n:-0} + 1 )))
 prev=""; [ -n "$n" ] && prev="$d/evaluation/$tid-run-$n.md"
 out="$d/evaluation/$tid-run-$run.md"
-R=$(mktemp); Dd=$(mktemp); Er=$(mktemp); Ed=$(mktemp); F=$(mktemp); P=$(mktemp)
+R=$(mktemp "${TMPDIR:-/tmp}/ing.XXXXXXXX"); Dd=$(mktemp "${TMPDIR:-/tmp}/ing.XXXXXXXX"); Er=$(mktemp "${TMPDIR:-/tmp}/ing.XXXXXXXX"); Ed=$(mktemp "${TMPDIR:-/tmp}/ing.XXXXXXXX"); F=$(mktemp "${TMPDIR:-/tmp}/ing.XXXXXXXX"); P=$(mktemp "${TMPDIR:-/tmp}/ing.XXXXXXXX")
 "$INGESTER_DIR/bin/dossier2tsv" "$ref" > "$R"; "$INGESTER_DIR/bin/dossier2tsv" "$dos" > "$Dd"
 "$INGESTER_DIR/bin/dossier2tsv" -e "$ref" > "$Er"; "$INGESTER_DIR/bin/dossier2tsv" -e "$dos" > "$Ed"
 "$INGESTER_DIR/bin/check-citations" "$eng" "$tid" "$dos" > "$F" 2>&1 || true

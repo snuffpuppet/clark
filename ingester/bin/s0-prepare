@@ -36,9 +36,9 @@ fill_template "$INGESTER_DIR/templates/session.md" "$sheet" "TID=$tid" "DATE=$(t
 # 3. Attendees: each speaker tag matched against stakeholders/*.md by name or variant, case-insensitive.
 attendees=$(sed 1d "$tsv" | cut -f5 | sort | uniq -c | sed 's/^ *//' | awk '{ n=$1; $1=""; sub(/^ /, ""); print $0 "\t" n }' |
   while IFS="$TAB" read -r tag n; do
-    if id=$(stk_lookup "$eng" "$tag"); then f=$(item_path "$eng" "$id")
-      printf '| %s | %s | %s | %s | %s | %s | %s | %s |  |\n' "$tag" "$id" "$(fm "$f" role)" "$(fm "$f" segment)" "$(fm "$f" department | escape_pipes)" "$(fm "$f" standing | escape_pipes)" "$(fm "$f" decides | escape_pipes)" "$n"
-    else printf '| %s | new |  |  |  |  |  | %s |  |\n' "$tag" "$n"; fi; done)
+    if id=$(stk_lookup "$eng" "$tag"); then
+      printf '| %s | %s | %s |  |\n' "$tag" "$id" "$n"
+    else printf '| %s | new | %s |  |\n' "$tag" "$n"; fi; done)
 newrows=$(printf '%s\n' "$attendees" | awk -F'|' '$3 ~ /^ new $/ { t=$2; gsub(/^ +| +$/, "", t); printf "| new | %s |  |  |  |  |  |  |  |  |\n", t }')
 
 printf '%s\n' "$attendees" > "$sheet.att"

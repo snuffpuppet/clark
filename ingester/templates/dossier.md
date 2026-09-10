@@ -9,12 +9,12 @@ Version 0.1, {{DATE}}.
 - Ingester version: {{INGESTER_VERSION}}
 - Rules version: {{RULES_VERSION}}
 - Dossier version: 1
-- Approver:
-- Approved on:
+- Completed by:
+- Completed on:
 
 ## How to review
 
-Read every episode. Each item carries a grade. Items graded Needs a human must each get a Verdict of Accept, Edit or Reject. Items graded Confident may be accepted individually, or in bulk for an episode by writing `Bulk accept: <your name>` on the line under the episode heading after reading them; the write stage treats a blank Verdict on a Confident item in a bulk-accepted episode as Accept. To edit an item, change its field lines in place and write Edit. Questions get an answer in the Gist line or the verdict `raise an OI`. Missed passages are added as new items with citations. When every verdict is filled, write your name in Approver and the date in Approved on. A blank verdict outside a bulk-accepted episode is pending and blocks S3.
+Read every episode. Each item carries a grade. Items graded Needs a human must each get a Verdict of Accept, Edit or Reject. Items graded Confident may be accepted individually, or in bulk for an episode by writing `Bulk accept: <your name>` on the line under the episode heading after reading them; the write stage treats a blank Verdict on a Confident item in a bulk-accepted episode as Accept. To edit an item, change its field lines in place and write Edit. Questions get an answer in the Gist line or the verdict `raise an OI`. Missed passages are added as new items with citations. When every verdict is filled the dossier is complete: the skill writes Completed by and Completed on and goes straight to S3. There is no separate approval step. A blank verdict outside a bulk-accepted episode is pending and blocks S3.
 
 ## {{TID}}-E01 Example episode title
 

@@ -1,6 +1,6 @@
 # Solution register model
 
-Version 2.19, 10 September 2026. Owner: Adam Moyes. Version 2.19 names phases: the engagement lists them in order with the current one marked, a requirement's Phase takes one of those names, and I5 becomes Phase valid. Version 2.17 removed the Scope field, the scope taxonomy and integrity rule I5. Version 2.18 removes the change request type (to return in a later version when needed), makes ids four digits, adds Segment and Department to the stakeholder register, and replaces the register tables with one file per item plus generated index tables (section 7). Both at Adam's direction on review, 10 September 2026.
+Version 2.20, 10 September 2026. Version 2.20 makes Due a warning rather than a requirement on open items and risks, at Adam's direction, so that a session can be written before review dates are set. Owner: Adam Moyes. Version 2.19 names phases: the engagement lists them in order with the current one marked, a requirement's Phase takes one of those names, and I5 becomes Phase valid. Version 2.17 removed the Scope field, the scope taxonomy and integrity rule I5. Version 2.18 removes the change request type (to return in a later version when needed), makes ids four digits, adds Segment and Department to the stakeholder register, and replaces the register tables with one file per item plus generated index tables (section 7). Both at Adam's direction on review, 10 September 2026.
 
 This file describes how we track the artifacts of solution architecture on a project where we are the design authority and a vendor builds the platform. It is tool-agnostic. It says what the item types are, how they relate, how each one moves, and what a healthy register looks like. It does not say how to build or populate the registers in any particular tool; that belongs in a separate runner document.
 
@@ -65,7 +65,7 @@ Asks and events are work first and record later. Requirements and discoveries ca
 | Vendor ref | The vendor's id for the corresponding item, if one exists. Otherwise blank. Not used on decisions; a vendor document reference goes in Source. |
 | Links | Ids of related items, with the relationship word (5). |
 | Next action | Required on open items that are not Closed. Not used on any other type; the open item driving a record carries it. |
-| Due | Date for the next action, on open items. On a risk, Due is the date the risk is next reviewed, and is required while the risk is not in a terminal state. Not used on other types. |
+| Due | Date for the next action, on open items. On a risk, Due is the date the risk is next reviewed. Wanted while the item is not in a terminal state, but not required: a missing Due warns rather than fails (I4). Not used on other types. |
 | Source | Where the item came from: a design document and section, a knowledge base claim id, a meeting date, a vendor document reference, or a transcript citation in the form `Tnnn/utterance:fragments | speaker | timestamp | quote`, one per exchange part. Not used on open items, where Raised on and Raised by carry it. |
 | Updated | Date of last change. |
 
@@ -181,7 +181,7 @@ Run against a proposed set of registers before writing them, and on request duri
 | I1 Unique ids | No id appears twice across all registers. |
 | I2 Valid status | Every status is an exact 4.2 value for its type. Every requirement has a MoSCoW value and a Raised on date. Every limitation has an Identified on date; Impact once it is past Identified; and at least two Options and a Chosen option once it is Accepted. Every risk has an Identified on date, and Trigger and Mitigation once it is Mitigating. |
 | I3 Owner present | Every non-terminal requirement and open item has an Owner that is a person, "Vendor: <name>" or "Joint". Every decision, limitation and risk has Raised by. Decisions and limitations are exempt from Owner, but a decision in Proposed, a requirement in Draft and a limitation in Under assessment must each have an open item in Links whose Owner is set. |
-| I4 Next action present | Every open item not Closed has Next action and Due. Every non-terminal risk has Due as its review date. |
+| I4 Next action present | Every open item not Closed has Next action. Due is a warning rather than a failure on open items and risks: it is wanted, but a missing review date does not block a write. |
 | I5 Phase valid | Every requirement's Phase is a name in the engagement's Phases list. |
 | I6 Link targets exist | Every id in Links exists in some register. |
 | I7 Limitation disposition | Every LIM in Accepted has a Disposition record naming a DEC in Accepted, and no LIM in Identified or Under assessment has one. A LIM whose Links carry "previously dispositioned by" must name a DEC in Superseded there. |

@@ -18,6 +18,7 @@ awk -F' \\| ' -v tsv="$tsv" -v tid="$tid" '
             key = f[1] ":" f[2]; text[key] = f[6]; spk[key] = f[5]; start[key] = f[3]; have[key] = 1 } }
   function norm(s) { gsub(/[ \t]+/, " ", s); gsub(/^ | $/, "", s); return s }
   {
+    bad = ""
     n++; label = $1; ref = $2; speaker = $3; ts = $4; quote = $5
     if (label !~ /^(asked|answered|proposed|restated|accepted|challenged|deferred|hedged|aside)$/) bad = bad "; unknown label " label
     sub(/^"/, "", quote); sub(/"$/, "", quote)
