@@ -1,6 +1,6 @@
 # The ingester
 
-Version 0.5, 10 September 2026.
+Version 0.6, 10 September 2026.
 
 ## Purpose
 
@@ -85,7 +85,8 @@ All in `bin/`, POSIX sh with awk, sed, grep, shasum and date. `ENGAGEMENTS_ROOT`
 | `s3-write` | `s3-write <engagement> <Tnnn>` | Checks every gate, writes one file per accepted item, appends claims, extends topics, completes the transcript file, writes the session log, renders the index, moves the VTT to `processed/`. Restores everything on failure. |
 | `render-index` | `render-index <engagement>` | Regenerates the tables under `index/`, including `outstanding.md`. |
 | `score` | `score <engagement> <Tnnn> <reference> [<dossier>]` | Writes `evaluation/Tnnn-run-nn.md` with the counts from design Q4. |
-| `stage` | `stage <engagement> <Tnnn> <status\|S0\|S1\|S3\|check\|score>` | Driver. Reports the state, runs a stage, refuses a stage whose predecessor is unsigned, writes a run log. |
+| `stage` | `stage <engagement> <Tnnn> <status\|tasks\|S0\|S1\|S3\|check\|score>` | Driver. Reports the state, runs a stage, refuses a stage whose predecessor is unsigned, writes a run log. |
+| `tasks` | `tasks <engagement> <Tnnn>` | Prints the ingestion checklist for one transcript with each step marked from the files on disk, and writes `sessions/Tnnn/TASKS.md`. Also `stage <engagement> <Tnnn> tasks`. |
 
 ## Versioning
 

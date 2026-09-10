@@ -5,7 +5,7 @@ description: Ingest a discovery transcript (WebVTT) for a named engagement throu
 
 # ingest-transcript
 
-Version 0.3.1 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `ingester/bin/` do every deterministic step; you do the reading. Follow `ingester/runbooks/` for each stage.
+Version 0.3.2 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `ingester/bin/` do every deterministic step; you do the reading. Follow `ingester/runbooks/` for each stage.
 
 ## Arguments
 
@@ -42,7 +42,7 @@ It prints the new `TID`. Then, and on every invocation, run:
 ingester/bin/stage <engagement> TID status
 ```
 
-It prints one word and act only on that word:
+It prints one word and act only on that word. `ingester/bin/stage <engagement> TID tasks` prints the same as a checklist and writes it to `ENG/sessions/TID/TASKS.md`; show it to the reviewer when you stop.
 
 | Status | What you do |
 |---|---|
