@@ -1,0 +1,61 @@
+#!/bin/sh
+# s0-prepare <engagement> <Tnnn>
+# Flattens the VTT to sessions/Tnnn/Tnnn.utterances.tsv (F1) and writes Tnnn.session.md from the
+# template with speakers matched against stakeholders.md. Deterministic; the skill fills roles afterwards.
+set -e
+. "$(dirname "$0")/lib.sh"
+[ $# -eq 2 ] || die "usage: s0-prepare <engagement> <Tnnn>"
+eng=$1; tid=$2; d=$(eng_dir "$eng")
+vtt=$(vtt_path "$eng" "$tid")
+sdir="$d/sessions/$tid"; mkdir -p "$sdir"
+tsv="$sdir/$tid.utterances.tsv"; sheet="$sdir/$tid.session.md"
+[ -f "$sheet" ] && die "$sheet already exists; S0 is not rerun over a session sheet. Remove it by hand to start again."
+
+# 1. Utterance table.
+{ printf 'utterance\tfragment\tstart\tend\tspeaker\ttext\n'
+  awk '
+    { sub(/\r$/, "") }
+    /^[0-9a-fA-F-]+\/[0-9]+-[0-9]+$/ { split($0, a, "/"); split(a[2], b, "-"); utt = b[1] + 0; frag = b[2] + 0; next }
+    /^[0-9:.]+ --> [0-9:.]+/ { start = $1; end = $3; next }
+    /^<v / { s = $0; sub(/^<v /, "", s); spk = s; sub(/>.*/, "", spk); sub(/^[^>]*>/, "", s); text = s; intext = 1
+             if (s ~ /<\/v>$/) { emit(); intext = 0 }; next }
+    intext { text = text " " $0; if ($0 ~ /<\/v>$/) { emit(); intext = 0 } }
+    function emit() { sub(/<\/v>$/, "", text); gsub(/\t/, " ", text); gsub(/  +/, " ", text)
+                      gsub(/^ +| +$/, "", text); printf "%d\t%d\t%s\t%s\t%s\t%s\n", utt, frag, start, end, spk, text }
+  ' "$vtt" | sort -t "$TAB" -k1,1n -k2,2n
+} > "$tsv"
+rows=$(( $(wc -l < "$tsv") - 1 ))
+[ "$rows" -gt 0 ] || die "no cues parsed from $vtt"
+
+# 2. Session sheet from the template.
+file=$(transcript_field "$eng" "$tid" File); sum=$(transcript_field "$eng" "$tid" SHA-256)
+subject=$(transcript_field "$eng" "$tid" "Meeting subject")
+fill_template "$INGESTER_DIR/templates/session.md" "$sheet" "TID=$tid" "DATE=$(today)" "FILE=$file" "SHA256=$sum" \
+  "SUBJECT=$subject" "SESSION_DATE=" "INGESTER_VERSION=$(ingester_version)"
+
+# 3. Attendees: each speaker tag matched against stakeholders.md by Name or Variants, case-insensitive.
+stk="$d/stakeholders.md"
+attendees=$(sed 1d "$tsv" | cut -f5 | sort | uniq -c | sed 's/^ *//' | awk '{ n=$1; $1=""; sub(/^ /, ""); print $0 "\t" n }' |
+  while IFS="$TAB" read -r tag n; do
+    lc=$(printf '%s' "$tag" | tr 'A-Z' 'a-z')
+    match=$(table_rows "$stk" | while IFS= read -r row; do
+      name=$(cell "$row" 2 | tr 'A-Z' 'a-z'); vars=$(cell "$row" 3 | tr 'A-Z' 'a-z' | tr ',' '\n' | sed 's/^ *//; s/ *$//')
+      if [ "$name" = "$lc" ] || printf '%s\n' "$vars" | grep -qx "$lc"; then printf '%s\n' "$row"; break; fi; done)
+    if [ -n "$match" ]; then
+      printf '| %s | %s | %s | %s | %s | %s |  |\n' "$tag" "$(cell "$match" 1)" "$(cell "$match" 5 | escape_pipes)" "$(cell "$match" 6 | escape_pipes)" "$(cell "$match" 7 | escape_pipes)" "$n"
+    else
+      printf '| %s | new |  |  |  | %s |  |\n' "$tag" "$n"
+    fi; done)
+newrows=$(printf '%s\n' "$attendees" | awk -F'|' '$3 ~ /^ new $/ { t=$2; gsub(/^ +| +$/, "", t); printf "| new | %s |  |  |  |  |  |  |\n", t }')
+
+printf '%s\n' "$attendees" > "$sheet.att"
+printf '%s\n' "$newrows" | grep '^| new' > "$sheet.new" || true
+awk -v att="$sheet.att" -v nr="$sheet.new" '
+  { print }
+  /^\| Speaker tag \|/ { getline; print; while ((getline l < att) > 0) print l }
+  /^\| Proposed \|/ { getline; print; while ((getline l < nr) > 0) print l }
+' "$sheet" > "$sheet.tmp" && mv "$sheet.tmp" "$sheet"
+rm -f "$sheet.att" "$sheet.new"
+
+printf 'S0: %s cues, %s speakers, %s not in the stakeholder register\n' "$rows" "$(printf '%s\n' "$attendees" | wc -l | tr -d ' ')" "$(printf '%s\n' "$newrows" | grep -c '^| new')"
+printf 'wrote %s\nwrote %s\n' "$tsv" "$sheet"

@@ -1,0 +1,27 @@
+#!/bin/sh
+# register-transcript <engagement> <vtt-path> ["meeting subject"]
+# Copies the file unchanged into transcripts/unprocessed/ unless it is already there, records name and
+# SHA-256 against the next Tnnn in transcripts.md, bumps the register and prints the id.
+set -e
+. "$(dirname "$0")/lib.sh"
+[ $# -ge 2 ] || die "usage: register-transcript <engagement> <vtt-path> [\"meeting subject\"]"
+eng=$1; src=$2; subject=${3:-}
+d=$(eng_dir "$eng"); reg="$d/transcripts.md"
+[ -f "$reg" ] || die "no transcripts.md in $d"
+[ -f "$src" ] || die "no such file $src"
+name=$(basename "$src"); sum=$(sha256 "$src")
+dest="$d/transcripts/unprocessed/$name"
+if [ -f "$dest" ]; then
+  [ "$(sha256 "$dest")" = "$sum" ] || die "$dest exists with a different SHA-256; nothing changed"
+elif [ -f "$d/transcripts/processed/$name" ]; then
+  die "$name is already processed; nothing changed"
+else
+  mkdir -p "$d/transcripts/unprocessed"; cp "$src" "$dest"
+  [ "$(sha256 "$dest")" = "$sum" ] || die "copy failed its SHA-256 check"
+fi
+if table_rows "$reg" | grep -q "| $sum |"; then die "a transcript with this SHA-256 is already registered"; fi
+tid=$(next_id T "$reg")
+esc_subject=$(printf '%s' "$subject" | escape_pipes)
+printf '| %s | %s | %s |  |  | %s |  |  |  |  |  |  | %s | %s |\n' "$tid" "$name" "$sum" "$esc_subject" "$(ingester_version)" "$(rules_version)" >> "$reg"
+bump_version "$reg"
+printf '%s\n' "$tid"

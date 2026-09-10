@@ -1,0 +1,41 @@
+#!/bin/sh
+# check-citations <engagement> <Tnnn> <file>
+# Checks every F2 citation in the file against sessions/Tnnn/Tnnn.utterances.tsv:
+# the utterances exist, the speaker matches every cited fragment, the timestamp is the start of the first
+# cited fragment cut to seconds, and the quote (split on ...) is found in order in the concatenated text.
+# Prints one FAIL line per bad citation and "OK n citations". Exit 1 on any failure.
+set -e
+. "$(dirname "$0")/lib.sh"
+[ $# -eq 3 ] || die "usage: check-citations <engagement> <Tnnn> <file>"
+eng=$1; tid=$2; file=$3; d=$(eng_dir "$eng")
+tsv="$d/sessions/$tid/$tid.utterances.tsv"
+[ -f "$tsv" ] || die "no utterance table at $tsv"
+[ -f "$file" ] || die "no such file $file"
+
+unescape_pipes < "$file" | grep -o "[a-z]* | $tid/[0-9][0-9:, -]* | [^|]* | [0-9][0-9]:[0-9][0-9]:[0-9][0-9] | \"[^\"]*\"" |
+awk -F' \\| ' -v tsv="$tsv" -v tid="$tid" '
+  BEGIN { while ((getline line < tsv) > 0) { split(line, f, "\t"); if (f[1] == "utterance") continue
+            key = f[1] ":" f[2]; text[key] = f[6]; spk[key] = f[5]; start[key] = f[3]; have[key] = 1 } }
+  function norm(s) { gsub(/[ \t]+/, " ", s); gsub(/^ | $/, "", s); return s }
+  {
+    n++; label = $1; ref = $2; speaker = $3; ts = $4; quote = $5
+    sub(/^"/, "", quote); sub(/"$/, "", quote)
+    sub("^" tid "/", "", ref); nr = split(ref, ranges, /, */); cat = ""; first = ""; bad = ""
+    for (i = 1; i <= nr; i++) {
+      split(ranges[i], p, ":"); utt = p[1] + 0; lo = p[2]; hi = p[2]
+      if (index(p[2], "-")) { split(p[2], q, "-"); lo = q[1]; hi = q[2] }
+      for (fr = lo + 0; fr <= hi + 0; fr++) { k = utt ":" fr
+        if (!have[k]) { bad = bad "; no such utterance " k; continue }
+        if (spk[k] != speaker) bad = bad "; speaker mismatch at " k " (cue has " spk[k] ")"
+        if (first == "") first = k
+        cat = cat " " text[k] } }
+    if (first != "") { st = start[first]; sub(/\..*$/, "", st); if (st != ts) bad = bad "; timestamp mismatch (first fragment starts " st ")" }
+    cat = norm(cat); pos = 1; np = split(quote, pieces, /\.\.\./)
+    for (i = 1; i <= np; i++) { piece = norm(pieces[i]); if (piece == "") continue
+      rest = substr(cat, pos); at = index(rest, piece)
+      if (at == 0) { bad = bad "; quote not found: \"" piece "\""; break }
+      pos = pos + at - 1 + length(piece) }
+    if (bad != "") { fails++; print "FAIL " label " " tid "/" ref " | " speaker " | " ts bad }
+  }
+  END { if (fails) { print fails " of " n " citations failed"; exit 1 } print "OK " n " citations" }
+'
