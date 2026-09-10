@@ -22,7 +22,7 @@ for type in REQ DEC LIM RSK OI; do dir="$d/$(item_dir "$type")"
       infm && /^  - / { v = $0; sub(/^  - /, "", v); list = list (list == "" ? "" : "; ") v; next }
       infm { if (listk != "") { printf "%s\t%s\t%s\t%s\n", type, id, name(listk), list; listk = ""; list = "" }
              k = $0; sub(/:.*/, "", k); v = $0; sub(/^[^:]*:/, "", v); gsub(/^ +| +$/, "", v)
-             if (k == "id") id = v
+             if (k == "id") { id = v; printf "%s\t%s\tID\t%s\n", type, id, id; next }
              if ($0 ~ /:$/) { listk = k; list = "" } else printf "%s\t%s\t%s\t%s\n", type, id, name(k), v; next }
       /^## / { flush(); sec = $0; sub(/^## /, "", sec); next }
       sec != "" { body = body " " $0 }

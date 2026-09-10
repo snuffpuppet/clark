@@ -75,7 +75,7 @@ render() { awk -v dir="$VALDIR" '
       while ((getline l < f) > 0) val = val (val == "" ? "" : "\n") l; close(f)
       if (val == "" && line ~ /^[ \t]*\{\{[A-Z0-9_]+\}\}[ \t]*$/) { line = "\001SKIP"; break }
       line = substr(line, 1, RSTART - 1) val substr(line, RSTART + RLENGTH) }
-    if (line != "\001SKIP") print line }' "$1" > "$2"; }
+    if (line != "\001SKIP") { sub(/[ \t]+$/, "", line); print line } }' "$1" > "$2"; }
 # vals: start a fresh value set. set_val KEY value. set_list KEY "line\nline" writes list items.
 vals() { VALDIR=$(mktemp -d); export VALDIR; }
 set_val() { printf '%s' "$2" > "$VALDIR/$1"; }

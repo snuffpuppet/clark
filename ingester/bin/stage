@@ -10,7 +10,7 @@ sheet="$sdir/$tid.session.md"; dossier="$sdir/$tid.dossier.md"
 [ -f "$d/engagement.md" ] || die "no engagement at $d"
 
 status() {
-  transcript_row "$eng" "$tid" > /dev/null 2>&1 || { echo needs-register; return; }
+  [ -f "$(item_path "$eng" "$tid")" ] || { echo needs-register; return; }
   vtt=$(vtt_path "$eng" "$tid" 2>&1) || { echo "blocked: $vtt"; return; }
   case "$vtt" in */processed/*) echo done; return ;; esac
   [ -f "$sdir/$tid.utterances.tsv" ] && [ -f "$sheet" ] || { echo needs-s0; return; }
