@@ -1,19 +1,19 @@
 ---
 name: ingest-transcript
-description: Ingest a discovery transcript (WebVTT) for a named engagement through stages S0 to S3, stopping at each signed gate. Usage /ingest-transcript <vtt-file|Tnnn> <engagement> ["meeting subject"]. Runs from the repository root.
+description: Ingest a discovery transcript (WebVTT) through stages S0 to S3, stopping at each signed gate. Usage /ingest-transcript <vtt-file|Tnnn> ["meeting subject"]. The engagement is the folder under engagements/; when there is more than one, name it as a third argument. Runs from the repository root.
 ---
 
 # ingest-transcript
 
-Version 0.3.3 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `ingester/bin/` do every deterministic step; you do the reading. Follow `ingester/runbooks/` for each stage.
+Version 0.4.0 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `ingester/bin/` do every deterministic step; you do the reading. Follow `ingester/runbooks/` for each stage.
 
 ## Arguments
 
-`$ARGUMENTS` is `<first> <engagement> ["meeting subject"]`.
+`$ARGUMENTS` is `<first> ["meeting subject"] [<engagement>]`.
 
 - `<first>` is either a path to a `.vtt` file (first invocation for a transcript) or a transcript id `Tnnn` (every later invocation).
-- `<engagement>` is a folder name under `engagements/`. Refuse with a one-line explanation if `engagements/<engagement>/engagement.md` does not exist; say to run `ingester/bin/new-engagement <name>` first.
-- The optional meeting subject is recorded on the transcript register and the session sheet. It guides episode boundaries, titles and topic matching and the reading of noisy terms. It is never a filter (design 5.3).
+- The optional meeting subject is a quoted phrase, for example "entity upgrade for multi-gig orders" or the title of the calendar invitation. It is recorded on the transcript file and the session sheet and read as a prior at S1 (below). It is never a filter (design 5.3).
+- The engagement is the folder under `engagements/` that holds `engagement.md`. When exactly one exists, use it without asking. When several exist and none is named, list them and ask which one; when the reviewer names one as a further argument, use that. Refuse with a one-line explanation if the folder has no `engagement.md`; say to run `ingester/bin/new-engagement <name>` first. Never guess between engagements.
 
 Everything below uses `ENG` for the engagement folder `engagements/<engagement>` and `TID` for the transcript id.
 
@@ -85,6 +85,8 @@ Mark each of the S1 sub-tasks in the task list as you reach it. Read, in this or
 Then produce three files in `ENG/sessions/TID/`.
 
 **`TID.exchanges.md`** (versioned). Part 1: one line per utterance, `utterance | speaker | speech act`, with the act one of ask, assert, propose, restate, accept, challenge, defer, hedge, aside. Part 2: one block per exchange with opening and closing utterances, participants, outcome (Answered and accepted, Answered and challenged, Deferred, Hedged, Unanswered) and the item numbers it yields. This is working, not reviewed, and it is what the scorer uses to tag failures.
+
+**The meeting subject as a prior.** Read `- Meeting subject:` from the session sheet before segmenting. When one is given: expect at least one episode on that subject and look for where the session reaches it; use its vocabulary to name and bound those episodes and to read noisily transcribed terms (a product name garbled by the transcriber is most likely a term from the subject); match those episodes first against existing topics whose title shares that vocabulary; set each episode's Subject to On subject, Related or Off subject. Episodes on other subjects are read, segmented, matched and graded exactly as if no subject had been given. If the session never reaches the subject, say so under Closing, Subject not reached. When no subject is given, infer the session's purpose from the opening minutes and the title, write it in `- Inferred purpose:`, and leave Subject blank on every episode.
 
 **`TID.episodes.md`** (versioned). One block per episode with the design 5.3 fields: ID `TID-Enn`, Title, Span (first and last utterance and timestamps), Topic (a TOP id or `new`), Subject (On subject, Related, Off subject, or blank when no subject was given), Outcome (Settled, Parked, Unsettled, Informational, Aside), Outputs (item numbers). Greetings, scheduling, screen-share trouble and jokes are Aside episodes with no items (R9).
 

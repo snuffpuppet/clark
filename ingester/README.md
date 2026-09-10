@@ -1,6 +1,6 @@
 # The ingester
 
-Version 0.6, 10 September 2026.
+Version 0.7, 10 September 2026.
 
 ## Purpose
 
@@ -32,14 +32,16 @@ A Claude Code session started at the repository root. The skill takes the engage
 First invocation for a transcript:
 
 ```
-/ingest-transcript <path-to-vtt> <engagement> ["meeting subject"]
+/ingest-transcript <path-to-vtt> ["meeting subject"]
 ```
 
 The file is copied unchanged into `engagements/<engagement>/transcripts/unprocessed/`, its name and SHA-256 recorded in `transcripts.md` against a new id, and S0 runs. Later invocations name the id:
 
 ```
-/ingest-transcript T001 <engagement>
+/ingest-transcript T001
 ```
+
+The engagement is the folder under `engagements/`. With one engagement it is implied; with several, the skill asks, or takes the name as a third argument.
 
 The skill finds the next unsigned gate and acts on it, or says which file is waiting and stops.
 
