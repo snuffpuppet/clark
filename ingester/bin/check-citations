@@ -19,8 +19,9 @@ awk -F' \\| ' -v tsv="$tsv" -v tid="$tid" '
   function norm(s) { gsub(/[ \t]+/, " ", s); gsub(/^ | $/, "", s); return s }
   {
     n++; label = $1; ref = $2; speaker = $3; ts = $4; quote = $5
+    if (label !~ /^(asked|answered|proposed|restated|accepted|challenged|deferred|hedged|aside)$/) bad = bad "; unknown label " label
     sub(/^"/, "", quote); sub(/"$/, "", quote)
-    sub("^" tid "/", "", ref); nr = split(ref, ranges, /, */); cat = ""; first = ""; bad = ""
+    sub("^" tid "/", "", ref); nr = split(ref, ranges, /, */); cat = ""; first = ""
     for (i = 1; i <= nr; i++) {
       split(ranges[i], p, ":"); utt = p[1] + 0; lo = p[2]; hi = p[2]
       if (index(p[2], "-")) { split(p[2], q, "-"); lo = q[1]; hi = q[2] }
