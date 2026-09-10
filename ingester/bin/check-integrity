@@ -1,5 +1,5 @@
 #!/bin/sh
-# check-integrity <engagement> [--proposed <dossier>]
+# check-integrity <engagement> [--proposed <dossier>]   (I5 removed in model 2.17)
 # Runs integrity rules I1 to I19 (solution-register-model.md 2.16 section 9) over the engagement's six
 # registers, current-state record and stakeholder register. With --proposed, the dossier's accepted items
 # and the session sheet's accepted new stakeholders are merged in as virtual rows first, so links to items
@@ -26,7 +26,6 @@ for cs in "$d"/current-state-*.md; do [ -f "$cs" ] || continue
 done >> "$facts"
 table_rows "$d/stakeholders.md" | awk -F'|' '{ gsub(/\\\|/, "\001"); $0 = $0; id=$2; n=$3; v=$4; r=$6; gsub(/^ +| +$/, "", id); gsub(/^ +| +$/, "", n); gsub(/^ +| +$/, "", v); gsub(/^ +| +$/, "", r)
   printf "STK\t%s\tName\t%s\nSTK\t%s\tVariants\t%s\nSTK\t%s\tRole\t%s\n", id, n, id, v, id, r }' >> "$facts"
-scope_values "$eng" | awk '{ printf "SCOPE\t%s\tvalue\t%s\n", $0, $0 }' >> "$facts"
 
 if [ -n "$dossier" ]; then
   [ -f "$dossier" ] || die "no such dossier $dossier"
@@ -73,7 +72,6 @@ awk -F'\t' -v today="$(today)" '
     return 0 }
   { type = $1; id = $2; key = $3; val = $4
     if (type == "ITEMMAP") { MAP[id] = val; next }
-    if (type == "SCOPE") { SCOPE[val] = 1; next }
     if (type == "STK") { STK[id] = 1; if (key == "Name") STKname[id] = val; if (key == "Variants") STKvar[id] = val; if (key == "Role") STKrole[id] = val; next }
     if (type == "ELEM") { ELEM[id] = 1; next }
     if (type == "CLAIM") { CLAIM[id] = val; next }
@@ -112,9 +110,7 @@ awk -F'\t' -v today="$(today)" '
       # I4
       if (t == "OI" && st != "Closed" && (!has(id, "Next action") || !has(id, "Due"))) fail("I4", id, "open item needs Next action and Due")
       if (t == "RSK" && !term && !has(id, "Due")) fail("I4", id, "risk needs Due as its review date")
-      # I5
-      if (has(id, "Scope") && !(F[id, "Scope"] in SCOPE)) fail("I5", id, "scope \"" F[id, "Scope"] "\" is not in the taxonomy")
-      else if (!has(id, "Scope") && t != "OI") fail("I5", id, "no Scope")
+      # I5 removed in model 2.17 (was Scope valid)
       # I6 and I18
       links = F[id, "Links"]; n = split(links, lk, /;/)
       for (j = 1; j <= n; j++) { l = lk[j]

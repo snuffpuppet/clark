@@ -1,6 +1,6 @@
 # Ingester implementation plan
 
-Version 0.2, 10 September 2026.
+Version 0.3, 10 September 2026.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: use superpowers:executing-plans to implement this plan step by step. Steps use checkbox (`- [ ]`) syntax for tracking. Commit after every numbered step. Nothing is pushed.
 
@@ -58,7 +58,7 @@ The heading gives the item number, its kind and its grade. Kinds: `PRC`, `PRC.st
 
 **F6 Current-state record.** One `## SYS-nnn <name>` or `## PRC-nnn <title>` section per element, holding a field list, then a claims table (`| ID | Kind | Description | Status | Confidence | Asserted by | Evidence | Episode | Session |` for systems; `| ID | Description | Performed by | System | Status | Confidence | Evidence | Episode | Session |` for process steps), then a questions list, then the marker line `<!-- end SYS-nnn -->`. S3 inserts new claim rows before the marker.
 
-**F7 Scope taxonomy.** In `engagement.md` under the heading `## Scope taxonomy`, one value per `- ` bullet until the next heading. I5 reads this list.
+**F7** Removed on review: no scope taxonomy and no Scope field (register model 2.17).
 
 **F8 Session log** `sessions/Tnnn/Tnnn.session-log.md`. Versioned. One table `| Id | Action | File | Item | Written on |` with one row per id created or changed by S3, plus ingester and rules versions in the header.
 

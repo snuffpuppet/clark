@@ -5,7 +5,7 @@ description: Ingest a discovery transcript (WebVTT) for a named engagement throu
 
 # ingest-transcript
 
-Version 0.1.1 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `ingester/bin/` do every deterministic step; you do the reading. Follow `ingester/runbooks/` for each stage.
+Version 0.2.0 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `ingester/bin/` do every deterministic step; you do the reading. Follow `ingester/runbooks/` for each stage.
 
 ## Arguments
 
@@ -60,7 +60,7 @@ It prints one word and act only on that word:
 2. Read the whole utterance table.
 3. For every `new` speaker, fill the New stakeholders row: Organisation (Us, Vendor, or a named third party), Role (Internal SME, Internal architect, Internal other, Vendor, Consultant), Standing (the systems, processes or domains they show they own or operate, as text), Decides (the subjects on which they may accept a decision; blank for architects and vendors), and Passage: one F2 citation for the utterance that best shows the role. Read the role from what they say and how others address them, never from the name alone. A `(Vendor)` suffix on the speaker tag is evidence, not proof.
 4. Propose Mentioned rows for people, roles or bodies named as owners or deciders who did not speak: "someone from the business", "ask NETCO", a named colleague, an approving group. Role Mentioned, or Forum for an approving body on our side, with Decides naming what that body approves. One citation each.
-5. Propose the Session date from the invitation, the reviewer's instruction, or the transcript, in `D Month YYYY` form, and the Domain and Scope. Fill the Meeting subject if one was given. Write anything the reviewer should know, including the purpose you infer for the session, under Notes for the reviewer.
+5. Propose the Session date from the invitation, the reviewer's instruction, or the transcript, in `D Month YYYY` form, and the Domain. Fill the Meeting subject if one was given. Write anything the reviewer should know, including the purpose you infer for the session, under Notes for the reviewer.
 6. Leave every Verdict cell blank. Leave Approver and Approved on blank.
 7. Run `ingester/bin/check-citations <engagement> TID ENG/sessions/TID/TID.session.md`. Fix any FAIL and rerun until OK.
 8. Tell the reviewer the sheet path, how many speakers were matched and how many are new, and stop.
@@ -69,7 +69,7 @@ It prints one word and act only on that word:
 
 Precondition: `stage` said `needs-s1`, which means the session sheet is signed and every verdict is filled. Do not start otherwise. Run `ingester/bin/stage <engagement> TID S1` first: it writes the accepted stakeholder rows into `ENG/stakeholders.md` and prints `gate open`.
 
-Read, in this order: `ingester/extraction-rules.md` in full; the signed session sheet; `ENG/stakeholders.md`; `ENG/engagement.md` (scope taxonomy and glossary); `ENG/current-state-*.md`; the six files in `ENG/registers/`; `ENG/topics.md`; then the whole utterance table end to end.
+Read, in this order: `ingester/extraction-rules.md` in full; the signed session sheet; `ENG/stakeholders.md`; `ENG/engagement.md` (glossary); `ENG/current-state-*.md`; the six files in `ENG/registers/`; `ENG/topics.md`; then the whole utterance table end to end.
 
 Then produce three files in `ENG/sessions/TID/`.
 
@@ -98,7 +98,7 @@ Fill Closing: Questions for the SMEs (every Question item, one line each); Empty
 **Self-checks before presenting.** Run each, fix what you can, rerun, and record what remains under Closing.
 
 1. `ingester/bin/check-citations <engagement> TID ENG/sessions/TID/TID.dossier.md` must print OK. Record the line under Citation check.
-2. `ingester/bin/check-integrity <engagement> --proposed ENG/sessions/TID/TID.dossier.md`. Failures you can fix (a missing Raised by, an Implemented by, a Status not in the model) you fix. Failures that need the reviewer (an Owner, a MoSCoW, a Scope) stay, and you list them under Integrity check with the item number.
+2. `ingester/bin/check-integrity <engagement> --proposed ENG/sessions/TID/TID.dossier.md`. Failures you can fix (a missing Raised by, an Implemented by, a Status not in the model) you fix. Failures that need the reviewer (an Owner, a MoSCoW) stay, and you list them under Integrity check with the item number.
 3. Every item has an `answered` or `proposed` citation, or is a Question.
 4. No Confident item carries a hedge word in its content citation (probably, I think, my guess, maybe, I'm not sure, you'd have to ask).
 5. Every episode that is Settled, Parked or Unsettled owns at least one item.

@@ -1,6 +1,6 @@
 # Extracting solution records from discovery transcripts: solution design
 
-Version 1.2, 10 September 2026. Approved for implementation by Adam Moyes: 1.0 on 10 September 2026, with the 1.1 and 1.2 changes made at his direction the same day. Owner: Adam Moyes. Responds to `BRIEF.md` version 1.0 and `solution-register-model.md` version 2.16.
+Version 1.3, 10 September 2026. Approved for implementation by Adam Moyes: 1.0 on 10 September 2026, with the 1.1 to 1.3 changes made at his direction the same day. Owner: Adam Moyes. Responds to `BRIEF.md` version 1.0 and `solution-register-model.md` version 2.17.
 
 This document answers the four questions in the brief, defines the current-state record and the session structures around it, and then proposes the extraction method. Section 6 shows worked examples taken from `T001-SANITISED-TechnicalSyncUp.vtt` so that each rule can be checked against real speech. Section 7 describes the split between the ingester, which holds the mechanism, and the engagements, which hold everything produced for a client. Section 10 records the assumptions and the decisions made at approval. Section 11 is the change log.
 
@@ -84,12 +84,12 @@ There are two checkpoints per transcript. Each one is a file with a verdict per 
 
 | Checkpoint | The human sees | Verdict per item | Approval means |
 |---|---|---|---|
-| Session sheet (after S0) | Transcript id, session date, the meeting subject if one was given, domain and scope tags, and the attendee list drawn from the stakeholder register (4.6). Speakers already in the register appear with their recorded role, standing and decision authority, so the sheet shows who may accept a decision in this session and on which subjects. Speakers not in the register, and people named in the transcript as owners or deciders who are not present, appear as new stakeholder rows with a proposed role and the passage that suggested it. | Correct / Edit per attendee; Accept / Edit / Reject per new stakeholder row | The roles, standing and decision authority are right for everyone who spoke, and the stakeholder register is complete for this session. Every rule that depends on who spoke relies on this. |
+| Session sheet (after S0) | Transcript id, session date, the meeting subject if one was given, domain, and the attendee list drawn from the stakeholder register (4.6). Speakers already in the register appear with their recorded role, standing and decision authority, so the sheet shows who may accept a decision in this session and on which subjects. Speakers not in the register, and people named in the transcript as owners or deciders who are not present, appear as new stakeholder rows with a proposed role and the passage that suggested it. | Correct / Edit per attendee; Accept / Edit / Reject per new stakeholder row | The roles, standing and decision authority are right for everyone who spoke, and the stakeholder register is complete for this session. Every rule that depends on who spoke relies on this. |
 | Dossier (after S1) | One document organised by episode. For each episode: title, span, outcome, topic, and everything it produced, with evidence inline: current-state claims, register rows, questions, links to existing claims and items, and conflicts with what the engagement already holds. Every item carries a grade: Confident, or Needs a human with the reason. A closing section lists the questions for the SMEs, the empty episodes, and the citation and integrity results. | Accept / Edit / Reject per item. Items graded Needs a human must each get a verdict. Items graded Confident may be approved in bulk per episode after reading, or individually. Questions get an answer or "raise an OI". Missed passages are added as new items. | Every item reads as true to the transcript, in the reviewer's judgement, every question has a disposition, and integrity failures I1 to I14 and I17 to I19 are zero or explicitly waived with a reason. |
 
 The write stage (S3) runs only when both files carry an approver and date and no pending verdicts, the citation check passes on every approved item, and the integrity rules pass on the combined proposed set. It appends to the registers, the current-state record and the topic ledger, bumps the version of each document it touched, and writes a session log entry listing every id created or changed from that transcript.
 
-**Grading.** An item is Confident when its content citation is from a speaker with standing on the subject, nobody challenged it in the exchange, it has no hedge, it does not conflict with an existing claim or item, and every field the register model requires at its status is either filled from the transcript or is one the reviewer always fills (Owner, MoSCoW, Scope). Anything else is Needs a human, and the reason is one of: hedged, contested, commitment not clearly accepted, standing unclear, authority check, conflicts with an existing claim or item, field needs a decision, kind uncertain between two types. The reasons are a controlled list so that the evaluation can count them.
+**Grading.** An item is Confident when its content citation is from a speaker with standing on the subject, nobody challenged it in the exchange, it has no hedge, it does not conflict with an existing claim or item, and every field the register model requires at its status is either filled from the transcript or is one the reviewer always fills (Owner, MoSCoW). Anything else is Needs a human, and the reason is one of: hedged, contested, commitment not clearly accepted, standing unclear, authority check, conflicts with an existing claim or item, field needs a decision, kind uncertain between two types. The reasons are a controlled list so that the evaluation can count them.
 
 **Fallback.** For an engagement or a transcript where the reviewer wants a slower path, the runbooks also describe a staged review, where the skill stops after episodes and candidates, again after current-state claims, and again after register rows. The files are the same; only the number of stops changes. The default is the dossier.
 
@@ -192,7 +192,7 @@ One integrity rule is added: **I18 Current-state links.** Every `replaces`, `pre
 | Organisation | Us, Vendor, or a named third party. |
 | Role | Internal SME, Internal architect, Internal other, Vendor, Consultant, Forum (a named approving body on our side, such as the SLT group), or Mentioned (named in a session but never present). |
 | Standing | The systems, processes or domains this person owns or operates, as SYS or PRC ids where they exist, otherwise as text. R7 uses this to decide Stated against Second-hand. |
-| Decides | The subjects on which this person may accept a decision in a session, as text or as scope values. For an Internal SME this is normally their area of expertise, so that a technical approach the SMEs agree on becomes a decision. For an Internal architect it is normally blank: their acceptance leaves a decision Proposed and sends it to a Forum row. A Forum row's Decides names what that body approves. R19 reads this field. |
+| Decides | The subjects on which this person may accept a decision in a session, as text. For an Internal SME this is normally their area of expertise, so that a technical approach the SMEs agree on becomes a decision. For an Internal architect it is normally blank: their acceptance leaves a decision Proposed and sends it to a Forum row. A Forum row's Decides names what that body approves. R19 reads this field. |
 | Status | Active; Left (no longer on the engagement, kept for attribution). |
 | First seen | Transcript id where the person first spoke or was first named. |
 | Sessions | Transcript ids where the person spoke. |
@@ -253,7 +253,7 @@ Two completeness rules attach to outcomes. A Parked or Unsettled episode must yi
 
 ### 5.4 Topic ledger (TOP-nnn)
 
-`topics.md`, one file for the domain, versioned. A topic is a subject that recurs across sessions. Each topic row holds: id, title, scope value, the episodes that touched it in session order, the open items still outstanding on it, the decisions and requirements that closed parts of it, and a one-line current position. The skill proposes a match to an existing topic or a new topic for each episode, and the reviewer confirms in the dossier. The write stage appends the episode and the new ids to the topic.
+`topics.md`, one file for the domain, versioned. A topic is a subject that recurs across sessions. Each topic row holds: id, title, the episodes that touched it in session order, the open items still outstanding on it, the decisions and requirements that closed parts of it, and a one-line current position. The skill proposes a match to an existing topic or a new topic for each episode, and the reviewer confirms in the dossier. The write stage appends the episode and the new ids to the topic.
 
 The ledger is the cross-session view: which subjects have been discussed several times without settling, which questions to send to SMEs before the next session, and what each session added. It is a ledger rather than a pipeline stage, because it persists and is updated by every session rather than produced by one.
 
@@ -263,7 +263,7 @@ Within one transcript the method is a short pipeline: S0 to S3 in order, each st
 
 | Stage | Input | Output | Done by |
 |---|---|---|---|
-| S0 Prepare | VTT file in `transcripts/unprocessed/`, stakeholder register | `T001.utterances.tsv` (utterance, fragment, start, end, speaker, text) and `T001.session.md` with attendees matched to the register and unmatched speakers listed | Shell script from the ingester (awk). Deterministic. The skill then proposes role and standing for unmatched speakers and Mentioned rows for named absentees, with citations. Human confirms date, forum flag, scope and every attendee's role, and signs. |
+| S0 Prepare | VTT file in `transcripts/unprocessed/`, stakeholder register | `T001.utterances.tsv` (utterance, fragment, start, end, speaker, text) and `T001.session.md` with attendees matched to the register and unmatched speakers listed | Shell script from the ingester (awk). Deterministic. The skill then proposes role and standing for unmatched speakers and Mentioned rows for named absentees, with citations. Human confirms date, domain and every attendee's role, and signs. |
 | S1 Read | Utterance table, signed session sheet, stakeholder register, extraction rules, and the engagement's current-state record, registers and topic ledger | Working files: `T001.exchanges.md` (speech acts and exchanges), `T001.episodes.md`. The review file: `T001.dossier.md`, including any proposed standing extensions for known stakeholders. | The skill. It reads the whole transcript, produces the working files and the dossier, runs the citation checker and the integrity rules on its own output, fixes what it can, records what it cannot in the dossier's closing section, and stops for review. |
 | S2 Review | The dossier | `T001.dossier.md` with verdicts, edits and a signed header | The human. |
 | S3 Write | Signed session sheet and signed dossier | Updated registers, current-state record, topic ledger and stakeholder register, `T001.session-log.md`, version bumps | Shell script from the ingester. Refuses to run if any gate fails. |
@@ -307,7 +307,7 @@ Each example shows the item as the dossier would present it, then what the write
 
 ```
 Item 14  System fact and Open item  Grade: Confident (fact); Needs a human: field needs a decision (OI owner)
-proposed  T001/862:2-5 | Rafael Costa (Vendor) | 00:57:02 | "If it is cheaper to go as one port, then we keep it one port, but if it is the same ... I think 4 ports will will be ... more reasonable"
+proposed  T001/862:1-5 | Rafael Costa (Vendor) | 00:56:58 | "If it is cheaper to go as one port, then we keep it one port, but if it is the same ... I think 4 ports will will be ... more reasonable"
 answered  T001/867:0-1 | Martin Vasquez | 00:57:18 | "We default to one port at the moment ... that's what we currently do."
 deferred  T001/867:1-3 | Martin Vasquez | 00:57:22 | "We need someone from the business to, if they want to change that ... It doesn't require me making a decision."
 ```
@@ -356,7 +356,7 @@ Item 17 becomes a DEC in Proposed: "Entity selection on a capacity-driven order:
 
 ```
 Item 05  Requirement  Grade: Needs a human: field needs a decision (MoSCoW, Owner); kind uncertain (one requirement or two)
-proposed  T001/165:3-4, 166:0-3, 168:0 | Elena Marchetti | 00:09:25 | "If we're going to bring the services onto the new platform, there would be an expectation that we'd be able to modify this. or if not, have some process bringing them into a state in which they can be modified ... We need a, we need a process, right?"
+proposed  T001/165:2-4, 166:0-3, 168:0 | Elena Marchetti | 00:09:25 | "If we're going to bring the services onto the new platform, there would be an expectation that we'd be able to modify this. or if not, have some process bringing them into a state in which they can be modified ... We need a, we need a process, right?"
 ```
 
 Elena is an Internal architect on the session sheet, so her commitment language stands on its own. On approval: a REQ in Draft, "Legacy PRIORITY-MARK and tagged services migrated to the new platform can be modified, or are brought to a modifiable state by a defined process", Raised on = session date, Owner suggested as Elena Marchetti, MoSCoW for the reviewer. The gist records the two alternatives Elena stated so the reviewer can split it into two requirements. Nothing enters the current-state record, because this passage describes an expectation, not today.
@@ -411,7 +411,7 @@ solution-register/                 the git repository
     VERSION
   engagements/
     <engagement-name>/               the what, for one client
-      engagement.md                  client, domain, scope taxonomy, glossary of
+      engagement.md                  client, domain, glossary of
                                      system names, ingester version
       stakeholders.md                stakeholder register (4.6)
       transcripts/
@@ -493,7 +493,7 @@ Applied to `solution-register-model.md` on approval of this design, 10 September
 | `ingester/runbooks/S0.md` to `S3.md`, `staged-review.md`, `evaluate.md` | ingester | Operator runbooks | With the ingester |
 | `ingester/bin/` | ingester | Shell scripts for S0, citation check, integrity, S3, ledger update, scoring, the stage driver | With the ingester |
 | `ingester/templates/` | ingester | Empty session sheet, dossier, registers, current-state record, topic ledger, engagement.md | With the ingester |
-| `engagements/<name>/engagement.md` | engagement | Client, domain, scope taxonomy, glossary, ingester version last used | Bumped on every change |
+| `engagements/<name>/engagement.md` | engagement | Client, domain, glossary, ingester version last used | Bumped on every change |
 | `engagements/<name>/stakeholders.md` | engagement | Stakeholder register: who people are, their side, role, standing and decision authority | Bumped by S3, or by hand with Source "engagement.md" |
 | `engagements/<name>/transcripts/unprocessed/` | engagement | VTT files as received, copied in by the first invocation, awaiting S3 | Never edited |
 | `engagements/<name>/transcripts/processed/` | engagement | VTT files as received, moved here by S3 | Never edited |
@@ -514,7 +514,7 @@ All settled on approval, 10 September 2026, unless marked open.
 1. **Recommendation B for Q1.** A separate current-state record with `replaces` and `preserves` links. Confirmed.
 2. **Claims are the traceable grain**, sub-numbered under a process or system (PRC-003.s2, SYS-001.f4). Confirmed.
 3. **Retired practice is recorded**, with status Retired, so that it can be checked and cannot be resurrected silently. Confirmed.
-4. **One current-state record and one topic ledger per domain**, following the scope taxonomy. Open: the domain name for T001 is set on the session sheet at S0.
+4. **One current-state record and one topic ledger per domain**. Open: the domain name for T001 is set on the session sheet at S0.
 5. **The session date for T001** is 8 September 2026, the Tuesday before approval, as given by Adam. To be confirmed on the session sheet at S0.
 6. **Speaker roles for T001 are settled during ingestion.** The stakeholder register starts empty for puppy-gloves, S0 lists the seven speakers, the skill proposes a role, standing and decision authority for each with citations, and the reviewer confirms on the session sheet. There is no session-level approving forum flag. Authority sits with people and subjects: SMEs can accept decisions within their area of expertise, architects normally cannot and their acceptance goes to the SLT group as an OI (4.6 Decides, R19).
 7. **Claude Code is the runtime.** All judgement is the ingest skill inside a Claude Code session started at the repository root, with the engagement name as the skill's argument. No API key, no Docker, no other software. Confirmed.
@@ -541,3 +541,4 @@ The next step is the implementation plan covering the folder layout, the skill, 
 | 1.0 | 10 September 2026 | Approved. The session-level approving forum flag is replaced by decision authority on the stakeholder register (4.6 Decides, Role Forum) and rule R19: SMEs accept decisions within their area, architect acceptance leaves a decision Proposed with an OI to the SLT group. R12 and the session sheet updated to match, and "authority check" added to the Needs-a-human reasons. Skill discovery tested: the skill lives at the repository root under `.claude/skills/` and the session starts at the root with the engagement name as argument (7.2). T001 session date recorded as 8 September 2026. Register model 2.16 changes applied. Section 10.2 questions closed. |
 | 1.1 | 10 September 2026 | Optional meeting subject argument on the ingest command (7.2). It guides episode boundaries, titles and topic matching and the reading of noisy terms, and is never a restriction (5.3). Recorded on the session sheet (Q3) and the transcript register (4.5). Episodes gain a Subject field for on, related or off subject. |
 | 1.2 | 10 September 2026 | The transcript file is the ingest command's first argument (7.2). The skill copies it unchanged into `transcripts/unprocessed/`, records its name and SHA-256 in the transcript register (4.5), and S3 moves it to `transcripts/processed/` as its last step. Layout (7.1) and file table (10.1) updated. T001 moved to `unprocessed/`. File table (10.1) gives full paths from the repository root for engagement files. |
+| 1.3 | 10 September 2026 | Scope removed from every item, sheet and ledger row, following register model 2.17: no scope taxonomy in `engagement.md`, no Scope on the session sheet, no scope value on episodes or topics, integrity rule I5 gone, and Scope dropped from the fields the reviewer always fills. Two worked-example citation ranges corrected (862:1-5, 165:2-4). |

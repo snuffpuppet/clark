@@ -82,6 +82,3 @@ dossier_signed() { f=$1
 
 # accepted_items dossier: dossier2tsv rows whose verdict is Accept or Edit, or blank-but-bulk-accepted Confident.
 accepted_items() { "$INGESTER_DIR/bin/dossier2tsv" "$1" | awk -F'\t' '$4 == "Accept" || $4 == "Edit" || ($4 == "" && $3 == "Confident" && $7 != "")'; }
-
-# scope_values engagement: F7 bullets.
-scope_values() { awk '/^## Scope taxonomy/ { on=1; next } /^## / { on=0 } on && /^- / { sub(/^- /, ""); print }' "$(eng_dir "$1")/engagement.md"; }

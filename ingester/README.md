@@ -1,6 +1,6 @@
 # The ingester
 
-Version 0.2, 10 September 2026.
+Version 0.3, 10 September 2026.
 
 ## Purpose
 
@@ -63,7 +63,7 @@ These are the shapes every script and the skill agree on. `IMPLEMENTATION-PLAN.m
 - **F4 Item block.** `### Item n | <kind> | <grade>` followed by `- Field: value` lines, a `- Citations:` list and a `- Gist:` line. Kinds: PRC, PRC.step, SYS, SYS.fact, REQ, DEC, LIM, RSK, OI, CR, Question, STK.edit, TOP. `- Target:` is `new` or an existing id. `- Verdict:` is blank, Accept, Edit or Reject.
 - **F5 Gate.** A file is signed when `- Approver:` and `- Approved on:` are filled, no `- Verdict:` is blank, and no session sheet table row has an empty last cell.
 - **F6 Current-state record.** One `## SYS-nnn <name>` or `## PRC-nnn <title>` section per element with a field list, a claims table, a questions list and the marker `<!-- end SYS-nnn -->`.
-- **F7 Scope taxonomy.** Bullets under `## Scope taxonomy` in `engagement.md`.
+- **F7** Removed: no scope taxonomy (register model 2.17).
 - **F8 Session log.** `sessions/Tnnn/Tnnn.session-log.md`, one row per id created or changed.
 - **F9 Run log.** `logs/<UTC timestamp>-<Tnnn>-<stage>.md`, append only.
 

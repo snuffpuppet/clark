@@ -1,6 +1,6 @@
 # Extraction rules
 
-Version 1.0, 10 September 2026. Owner: Adam Moyes. Implements `extraction-solution-design.md` 1.2 sections 5.1, 5.2, 5.6 and Q3. Recorded in every run report and session log.
+Version 1.1, 10 September 2026.
 
 These rules are the method. The skill reads them before S1 and applies them to every exchange. Each rule carries the failure modes that map to it (design Q4) and a table of test passages. When a run report tags a failure against a rule, the fix is made here: the statement is edited and the failing passage is added as a test passage under the rule, with the run that found it. A rule change that lowers any kind's Right count on an earlier reference is a regression and is reverted or explained in the change log. Every test passage citation passes `ingester/bin/check-citations`.
 
@@ -250,7 +250,7 @@ An item is **Confident** only when every condition holds (design Q3, R16):
 - [ ] Nobody challenged it in the exchange.
 - [ ] It carries no hedge word or deferral.
 - [ ] It does not conflict with an existing claim or item in the engagement.
-- [ ] Every field the register model requires at its status is filled from the transcript, or is one the reviewer always fills (Owner, MoSCoW, Scope).
+- [ ] Every field the register model requires at its status is filled from the transcript, or is one the reviewer always fills (Owner, MoSCoW).
 
 Anything else is **Needs a human** with exactly one reason from this list, so the evaluation can count them:
 
@@ -290,4 +290,5 @@ The controlled list for run reports. Each maps to one rule.
 
 | Version | Date | Change |
 |---|---|---|
+| 1.1 | 10 September 2026 | Scope dropped from the grading conditions (register model 2.17). |
 | 1.0 | 10 September 2026 | First version: R1 to R19 from design 1.2 section 5.6, grading conditions from Q3, test passages seeded from design section 6 with two ranges corrected (see design-review-notes.md). |

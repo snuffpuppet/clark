@@ -120,8 +120,8 @@ while IFS="$US" read -r item kind grade verdict target episode bulk fields cites
       fi ;;
     TOP)
       top="$d/topics.md"; tgt=$target
-      if [ "$tgt" = new ]; then tgt=$(next_id TOP "$top"); printf '| %s | %s | %s | %s |  |  | %s | %s |\n' "$tgt" "$(fld "$fields" Title | escape_pipes)" "$(fld "$fields" Scope)" "$episode" "$(fld "$fields" Position | escape_pipes)" "$TODAY" >> "$top"; logrow "$tgt" created "$top" "$(fld "$fields" Title)"
-      else awk -F'|' -v id="$tgt" -v ep="$episode" -v pos="$(fld "$fields" Position | escape_pipes)" -v today="$TODAY" 'BEGIN{OFS="|"} { gsub(/\\\|/, "\001"); $0 = $0 } $2 == " " id " " { v=$5; gsub(/^ +| +$/, "", v); $5 = " " (v == "" ? ep : v ", " ep) " "; if (pos != "") $8 = " " pos " "; $9 = " " today " " } { gsub(/\001/, "\\|"); print }' "$top" > "$top.tmp" && mv "$top.tmp" "$top"; logrow "$tgt" updated "$top" "episode $episode"; fi
+      if [ "$tgt" = new ]; then tgt=$(next_id TOP "$top"); printf '| %s | %s | %s |  |  | %s | %s |\n' "$tgt" "$(fld "$fields" Title | escape_pipes)" "$episode" "$(fld "$fields" Position | escape_pipes)" "$TODAY" >> "$top"; logrow "$tgt" created "$top" "$(fld "$fields" Title)"
+      else awk -F'|' -v id="$tgt" -v ep="$episode" -v pos="$(fld "$fields" Position | escape_pipes)" -v today="$TODAY" 'BEGIN{OFS="|"} { gsub(/\\\|/, "\001"); $0 = $0 } $2 == " " id " " { v=$4; gsub(/^ +| +$/, "", v); $4 = " " (v == "" ? ep : v ", " ep) " "; if (pos != "") $7 = " " pos " "; $8 = " " today " " } { gsub(/\001/, "\\|"); print }' "$top" > "$top.tmp" && mv "$top.tmp" "$top"; logrow "$tgt" updated "$top" "episode $episode"; fi
       touch_doc "$top" ;;
     STK.edit)
       for k in Role Standing Decides Organisation Variants; do v=$(fld "$fields" "$k"); [ -n "$v" ] || continue
@@ -136,12 +136,12 @@ rm -f "$items"
 top="$d/topics.md"
 if [ -f "$top" ] && table_rows "$top" | grep -q .; then
   acc2=$(mktemp); accepted_items "$dossier" > "$acc2"
-  table_rows "$log" | grep '| created |' | while IFS= read -r r; do
+  table_rows "$log" | grep '| reserved |' | while IFS= read -r r; do
     id=$(cell "$r" 1); case $id in OI-*|DEC-*|REQ-*) ;; *) continue ;; esac
     ep=$(awk -F'\t' -v it="$(cell "$r" 4 | sed 's/^item //')" '$1 == it { print $6; exit }' "$acc2")
     [ -n "$ep" ] || continue
-    col=5; [ "${id%%-*}" = OI ] && col=6 || col=7
-    awk -F'|' -v ep="$ep" -v id="$id" -v col="$col" 'BEGIN{OFS="|"} { gsub(/\\\|/, "\001"); $0 = $0 } index($5, ep) { v=$col; gsub(/^ +| +$/, "", v); $col = " " (v == "" ? id : v ", " id) " " } { gsub(/\001/, "\\|"); print }' "$top" > "$top.tmp" && mv "$top.tmp" "$top"
+    [ "${id%%-*}" = OI ] && col=5 || col=6
+    awk -F'|' -v ep="$ep" -v id="$id" -v col="$col" 'BEGIN{OFS="|"} { gsub(/\\\|/, "\001"); $0 = $0 } index($4, ep) { v=$col; gsub(/^ +| +$/, "", v); $col = " " (v == "" ? id : v ", " id) " " } { gsub(/\001/, "\\|"); print }' "$top" > "$top.tmp" && mv "$top.tmp" "$top"
   done
   rm -f "$acc2"
 fi

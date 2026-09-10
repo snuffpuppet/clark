@@ -1,6 +1,6 @@
 # Solution register model
 
-Version 2.16, 10 September 2026. Owner: Adam Moyes. Reset baseline: version 2.10 plus the limitation and change request lifecycle refinements from 2.11 to 2.14, without the process and system item types. Version 2.16 adds the transcript citation form for Source, the `replaces`, `preserves` and `clarifies` links to current-state claims, Forum rows as Approved by, and integrity rules I18 and I19, as proposed in `extraction-solution-design.md` section 9. No new item types.
+Version 2.17, 10 September 2026. Owner: Adam Moyes. Version 2.17 removes the Scope field, the scope taxonomy (former section 6) and integrity rule I5 at Adam's direction on review; filtering by service can be added when an engagement has services to name. Reset baseline: version 2.10 plus the limitation and change request lifecycle refinements from 2.11 to 2.14, without the process and system item types. Version 2.16 adds the transcript citation form for Source, the `replaces`, `preserves` and `clarifies` links to current-state claims, Forum rows as Approved by, and integrity rules I18 and I19, as proposed in `extraction-solution-design.md` section 9. No new item types.
 
 This file describes how we track the artifacts of solution architecture on a project where we are the design authority and a vendor builds the platform. It is tool-agnostic. It says what the item types are, how they relate, how each one moves, and what a healthy register looks like. It does not say how to build or populate the registers in any particular tool; that belongs in a separate runner document.
 
@@ -62,7 +62,6 @@ Asks and events are work first and record later. Requirements and discoveries ca
 | Title | One line, specific. |
 | Status | One of the values for the type (4.2). |
 | Owner | A named person on our side, or "Vendor" plus a named vendor contact, or "Joint". Required on every requirement and open item that is not in a terminal state. Not used on decisions, limitations, risks or change requests, which carry Raised by instead. While a decision is Proposed, a limitation is Under assessment or a change request is not yet Approved, the open item driving it carries the owner. Risks have no standing owner; they are reviewed on their review date by the routine in section 10, and a realised risk raises an open item. |
-| Scope | One value from the scope taxonomy (6). |
 | Implemented by | Vendor, Internal or Both. Whose build the item lands in. Required on requirements, decisions, limitations and change requests. Optional on risks and open items. |
 | Vendor ref | The vendor's id for the corresponding item, if one exists. Otherwise blank. Not used on decisions; a vendor document reference goes in Source. |
 | Links | Ids of related items, with the relationship word (5). |
@@ -148,17 +147,7 @@ Current-state claims live in the engagement's current-state record, defined in `
 
 ## 6. Scope taxonomy
 
-Scope is a tree. Each item is tagged once, at the lowest level that applies. There is no programme level: the registers live inside the programme's area, so the programme is implied.
-
-```
-Domain (e.g. Services delivered this phase, Billing, Identity)
-  Technical service (e.g. Delivery service X, Access service Y)
-  Customer service (a named composition of technical services, e.g. Customer service Z = Delivery X + Access Y)
-```
-
-A customer service view is the union of items tagged to its component technical services plus items tagged at the customer-service level. Integration issues between two technical services are tagged at the customer-service level.
-
-The taxonomy is kept on its own page and is the single source of allowed Scope values.
+Removed in 2.17. Items carry no Scope. A way of filtering the registers by service or domain can be added when an engagement has several services to name.
 
 ## 7. Register layout
 
@@ -166,14 +155,14 @@ One register per type. Every register has the header fields in 4.1 that apply to
 
 | Register | Columns |
 |---|---|
-| Requirements | ID, Title, Status, MoSCoW, Phase, Raised on, Owner, Scope, Implemented by, Vendor ref, Links, Source, Updated |
-| Decisions | ID, Title, Status, Rationale, Raised by, Consulted, Approved by, Decided on, Scope, Implemented by, Links, Source, Updated |
-| Limitations | ID, Title, Status, Identified on, Impact, Options, Chosen option, Disposition record, Scope, Implemented by, Vendor ref, Links, Source, Updated |
-| Risks | ID, Title, Status, Identified on, Raised by, Likelihood, Impact, Trigger, Mitigation, Scope, Vendor ref, Links, Due, Source, Updated |
-| Open items | ID, Title, Status, Owner, Scope, Raised on, Raised by, Blocked by, Vendor ref, Links, Resolution, Next action, Due, Closed on, Updated |
-| Change requests | ID, Title, Status, Phase, Reason, Options, Chosen option, Consulted, Approved by, Approved on, CR page, Implemented by, Raised on, Raised by, Scope, Vendor ref, Links, Source, Updated |
+| Requirements | ID, Title, Status, MoSCoW, Phase, Raised on, Owner, Implemented by, Vendor ref, Links, Source, Updated |
+| Decisions | ID, Title, Status, Rationale, Raised by, Consulted, Approved by, Decided on, Implemented by, Links, Source, Updated |
+| Limitations | ID, Title, Status, Identified on, Impact, Options, Chosen option, Disposition record, Implemented by, Vendor ref, Links, Source, Updated |
+| Risks | ID, Title, Status, Identified on, Raised by, Likelihood, Impact, Trigger, Mitigation, Vendor ref, Links, Due, Source, Updated |
+| Open items | ID, Title, Status, Owner, Raised on, Raised by, Blocked by, Vendor ref, Links, Resolution, Next action, Due, Closed on, Updated |
+| Change requests | ID, Title, Status, Phase, Reason, Options, Chosen option, Consulted, Approved by, Approved on, CR page, Implemented by, Raised on, Raised by, Vendor ref, Links, Source, Updated |
 
-Two supporting pages sit beside the registers: the scope taxonomy (6) and a conventions page that condenses sections 2 to 5 and 8 for people adding items by hand.
+One supporting page sits beside the registers: a conventions page that condenses sections 2 to 5 and 8 for people adding items by hand.
 
 Column values are plain text. Ids in Links are plain text ids so that the table stays editable by hand. Status values are exactly the strings in 4.2.
 
@@ -207,7 +196,7 @@ Run against a proposed set of registers before writing them, and on request duri
 | I2 Valid status | Every status is an exact 4.2 value for its type. Every requirement has a MoSCoW value and a Raised on date. Every limitation has an Identified on date; Impact once it is past Identified; and at least two Options and a Chosen option once it is Accepted or Change requested. Every risk has an Identified on date, and Trigger and Mitigation once it is Mitigating. Every change request has Raised on and Raised by; Reason once past Proposed; at least two Options once past Options; Consulted once past For approval; Chosen option once Approved, Submitted or Delivered; Phase once Approved, Submitted, Delivered or Deferred; and Vendor ref once Submitted with Implemented by = Vendor. |
 | I3 Owner present | Every non-terminal requirement and open item has an Owner that is a person, "Vendor: <name>" or "Joint". Every decision, limitation, risk and change request has Raised by. Decisions, limitations and change requests are exempt from Owner, but a decision in Proposed, a requirement in Draft, a limitation in Under assessment and a change request in Proposed, Options, For approval or Submitted must each have an open item in Links whose Owner is set. |
 | I4 Next action present | Every open item not Closed has Next action and Due. Every non-terminal risk has Due as its review date. |
-| I5 Scope valid | Every Scope is a value in the taxonomy. |
+| I5 | Removed in 2.17 (was Scope valid). |
 | I6 Link targets exist | Every id in Links exists in some register. |
 | I7 Limitation disposition | Every LIM in Accepted or Change requested has a Disposition record id of the right type (Accepted needs a DEC in Accepted, Change requested needs a CR not in Withdrawn or Rejected), and no LIM in Identified or Under assessment has one. A LIM whose Links carry "previously dispositioned by" must name a CR in Withdrawn or Rejected there. |
 | I8 Decision supersession | Every DEC in Superseded has a "superseded by" link pointing at a DEC in Accepted or Proposed. |
@@ -223,7 +212,7 @@ Run against a proposed set of registers before writing them, and on request duri
 | I18 Current-state links | Every `replaces`, `preserves` and `clarifies` target exists in the current-state record, and no `replaces` or `preserves` target is Retired or Withdrawn. |
 | I19 Known stakeholder | Every person named in Owner, Raised by, Approved by and Consulted resolves to a row in the engagement's stakeholder register, or is "Vendor: <name>", "Joint" or a Forum row. A row with Role Mentioned cannot be Owner. |
 
-I1 to I14 and I17 to I19 are failures. I15 and I16 are warnings.
+I1 to I4, I6 to I14 and I17 to I19 are failures. I15 and I16 are warnings.
 
 ## 10. Maintenance routine
 
