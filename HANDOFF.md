@@ -18,7 +18,7 @@ The design `ingester/extraction-solution-design.md` is at version 1.2 and approv
 
 ## Decisions that shape the build
 
-- Runtime is a Claude Code session started at the repository root. The command is `/ingest-transcript <vtt-file> ["meeting subject"]` on first invocation and `/ingest-transcript <Tnnn>` after that; the engagement is implied while there is one. The skill lives at the root under `.claude/skills/` with no symlink. Tested on 10 September 2026: a root skill is found from a subfolder, but reads into `ingester/` from a subfolder need a permission grant, which is why the root is the working directory.
+- Runtime is a Claude Code session started inside the engagement folder, `engagements/<name>/`, which names the engagement. The command is `/ingest-transcript <vtt-file> ["meeting subject"]` on first invocation and `/ingest-transcript <Tnnn>` after that. The skill lives at the root under `.claude/skills/` with no symlink and is found from the subfolder (tested 10 September 2026). Reads into `ingester/` need a grant from a subfolder: start with `claude --add-dir ../../ingester` or approve the prompt once.
 - The root `CLAUDE.md` points at `ingester/README.md`. The ingester knows its own files. Engagement folders carry nothing about the ingester.
 - The transcript file is copied unchanged into `transcripts/unprocessed/`, its name and SHA-256 recorded in the transcript register, and moved to `transcripts/processed/` by S3 as its last step. Nothing edits, renames or deletes a transcript.
 - The meeting subject is a guide to episodes and topics, never a filter.

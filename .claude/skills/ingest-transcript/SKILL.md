@@ -1,38 +1,48 @@
 ---
 name: ingest-transcript
-description: Ingest a discovery transcript (WebVTT) through stages S0 to S3, stopping at each signed gate. Usage /ingest-transcript <vtt-file|Tnnn> ["meeting subject"]. The engagement is the folder under engagements/; when there is more than one, name it as a third argument. Runs from the repository root.
+description: Ingest a discovery transcript (WebVTT) through stages S0 to S3, stopping at each signed gate. Usage /ingest-transcript <vtt-file|Tnnn> ["meeting subject"], run from inside an engagement folder (engagements/<name>/), which is how the engagement is known.
 ---
 
 # ingest-transcript
 
-Version 0.4.0 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `ingester/bin/` do every deterministic step; you do the reading. Follow `ingester/runbooks/` for each stage.
+Version 0.5.0 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `$ROOT/ingester/bin/` do every deterministic step; you do the reading. Follow `ingester/runbooks/` for each stage.
+
+## Where you run
+
+The session is started inside an engagement folder, `engagements/<name>/`, and that folder is the engagement. Before anything else:
+
+```
+ROOT=$(git rev-parse --show-toplevel)
+ENG=$(pwd)
+```
+
+`ENG` must be `$ROOT/engagements/<name>` and must contain `engagement.md`. If it is not (the session was started at the root or somewhere else), say so in one line, name the folder to start from, and stop. Never pick an engagement by guessing. Every script below is called as `$ROOT/ingester/bin/<script> <name> ...`, where `<name>` is the folder's basename; the scripts resolve every path from the root themselves. Reads into `$ROOT/ingester/` are outside the working directory; the session grants them with `claude --add-dir ../../ingester` (or by approving the prompt once).
 
 ## Arguments
 
-`$ARGUMENTS` is `<first> ["meeting subject"] [<engagement>]`.
+`$ARGUMENTS` is `<first> ["meeting subject"]`.
 
 - `<first>` is either a path to a `.vtt` file (first invocation for a transcript) or a transcript id `Tnnn` (every later invocation).
 - The optional meeting subject is a quoted phrase, for example "entity upgrade for multi-gig orders" or the title of the calendar invitation. It is recorded on the transcript file and the session sheet and read as a prior at S1 (below). It is never a filter (design 5.3).
-- The engagement is the folder under `engagements/` that holds `engagement.md`. When exactly one exists, use it without asking. When several exist and none is named, list them and ask which one; when the reviewer names one as a further argument, use that. Refuse with a one-line explanation if the folder has no `engagement.md`; say to run `ingester/bin/new-engagement <name>` first. Never guess between engagements.
 
-Everything below uses `ENG` for the engagement folder `engagements/<engagement>` and `TID` for the transcript id.
+Everything below uses `ENG` for the engagement folder, `<engagement>` for its basename and `TID` for the transcript id.
 
 ## Rules you never break
 
-- Nothing is written to an item file (requirements/, decisions/, limitations/, risks/, open-items/, processes/, systems/, topics/) except by `ingester/bin/s3-write`, and only after both review files are signed with no pending verdicts. Stakeholder files are written by `ingester/bin/s1-stakeholders` once the session sheet is signed. Silence is not approval.
+- Nothing is written to an item file (requirements/, decisions/, limitations/, risks/, open-items/, processes/, systems/, topics/) except by `$ROOT/ingester/bin/s3-write`, and only after both review files are signed with no pending verdicts. Stakeholder files are written by `$ROOT/ingester/bin/s1-stakeholders` once the session sheet is signed. Silence is not approval.
 - Never edit a signed file. Never advance past an unsigned gate: say which file is waiting and stop.
 - Never edit, rename or delete a transcript file. A SHA-256 mismatch reported by any script blocks everything; report it and stop.
 - Write nothing under `ingester/`. Every output goes under `ENG/`.
 - Quotes are verbatim, including transcription noise and filler. Interpretation goes in the Gist. A quote never spans two speakers (R10).
 - When in doubt between Confident and Needs a human, choose Needs a human and give the reason (R16).
 - Never fill a register field you cannot support from the transcript. Write a Question instead.
-- Cite in the F2 form only, and run `ingester/bin/check-citations` on every file you write that contains citations before presenting it.
+- Cite in the F2 form only, and run `$ROOT/ingester/bin/check-citations` on every file you write that contains citations before presenting it.
 
 ## Progress
 
 Show the reviewer where the transcript is at every step, using the Claude Code task list (the TodoWrite tool). Do this on every invocation, before any other work:
 
-1. Run `ingester/bin/stage <engagement> TID tasks`. It prints the pipeline checklist with each step marked from the files on disk.
+1. Run `$ROOT/ingester/bin/stage <engagement> TID tasks`. It prints the pipeline checklist with each step marked from the files on disk.
 2. Create one task per line of its Pipeline and After the run sections, in that order, with the same wording. A `[x]` line is `completed`; the line marked `(current step)` is `in_progress`; every other line is `pending`.
 3. As you work, update the list: mark a step `in_progress` when you start it and `completed` the moment its file exists or its check passes. The steps you own are the S0 proposals, S1 Read (split it into its own sub-tasks: read the rules and the engagement, read the transcript, write exchanges, write episodes, write the dossier, run the self-checks) and, after S3, the score.
 4. When you stop at a gate, the human step is left `in_progress` and the task list stays visible with the next command in the final message.
@@ -67,18 +77,18 @@ It prints one word and act only on that word.
 
 ## S0 Prepare
 
-1. Run `ingester/bin/stage <engagement> TID S0`. It writes `ENG/sessions/TID/TID.utterances.tsv` and `ENG/sessions/TID/TID.session.md` with every speaker matched against `ENG/stakeholders/*.md` by name or variant. Speakers it could not match appear in Attendees with STK `new` and again in New stakeholders with empty cells.
+1. Run `$ROOT/ingester/bin/stage <engagement> TID S0`. It writes `ENG/sessions/TID/TID.utterances.tsv` and `ENG/sessions/TID/TID.session.md` with every speaker matched against `ENG/stakeholders/*.md` by name or variant. Speakers it could not match appear in Attendees with STK `new` and again in New stakeholders with empty cells.
 2. Read the whole utterance table.
 3. For every `new` speaker, fill the New stakeholders row: Organisation (Us, Vendor, or a named third party), Role (Internal SME, Internal architect, Internal other, Vendor, Consultant), Segment (Residential, BE&G or Wholesale when the person speaks for one customer segment; blank when they speak for the whole business, as a Finance SME does; blank for vendors and consultants), Department (where they sit, such as Product, Operations, Finance, Architecture; blank when the transcript gives no clue), Standing (the systems, processes or domains they show they own or operate, as text), Decides (the subjects on which they may accept a decision; blank for architects and vendors), and Passage: one F2 citation for the utterance that best shows the role. Read the role from what they say and how others address them, never from the name alone. A `(Vendor)` suffix on the speaker tag is evidence, not proof.
 4. Propose Mentioned rows for people, roles or bodies named as owners or deciders who did not speak: "someone from the business", "ask NETCO", a named colleague, an approving group. Role Mentioned, or Forum for an approving body on our side, with Decides naming what that body approves. One citation each.
 5. Propose the Session date from the invitation, the reviewer's instruction, or the transcript, in `D Month YYYY` form, and the Domain. Fill the Meeting subject if one was given. Write anything the reviewer should know, including the purpose you infer for the session, under Notes for the reviewer.
 6. Leave every Verdict cell blank. Leave Approver and Approved on blank.
-7. Run `ingester/bin/check-citations <engagement> TID ENG/sessions/TID/TID.session.md`. Fix any FAIL and rerun until OK.
+7. Run `$ROOT/ingester/bin/check-citations <engagement> TID ENG/sessions/TID/TID.session.md`. Fix any FAIL and rerun until OK.
 8. Tell the reviewer the sheet path, how many speakers were matched and how many are new, and stop.
 
 ## S1 Read
 
-Precondition: `stage` said `needs-s1`, which means the session sheet is signed and every verdict is filled. Do not start otherwise. Run `ingester/bin/stage <engagement> TID S1` first: it writes one `ENG/stakeholders/STK-nnnn.md` per accepted row and prints `gate open`.
+Precondition: `stage` said `needs-s1`, which means the session sheet is signed and every verdict is filled. Do not start otherwise. Run `$ROOT/ingester/bin/stage <engagement> TID S1` first: it writes one `ENG/stakeholders/STK-nnnn.md` per accepted row and prints `gate open`.
 
 Mark each of the S1 sub-tasks in the task list as you reach it. Read, in this order: `ingester/extraction-rules.md` in full; the signed session sheet; every file under `ENG/stakeholders/`; `ENG/engagement.md` (glossary); every file under `ENG/systems/` and `ENG/processes/`; every file under `ENG/requirements/`, `ENG/decisions/`, `ENG/limitations/`, `ENG/risks/` and `ENG/open-items/`; every file under `ENG/topics/`; then the whole utterance table end to end. The tables under `ENG/index/` are a quick overview and are regenerated by S3; the item files are the truth.
 
@@ -110,13 +120,13 @@ Fill Closing: Questions for the SMEs (every Question item, one line each); Empty
 
 **Self-checks before presenting.** Run each, fix what you can, rerun, and record what remains under Closing.
 
-1. `ingester/bin/check-citations <engagement> TID ENG/sessions/TID/TID.dossier.md` must print OK. Record the line under Citation check.
-2. `ingester/bin/check-integrity <engagement> --proposed ENG/sessions/TID/TID.dossier.md`. Failures you can fix (a missing Raised by, an Implemented by, a Status not in the model) you fix. Failures that need the reviewer (an Owner, a MoSCoW) stay, and you list them under Integrity check with the item number.
+1. `$ROOT/ingester/bin/check-citations <engagement> TID ENG/sessions/TID/TID.dossier.md` must print OK. Record the line under Citation check.
+2. `$ROOT/ingester/bin/check-integrity <engagement> --proposed ENG/sessions/TID/TID.dossier.md`. Failures you can fix (a missing Raised by, an Implemented by, a Status not in the model) you fix. Failures that need the reviewer (an Owner, a MoSCoW) stay, and you list them under Integrity check with the item number.
 3. Every item has an `answered` or `proposed` citation, or is a Question.
 4. No Confident item carries a hedge word in its content citation (probably, I think, my guess, maybe, I'm not sure, you'd have to ask).
 5. Every episode that is Settled, Parked or Unsettled owns at least one item.
 
-Write a run log with `ingester/bin/stage <engagement> TID log S1 "<outcome>"`. Tell the reviewer the dossier path, the item count, the count graded Needs a human, and stop.
+Write a run log with `$ROOT/ingester/bin/stage <engagement> TID log S1 "<outcome>"`. Tell the reviewer the dossier path, the item count, the count graded Needs a human, and stop.
 
 **Rejected dossier.** When the reviewer has written `Reject` in the dossier header's Approver line or asked for a re-read, read their notes, produce `TID.dossier.v2.md` with `- Dossier version: 2`, and leave the rejected file untouched.
 

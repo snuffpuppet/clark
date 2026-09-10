@@ -1,6 +1,6 @@
 # The ingester
 
-Version 0.7, 10 September 2026.
+Version 0.8, 10 September 2026.
 
 ## Purpose
 
@@ -25,7 +25,7 @@ An engagement lives at `engagements/<name>/` with `engagement.md`, one file per 
 
 ## Runtime
 
-A Claude Code session started at the repository root. The skill takes the engagement name as an argument and resolves both parts by relative path. Nothing is installed on the host and Docker is not needed because Claude Code is already present.
+A Claude Code session started inside the engagement folder, `engagements/<name>/`, which is how the skill knows the engagement. The skill finds the repository root with `git rev-parse --show-toplevel` and calls the scripts from there. Reads into `ingester/` fall outside the working directory, so start the session with `claude --add-dir ../../ingester` or approve the read prompt once. The skill file lives at the root under `.claude/skills/` and is found from the subfolder. Nothing is installed on the host and Docker is not needed because Claude Code is already present.
 
 ## Command
 
@@ -41,7 +41,7 @@ The file is copied unchanged into `engagements/<engagement>/transcripts/unproces
 /ingest-transcript T001
 ```
 
-The engagement is the folder under `engagements/`. With one engagement it is implied; with several, the skill asks, or takes the name as a third argument.
+Run from inside `engagements/<name>/`. The scripts take the engagement name as their first argument and can be run from anywhere.
 
 The skill finds the next unsigned gate and acts on it, or says which file is waiting and stops.
 
