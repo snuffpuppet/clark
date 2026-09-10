@@ -1,6 +1,6 @@
 # Extracting solution records from discovery transcripts: solution design
 
-Version 1.3, 10 September 2026. Approved for implementation by Adam Moyes: 1.0 on 10 September 2026, with the 1.1 to 1.3 changes made at his direction the same day. Owner: Adam Moyes. Responds to `BRIEF.md` version 1.0 and `solution-register-model.md` version 2.17.
+Version 1.4, 10 September 2026. Approved for implementation by Adam Moyes: 1.0 on 10 September 2026, with the 1.1 to 1.4 changes made at his direction the same day. Owner: Adam Moyes. Responds to `BRIEF.md` version 1.0 and `solution-register-model.md` version 2.18.
 
 This document answers the four questions in the brief, defines the current-state record and the session structures around it, and then proposes the extraction method. Section 6 shows worked examples taken from `T001-SANITISED-TechnicalSyncUp.vtt` so that each rule can be checked against real speech. Section 7 describes the split between the ingester, which holds the mechanism, and the engagements, which hold everything produced for a client. Section 10 records the assumptions and the decisions made at approval. Section 11 is the change log.
 
@@ -124,13 +124,13 @@ This keeps the method's quality tied to evidence: the rules are the method, the 
 
 ## 4. The current-state record
 
-One file per domain, `current-state-<domain>.md`, versioned. It holds two element kinds. Every claim carries the same evidence and confidence fields.
+One file per element under `processes/` and `systems/`, each carrying its domain in frontmatter. There are two element kinds. Every claim carries the same evidence and confidence fields.
 
 ### 4.1 Process (PRC-nnn)
 
 | Field | Rule |
 |---|---|
-| ID | PRC plus zero-padded number. Never reused. |
+| ID | PRC plus a four-digit zero-padded number (PRC-0005). Never reused. One file per process, `processes/PRC-0005.md`, with the fields below in frontmatter and each step as a section. |
 | Title | What the process achieves, one line. |
 | Trigger | The event that starts it, as stated. |
 | Performed by | Role or team as stated. A named person only if the transcript names them as the performer. |
@@ -144,7 +144,7 @@ One file per domain, `current-state-<domain>.md`, versioned. It holds two elemen
 
 | Field | Rule |
 |---|---|
-| ID | SYS plus zero-padded number. Never reused. |
+| ID | SYS plus a four-digit zero-padded number (SYS-0002). Never reused. One file per system, `systems/SYS-0002.md`, with each fact as a section. |
 | Name | The name the SMEs use. |
 | Operated by | Us, Vendor, or a named third party. |
 | Role today | One line. |
@@ -179,18 +179,20 @@ One integrity rule is added: **I18 Current-state links.** Every `replaces`, `pre
 
 ### 4.5 Transcript register
 
-`transcripts.md`, one row per transcript: id (T001), file name as received, SHA-256 of the file as received, session date, title, meeting subject as given at invocation (blank if none), attendee STK ids, domain, session sheet approver and date, dossier approver and date, ingester and rules versions used.
+One file per transcript, `transcripts/T001.md`, with these fields in frontmatter: id (T001), file name as received, SHA-256 of the file as received, session date, title, meeting subject as given at invocation (blank if none), attendee STK ids, domain, session sheet approver and date, dossier approver and date, ingester and rules versions used.
 
 ### 4.6 Stakeholder register (STK-nnn)
 
-`stakeholders.md`, one file per engagement, versioned. It is the single source of who people are, which side they are on, and what they have standing to speak about. The session sheet is derived from it, and the rules in 5.1 and R7 read standing from it rather than from the transcript alone.
+One file per stakeholder under `stakeholders/`. Together they are the single source of who people are, which side they are on, and what they have standing to speak about. The session sheet is derived from it, and the rules in 5.1 and R7 read standing from it rather than from the transcript alone.
 
 | Field | Rule |
 |---|---|
-| ID | STK plus zero-padded number. Never reused. |
+| ID | STK plus a four-digit zero-padded number (STK-0003). Never reused. One file per stakeholder, `stakeholders/STK-0003.md`. |
 | Name | As the transcript renders it, with known variants (Martin, Marty) listed so that speaker tags and mentions resolve to one row. |
 | Organisation | Us, Vendor, or a named third party. |
 | Role | Internal SME, Internal architect, Internal other, Vendor, Consultant, Forum (a named approving body on our side, such as the SLT group), or Mentioned (named in a session but never present). |
+| Segment | Residential, BE&G, Wholesale, or blank. Set when the person speaks for one customer segment, so that their description of "our process" is read as that segment's process. Blank means they speak for the whole business, as a Finance SME does. Stakeholder field only for now; no extraction rule reads it until the evidence says one should. |
+| Department | Where the person sits, as free text such as Product, Operations, Finance, Architecture. The generated stakeholder index lists the distinct values so they converge. |
 | Standing | The systems, processes or domains this person owns or operates, as SYS or PRC ids where they exist, otherwise as text. R7 uses this to decide Stated against Second-hand. |
 | Decides | The subjects on which this person may accept a decision in a session, as text. For an Internal SME this is normally their area of expertise, so that a technical approach the SMEs agree on becomes a decision. For an Internal architect it is normally blank: their acceptance leaves a decision Proposed and sends it to a Forum row. A Forum row's Decides names what that body approves. R19 reads this field. |
 | Status | Active; Left (no longer on the engagement, kept for attribution). |
@@ -251,9 +253,9 @@ An episode is a contiguous span of one session on one subject. The skill propose
 
 Two completeness rules attach to outcomes. A Parked or Unsettled episode must yield at least one OI or Question. A Settled episode must yield at least one record row or claim. An episode that fails its rule is an empty episode and is listed in the dossier's closing section and in the run report.
 
-### 5.4 Topic ledger (TOP-nnn)
+### 5.4 Topic ledger (TOP-nnnn)
 
-`topics.md`, one file for the domain, versioned. A topic is a subject that recurs across sessions. Each topic row holds: id, title, the episodes that touched it in session order, the open items still outstanding on it, the decisions and requirements that closed parts of it, and a one-line current position. The skill proposes a match to an existing topic or a new topic for each episode, and the reviewer confirms in the dossier. The write stage appends the episode and the new ids to the topic.
+One file per topic under `topics/`. A topic is a subject that recurs across sessions. Each topic file holds: id, title, the episodes that touched it in session order, the open items still outstanding on it, the decisions and requirements that closed parts of it, and a one-line current position. The skill proposes a match to an existing topic or a new topic for each episode, and the reviewer confirms in the dossier. The write stage appends the episode and the new ids to the topic.
 
 The ledger is the cross-session view: which subjects have been discussed several times without settling, which questions to send to SMEs before the next session, and what each session added. It is a ledger rather than a pipeline stage, because it persists and is updated by every session rather than produced by one.
 
@@ -411,16 +413,19 @@ solution-register/                 the git repository
     VERSION
   engagements/
     <engagement-name>/               the what, for one client
-      engagement.md                  client, domain, glossary of
-                                     system names, ingester version
-      stakeholders.md                stakeholder register (4.6)
+      engagement.md                  client, domain, glossary of system names,
+                                     ingester version
+      stakeholders/STK-nnnn.md       stakeholder register (4.6), one file each
+      transcripts/Tnnn.md            transcript register (4.5), one file each
       transcripts/
         unprocessed/                 VTT files as received, awaiting S3
         processed/                   VTT files as received, after S3
-      transcripts.md                 transcript register (4.5)
-      current-state-<domain>.md      current-state record (4)
-      topics.md                      topic ledger (5.4)
-      registers/                     the six registers
+      processes/PRC-nnnn.md          current-state record (4), one file each
+      systems/SYS-nnnn.md
+      topics/TOP-nnnn.md             topic ledger (5.4), one file each
+      requirements/ decisions/ limitations/ risks/ open-items/
+                                     the five registers, one file per item
+      index/                         generated tables, never edited
       sessions/T001/                 utterance table, session sheet, exchanges,
                                      episodes, dossier, session log
       evaluation/                    hand-marked references and run reports
@@ -494,13 +499,14 @@ Applied to `solution-register-model.md` on approval of this design, 10 September
 | `ingester/bin/` | ingester | Shell scripts for S0, citation check, integrity, S3, ledger update, scoring, the stage driver | With the ingester |
 | `ingester/templates/` | ingester | Empty session sheet, dossier, registers, current-state record, topic ledger, engagement.md | With the ingester |
 | `engagements/<name>/engagement.md` | engagement | Client, domain, glossary, ingester version last used | Bumped on every change |
-| `engagements/<name>/stakeholders.md` | engagement | Stakeholder register: who people are, their side, role, standing and decision authority | Bumped by S3, or by hand with Source "engagement.md" |
+| `engagements/<name>/stakeholders/STK-nnnn.md` | engagement | Stakeholder register, one file per person: side, role, segment, department, standing and decision authority | Written when a session sheet is signed; edited by S3 for standing extensions, or by hand |
 | `engagements/<name>/transcripts/unprocessed/` | engagement | VTT files as received, copied in by the first invocation, awaiting S3 | Never edited |
 | `engagements/<name>/transcripts/processed/` | engagement | VTT files as received, moved here by S3 | Never edited |
-| `engagements/<name>/transcripts.md` | engagement | Transcript register | Bumped on every row |
-| `engagements/<name>/topics.md` | engagement | Topic ledger | Bumped by S3 |
-| `engagements/<name>/current-state-<domain>.md` | engagement | Current-state record | Bumped by S3 |
-| `engagements/<name>/registers/*.md` | engagement | Six registers | Bumped by S3 |
+| `engagements/<name>/transcripts/Tnnn.md` | engagement | Transcript register, one file per transcript | Written at registration, completed by S3 |
+| `engagements/<name>/topics/TOP-nnnn.md` | engagement | Topic ledger, one file per topic | Written and extended by S3 |
+| `engagements/<name>/processes/PRC-nnnn.md`, `systems/SYS-nnnn.md` | engagement | Current-state record, one file per element with claims as sections | Written and extended by S3 |
+| `engagements/<name>/requirements/`, `decisions/`, `limitations/`, `risks/`, `open-items/` | engagement | Five registers, one file per item | Written and edited by S3 |
+| `engagements/<name>/index/*.md` | engagement | Generated index tables and the outstanding view | Regenerated after every S3 and on request; never edited |
 | `engagements/<name>/sessions/Tnnn/` | engagement | Utterance table, session sheet, exchanges, episodes, dossier versions, session log | Each file carries its own version |
 | `engagements/<name>/evaluation/` | engagement | Reference marking and run reports | Reference versioned; runs numbered |
 | `engagements/<name>/logs/` | engagement | One log per skill run | Append only |
@@ -542,3 +548,4 @@ The next step is the implementation plan covering the folder layout, the skill, 
 | 1.1 | 10 September 2026 | Optional meeting subject argument on the ingest command (7.2). It guides episode boundaries, titles and topic matching and the reading of noisy terms, and is never a restriction (5.3). Recorded on the session sheet (Q3) and the transcript register (4.5). Episodes gain a Subject field for on, related or off subject. |
 | 1.2 | 10 September 2026 | The transcript file is the ingest command's first argument (7.2). The skill copies it unchanged into `transcripts/unprocessed/`, records its name and SHA-256 in the transcript register (4.5), and S3 moves it to `transcripts/processed/` as its last step. Layout (7.1) and file table (10.1) updated. T001 moved to `unprocessed/`. File table (10.1) gives full paths from the repository root for engagement files. |
 | 1.3 | 10 September 2026 | Scope removed from every item, sheet and ledger row, following register model 2.17: no scope taxonomy in `engagement.md`, no Scope on the session sheet, no scope value on episodes or topics, integrity rule I5 gone, and Scope dropped from the fields the reviewer always fills. Two worked-example citation ranges corrected (862:1-5, 165:2-4). |
+| 1.4 | 10 September 2026 | One file per item, claim element, stakeholder, topic and transcript, following register model 2.18; generated index tables as the meeting view. Four-digit ids except transcripts and episodes. Segment and Department on the stakeholder register (4.6). Change requests removed with the model. Layout (7.1) and file table (10.1) rewritten. |
