@@ -68,7 +68,7 @@ It prints one word and act only on that word.
 | Status | What you do |
 |---|---|
 | `needs-s0` | Run S0 below. |
-| `awaiting-session-sheet` | Re-present the review table from S0 step 8, tell the reviewer that `ENG/sessions/TID/TID.session.md` is waiting for their verdicts and signature, and that a verdict given in the terminal is enough because you will write it into the sheet. Stop. |
+| `awaiting-session-sheet` | Re-present the review table from S0 step 8 and say that verdicts given here are enough because you will write them into the sheet, and that "accept all" signs it. Stop. |
 | `needs-s1` | Run S1 below. |
 | `awaiting-dossier` | The dossier is written but not yet complete. Follow **Completing the dossier** below: if every Verdict is filled, mark it complete and go straight to S3; otherwise present the items still without a verdict and stop. |
 | `needs-s3` | Run S3 below. |
@@ -136,13 +136,17 @@ Write a run log with `$ROOT/ingester/bin/stage <engagement> TID log S1 "<outcome
 **Rejected dossier.** When the reviewer has written `Reject` on the dossier header's Completed by line or asked for a re-read, read their notes, produce `TID.dossier.v2.md` with `- Dossier version: 2`, and leave the rejected file untouched.
 
 
+## Review happens in the terminal
+
+The reviewer never has to open a review file. At every gate you present what needs a verdict in the reply, compactly, and take the verdicts from what they type. A reply such as "accept all", "proceed", "go", "approve" or "yes" is a verdict of Accept on every item you presented, and their instruction to proceed is their signature: write their name as Approver or Completed by and today's date, then carry on to the next stage in the same turn. Corrections given in the same reply ("item 12 reject", "owner of 33 is Martin", "the vendor is X") are written into the file before the verdicts. Never treat silence, or a reply about something else, as approval; ask again in one line. Record in the file's Notes or Closing that the verdicts came from the terminal and on whose word.
+
 ## Completing the dossier
 
 A dossier is complete when every Verdict is filled and both self-checks pass. There is no separate approval step and you never stop to ask for one.
 
 When `stage` says `awaiting-dossier`, read the dossier and check every Verdict.
 
-- **Any Verdict blank.** Present the outstanding items in the terminal, grouped by the reason each was graded Needs a human, one line each saying what you need in order to fill it. Say which fields are still missing on the items that need one, such as an Owner or a MoSCoW. Stop.
+- **Any Verdict blank.** Present the outstanding items in the terminal, grouped by the reason each was graded Needs a human, one line each saying what you need in order to fill it. Say which fields are still missing on the items that need one, such as an Owner or a MoSCoW. Say that "accept all" plus any corrections completes the dossier and starts S3. Stop.
 - **Every Verdict filled.** Run `$ROOT/ingester/bin/check-citations` and `$ROOT/ingester/bin/check-integrity <engagement> --proposed` on the dossier and fix what you can. Then write `- Completed by:` with the reviewer's name and `- Completed on:` with today's date into the header, add a short `### How this dossier was completed` section at the end of Closing recording the rule and where the verdicts came from, and go straight to S3. Report what was written.
 
 Never mark a dossier complete while a Verdict is blank, and never invent a verdict to get there. A Confident item in an episode carrying `Bulk accept:` counts as filled.

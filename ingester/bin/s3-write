@@ -60,7 +60,9 @@ reserve_id() { p=$1; n=$(next_id "$eng" "$p" | sed "s/^$p-//"); [ -f "$RES/$p" ]
 IDMAP=""
 while IFS="$US" read -r item kind grade verdict target episode bulk fields cites; do
   type=${kind%%.*}
-  case $kind in REQ|DEC|LIM|RSK|OI|SYS|PRC|TOP) [ "$target" = new ] && id=$(reserve_id "$type") || id=$target; IDMAP="$IDMAP $item=$id" ;; esac
+  case $kind in REQ|DEC|LIM|RSK|OI|SYS|PRC|TOP)
+    case $target in new) id=$(reserve_id "$type") ;; "item "*) id=$(resolve_items "$target"); [ "$kind" = TOP ] || die "item $item targets $target; only a TOP item may target an item in the same dossier" ;; *) id=$target ;; esac
+    IDMAP="$IDMAP $item=$id" ;; esac
 done < "$items"
 
 # Pass two: write.
@@ -130,10 +132,10 @@ while IFS="$US" read -r item kind grade verdict target episode bulk fields cites
         fm_set "$ppath" updated "$TODAY"; logrow "$target" updated "$(item_dir "$type")/$parent.md" "${changes:-no field changed}"
       fi ;;
     TOP)
-      path=$(item_path "$eng" "$id")
+      path=$(item_path "$eng" "$id"); case $target in "item "*) target=$id ;; esac
       if [ "$target" = new ]; then vals; set_val ID "$id"; set_val TITLE "$(fld "$fields" Title)"; set_val EPISODE "$episode"; set_val POSITION "$(fld "$fields" Position)"; set_val DATE "$TODAY"; set_list OPEN_ITEMS ""; set_list CLOSED_BY ""
         render "$INGESTER_DIR/templates/items/TOP.md" "$path"; vals_done; logrow "$id" created "topics/$id.md" "$(fld "$fields" Title)"
-      else [ -f "$path" ] || die "item $item targets $id, which does not exist"; fm_list_add "$path" episodes "$episode"; fm_set "$path" updated "$TODAY"
+      else [ -f "$path" ] || die "item $item targets $id, which does not exist"; fm_list_add "$path" episodes "$episode"; fm_set "$path" updated "$TODAY"; target=$id
         [ -n "$(fld "$fields" Position)" ] && printf '\n%s: %s\n' "$tid" "$(fld "$fields" Position)" >> "$path"; logrow "$id" updated "topics/$id.md" "episode $episode"; fi
       printf '%s\t%s\n' "$episode" "$id" >> "$RES/topics" ;;
     STK.edit)

@@ -4,7 +4,7 @@
 # to sessions/Tnnn/TASKS.md. Derived, never edited: the files are the truth.
 . "$(dirname "$0")/lib.sh"
 [ $# -eq 2 ] || die "usage: tasks <engagement> <Tnnn>"
-eng=$1; tid=$2; d=$(eng_dir "$eng"); sdir="$d/sessions/$tid"
+eng=$1; tid=$2; d=$(eng_dir "$eng"); sdir="$d/sessions/$tid"; mkdir -p "$sdir"
 sheet="$sdir/$tid.session.md"; dossier="$sdir/$tid.dossier.md"; log="$sdir/$tid.session-log.md"; tf=$(item_path "$eng" "$tid")
 st=$("$INGESTER_DIR/bin/stage" "$eng" "$tid" status 2>/dev/null || echo unknown)
 done_() { printf -- '- [x] %s\n' "$1"; }; todo() { printf -- '- [ ] %s\n' "$1"; }; now() { printf -- '- [ ] **%s**  (current step)\n' "$1"; }
@@ -50,5 +50,5 @@ phases_named=todo; [ "$(phases "$eng" | grep -c .)" -gt 0 ] && [ "$(phases "$eng
     done) printf 'none; %s is written. Score it, or register the next transcript.\n' "$tid" ;;
     *) printf 'resolve: %s\n' "$st" ;;
   esac
-} > "$sdir/TASKS.md" 2>/dev/null || true
+} > "$sdir/TASKS.md"
 cat "$sdir/TASKS.md"
