@@ -1,0 +1,1105 @@
+utterance	fragment	start	end	speaker	text
+5	0	00:00:04.691	00:00:05.291	Daniel Okonkwo	I enter.
+6	0	00:00:03.051	00:00:05.091	Rafael Costa (Vendor)	Hey, Daniel, hey, how are you doing?
+7	0	00:00:06.116	00:00:07.956	Daniel Okonkwo	Doing good, mate. Doing good.
+8	0	00:00:08.916	00:00:11.716	Rafael Costa (Vendor)	You, you were in, um, I leave right?
+9	0	00:00:12.516	00:00:13.636	Daniel Okonkwo	I was, yeah.
+12	0	00:00:13.876	00:00:17.251	Rafael Costa (Vendor)	Yeah, yeah. Was it somewhere in the region here or you
+12	1	00:00:17.251	00:00:17.876	Rafael Costa (Vendor)	went to...
+13	0	00:00:18.556	00:00:22.036	Daniel Okonkwo	No, I went out to Bellhaven, just disappeared. It was good.
+14	0	00:00:20.276	00:00:23.316	Rafael Costa (Vendor)	No, yeah.
+16	0	00:00:23.796	00:00:26.116	Daniel Okonkwo	I didn't hear someone say Peter and I once.
+17	0	00:00:26.676	00:00:26.876	Rafael Costa (Vendor)	Haha.
+19	0	00:00:29.076	00:00:30.196	Rafael Costa (Vendor)	Okay, this is good news.
+20	0	00:00:31.316	00:00:32.276	Daniel Okonkwo	Yep.
+21	0	00:00:34.596	00:00:35.876	Rafael Costa (Vendor)	Hey, Marty, he got it.
+23	0	00:00:36.596	00:00:37.076	Martin Vasquez	Omar.
+24	0	00:00:37.556	00:00:37.876	Rafael Costa (Vendor)	Yeah.
+25	0	00:00:42.396	00:00:42.996	Nadia Ferreira (Vendor)	Hi, everyone.
+26	0	00:00:43.716	00:00:44.676	Rafael Costa (Vendor)	Hey, Nadia.
+28	0	00:00:49.956	00:00:51.396	Rafael Costa (Vendor)	Agent.
+29	0	00:00:48.276	00:00:52.144	Simon Ashcroft	How we going? I've actually, I've got some services down that I need
+29	1	00:00:52.144	00:00:55.396	Simon Ashcroft	to look into. Is, am I required for anything here, Rafael?
+31	0	00:00:56.116	00:01:00.306	Rafael Costa (Vendor)	Uh, so I, um, I want to recover today the METCO interior
+31	1	00:01:00.306	00:01:04.116	Rafael Costa (Vendor)	play scenario and entity upgrade, yeah, so, um...
+32	0	00:01:04.596	00:01:06.276	Simon Ashcroft	Not really me then, which is good.
+33	0	00:01:06.276	00:01:10.169	Rafael Costa (Vendor)	Yeah, so, Elena, I know that we are we are actually
+33	1	00:01:10.169	00:01:14.979	Rafael Costa (Vendor)	discussing other topics, but is it OK to make maybe start with
+33	2	00:01:14.979	00:01:18.720	Rafael Costa (Vendor)	this one? I doubt that we will finish before the
+33	3	00:01:18.720	00:01:19.636	Rafael Costa (Vendor)	hour, but...
+34	0	00:01:19.956	00:01:28.005	Elena Marchetti	Well, while Daniel is here and Ash is here, can we just cover off on the solution for
+34	1	00:01:28.005	00:01:29.236	Elena Marchetti	HANDOFF tagged?
+35	0	00:01:32.836	00:01:33.556	Elena Marchetti	Traffic.
+36	0	00:01:37.076	00:01:39.396	Elena Marchetti	Oh, yeah, go. Yeah, okay.
+37	0	00:01:31.956	00:01:34.280	Simon Ashcroft	Elena, I don't know if you heard me. I've got, sorry,
+37	1	00:01:34.280	00:01:37.877	Simon Ashcroft	I've got stuff down at the moment I've got to look into. So I'm just letting you,
+37	2	00:01:37.877	00:01:40.333	Simon Ashcroft	I've got to run. If you can look into something else or
+37	3	00:01:40.333	00:01:43.316	Simon Ashcroft	you can do something else that doesn't involve me, that'd be great.
+38	0	00:01:43.716	00:01:46.076	Elena Marchetti	This is the Amara thing, anyway. See you later.
+40	0	00:01:45.796	00:01:47.796	Simon Ashcroft	Excellent. See you.
+42	0	00:01:48.196	00:01:51.636	Rafael Costa (Vendor)	Yeah, okay, thanks. So, okay, yeah.
+43	0	00:01:49.956	00:01:54.596	Elena Marchetti	We just need Daniel's agreement that this will satisfy that requirement, that's all.
+44	0	00:01:54.436	00:01:55.396	Rafael Costa (Vendor)	Okay, sure, sure.
+45	0	00:01:54.596	00:02:00.595	Martin Vasquez	No, no, Daniel just needs to say that, yes, everything's perfect and Ash being not
+45	1	00:02:00.595	00:02:05.716	Martin Vasquez	here has to implement all of the changes that he wants, because he...
+46	0	00:02:05.556	00:02:09.716	Daniel Okonkwo	Everything's perfect and Luck's not being here. He has to implement all the changes.
+47	0	00:02:09.876	00:02:11.876	Martin Vasquez	There you go, exactly, yep.
+48	0	00:02:10.916	00:02:12.596	Daniel Okonkwo	What for what?
+49	0	00:02:11.916	00:02:14.436	Elena Marchetti	Like it's... Yeah, we got an echo.
+50	0	00:02:14.916	00:02:15.556	Rafael Costa (Vendor)	Yeah.
+53	0	00:02:15.516	00:02:19.329	Martin Vasquez	Yeah, that's weird, is that? I think my noise suppression isn't on,
+53	1	00:02:19.329	00:02:21.796	Martin Vasquez	probably, I don't know. I'll figure it out.
+54	0	00:02:24.276	00:02:28.179	Rafael Costa (Vendor)	Yeah, so okay, maybe we hopefully we can do this one.
+54	1	00:02:28.179	00:02:30.276	Rafael Costa (Vendor)	Okay, let me share my screen.
+61	0	00:02:31.716	00:02:35.666	Rafael Costa (Vendor)	So basically for to support the other cases,
+61	1	00:02:35.666	00:02:40.845	Rafael Costa (Vendor)	maybe just a bit of background of what we were discussing.
+61	2	00:02:40.845	00:02:45.848	Rafael Costa (Vendor)	So we are going to support the default mapped templates.
+61	3	00:02:45.848	00:02:50.676	Rafael Costa (Vendor)	And basically for these ones, we don't have tagging or
+66	0	00:02:51.076	00:02:55.354	Rafael Costa (Vendor)	or anything. So, but for the legacy services,
+66	1	00:02:55.354	00:03:02.889	Rafael Costa (Vendor)	which maybe they are already there in the systems and we need to migrate them to
+66	2	00:03:02.889	00:03:09.493	Rafael Costa (Vendor)	the INVENTORY, the what we need to do, the changes to the model are basically
+66	3	00:03:09.493	00:03:10.516	Rafael Costa (Vendor)	two things.
+67	0	00:03:11.156	00:03:16.836	Rafael Costa (Vendor)	The first thing is basically on the HANDOFF, just open this one.
+72	0	00:03:18.916	00:03:23.406	Rafael Costa (Vendor)	On the on the Peter side, we will have now we have extended the
+72	1	00:03:23.406	00:03:28.692	Rafael Costa (Vendor)	enum of the SEGMENT-TAG tag mode to support the four different types of SEGMENT-TAG modes,
+72	2	00:03:28.692	00:03:33.906	Rafael Costa (Vendor)	so these are first to change, and the second change is basically on the
+72	3	00:03:33.906	00:03:34.196	Rafael Costa (Vendor)	TRANSPORT-CIRCUIT.
+77	0	00:03:47.876	00:03:48.036	Elena Marchetti	Yeah.
+84	0	00:03:35.556	00:03:40.558	Rafael Costa (Vendor)	We will have now the HANDOFF, the HANDOFF SEGMENT-TAG coming as well,
+84	1	00:03:40.558	00:03:45.560	Rafael Costa (Vendor)	so in case we are using a specific tagged SEGMENT-TAG tagged,
+84	2	00:03:45.560	00:03:50.654	Rafael Costa (Vendor)	then the SEGMENT-TAG itself will be stored in the HANDOFF SEGMENT-TAG ID.
+84	3	00:03:50.654	00:03:57.657	Rafael Costa (Vendor)	If we are using a priority tagged, then I think it's a priority tag is using
+84	4	00:03:57.657	00:03:58.476	Rafael Costa (Vendor)	specific.
+91	0	00:03:58.996	00:04:05.273	Rafael Costa (Vendor)	value for the real idea I think on number one or something like that.
+91	1	00:04:05.273	00:04:12.447	Rafael Costa (Vendor)	So these are the two changes basically in the model that will support the other
+91	2	00:04:12.447	00:04:18.276	Rafael Costa (Vendor)	types of legacy products that we from NETCO for it to the tagging.
+96	0	00:04:18.756	00:04:24.583	Rafael Costa (Vendor)	Only the the HANDOFF SEGMENT-TAG on the ACCESS-CIRCUIT, and this will only be populated when we
+96	1	00:04:24.583	00:04:29.556	Rafael Costa (Vendor)	have the the the other other types of SEGMENT-TAG mode and on the HANDOFF.
+99	0	00:04:33.716	00:04:37.725	Rafael Costa (Vendor)	Yeah, this is basically the changes we will
+99	1	00:04:37.725	00:04:40.276	Rafael Costa (Vendor)	extend. Any concern on that?
+100	0	00:04:41.396	00:04:43.796	Daniel Okonkwo	That kind of makes sense, so.
+101	0	00:04:45.956	00:04:49.303	Elena Marchetti	All right, so that that covers off on that legacy,
+101	1	00:04:49.303	00:04:51.076	Elena Marchetti	those legacy services then.
+104	0	00:04:52.076	00:04:53.156	Elena Marchetti	Recording the attacking.
+105	0	00:04:59.556	00:04:59.716	Daniel Okonkwo	Yeah.
+106	0	00:04:55.396	00:04:58.599	Elena Marchetti	Is that right? And the other thing that, is that right, Daniel?
+106	1	00:04:58.599	00:05:01.956	Elena Marchetti	So you're okay with that in terms of that particular requirement?
+107	0	00:05:04.596	00:05:05.156	Elena Marchetti	Cool.
+108	0	00:05:00.916	00:05:04.217	Daniel Okonkwo	Yeah, I mean, it has the information we require,
+108	1	00:05:04.217	00:05:04.756	Daniel Okonkwo	or yeah.
+109	0	00:05:05.916	00:05:07.876	Elena Marchetti	So the other side we talked about Rafael.
+110	0	00:05:09.716	00:05:10.036	Elena Marchetti	Yeah.
+111	0	00:05:06.516	00:05:10.516	Daniel Okonkwo	There's no fundamental difference to actually do it though, so...
+112	0	00:05:11.996	00:05:12.996	Elena Marchetti	Sorry, what was that, Daniel?
+113	0	00:05:16.996	00:05:18.036	Elena Marchetti	Yeah, yeah.
+114	0	00:05:19.476	00:05:19.716	Martin Vasquez	Yeah.
+115	0	00:05:13.556	00:05:17.264	Daniel Okonkwo	There's no actual difference to how we deploy like configure or anything,
+115	1	00:05:17.264	00:05:19.719	Daniel Okonkwo	so that's completely transparent to us. So yeah,
+115	2	00:05:19.719	00:05:22.676	Daniel Okonkwo	it just needs to be on the model somewhere, which is fine.
+116	0	00:05:21.996	00:05:27.032	Martin Vasquez	The other thing that the other thing that comes to mind for that is, and again,
+116	1	00:05:27.032	00:05:31.565	Martin Vasquez	I don't I don't know too much about inherited legacy PRIORITY-MARK mapped stuff.
+116	2	00:05:31.565	00:05:33.076	Martin Vasquez	I know that we've got...
+117	0	00:05:34.276	00:05:37.321	Martin Vasquez	Two CLASS two services in CONFIG-MGMT, but that's about it,
+117	1	00:05:37.321	00:05:42.046	Martin Vasquez	but apparently we imported a bunch manually into the portal or something or
+117	2	00:05:42.046	00:05:42.916	Martin Vasquez	other, anyway.
+118	0	00:05:45.156	00:05:48.516	Martin Vasquez	You do need to, like obviously all the template IDs and
+118	1	00:05:48.516	00:05:53.196	Martin Vasquez	versions that you send to METCO have to match the like what you're configuring.
+118	2	00:05:53.196	00:05:56.316	Martin Vasquez	So say you needed to do a bandwidth profile change,
+118	3	00:05:56.316	00:05:58.596	Martin Vasquez	how would that work on those services?
+119	0	00:05:56.876	00:05:59.396	Elena Marchetti	Yeah, exactly. That was what I was going to bring up.
+119	1	00:05:59.396	00:06:01.076	Elena Marchetti	That's the other thing that came up.
+120	0	00:06:01.876	00:06:05.046	Martin Vasquez	Yeah, because at the moment I assume we'll be
+120	1	00:06:05.046	00:06:06.356	Martin Vasquez	mapping him to the.
+121	0	00:06:07.876	00:06:08.756	Daniel Okonkwo	SEGMENT-TAG mode.
+122	0	00:06:08.276	00:06:09.156	Martin Vasquez	Default mapped.
+123	0	00:06:17.236	00:06:18.596	Daniel Okonkwo	Yeah, but I was saying like you've got the.
+124	0	00:06:19.956	00:06:20.036	Daniel Okonkwo	The.
+125	0	00:06:10.916	00:06:14.692	Martin Vasquez	Like, basically, the default or default mapped has a bunch
+125	1	00:06:14.692	00:06:18.020	Martin Vasquez	of templates. PRIORITY-MARK mapped has a bunch of templates,
+125	2	00:06:18.020	00:06:21.156	Martin Vasquez	and you'd have to specify the correct templates.
+126	0	00:06:22.436	00:06:24.316	Daniel Okonkwo	Yeah, but you can kind of do that based on the
+126	1	00:06:24.316	00:06:26.276	Daniel Okonkwo	SEGMENT-TAG mode, right, the enum that we've got there.
+127	0	00:06:25.556	00:06:27.236	Rafael Costa (Vendor)	The question that I have as well.
+128	0	00:06:28.676	00:06:31.770	Martin Vasquez	It's more that it's it is it's additional work to do for Rafael.
+128	1	00:06:31.770	00:06:35.687	Martin Vasquez	There's a mapping there that would need to be need to be done for if you do like
+128	2	00:06:35.687	00:06:37.476	Martin Vasquez	a modified bandwidth on that service.
+131	0	00:06:38.596	00:06:41.019	Daniel Okonkwo	Fair enough. Sounds like a whole lot of not my problem,
+131	1	00:06:41.019	00:06:42.836	Daniel Okonkwo	so I'm just gonna step away from that one.
+138	0	00:06:45.956	00:06:50.108	Rafael Costa (Vendor)	Okay, so just a question here: if we have, first of all,
+138	1	00:06:50.108	00:06:56.155	Rafael Costa (Vendor)	if we have a service that was initially created on an old template or a different,
+138	2	00:06:56.155	00:06:59.652	Rafael Costa (Vendor)	actually, this SEGMENT-TAG tagging is not a modifiable
+138	3	00:06:59.652	00:07:03.076	Rafael Costa (Vendor)	attribute, so we cannot move between like a...
+143	0	00:07:03.796	00:07:08.279	Rafael Costa (Vendor)	at each speed to a default. This is not a modifiable attribute.
+143	1	00:07:08.279	00:07:13.672	Rafael Costa (Vendor)	METCO will reject that type of order, if I'm not mistaken. Just give me a sec,
+143	2	00:07:13.672	00:07:16.894	Rafael Costa (Vendor)	maybe just to confirm on this one, on the EU.
+143	3	00:07:16.894	00:07:19.556	Rafael Costa (Vendor)	So it's not modifiable for the in ACCESS-VARIANT.
+146	0	00:07:21.236	00:07:29.952	Rafael Costa (Vendor)	And same thing for the in wise as well as not modifiable and here as well as not
+146	1	00:07:29.952	00:07:35.654	Rafael Costa (Vendor)	modifiable. So basically we cannot move a product or
+146	2	00:07:35.654	00:07:39.636	Rafael Costa (Vendor)	a service from between the different.
+147	0	00:07:39.756	00:07:40.436	Rafael Costa (Vendor)	Tagging modes.
+148	0	00:07:48.036	00:07:48.676	Rafael Costa (Vendor)	Yes.
+149	0	00:07:40.756	00:07:43.407	Martin Vasquez	Are you sure though? Because if you specify,
+149	1	00:07:43.407	00:07:47.531	Martin Vasquez	that's for that particular product saying it's not modifiable, right?
+149	2	00:07:47.531	00:07:50.594	Martin Vasquez	Because it's kind of inherited in that template ID.
+149	3	00:07:50.594	00:07:54.836	Martin Vasquez	If you were to specify a different template version, what would happen?
+150	0	00:07:57.476	00:08:02.089	Rafael Costa (Vendor)	Okay, this was the other question. Can we, I mean, first,
+150	1	00:08:02.089	00:08:08.452	Rafael Costa (Vendor)	these are the whatever METCO support today as a modifiable attributes and I don't
+150	2	00:08:08.452	00:08:11.156	Rafael Costa (Vendor)	see the SEGMENT-TAG mode is there at all.
+151	0	00:08:15.556	00:08:15.716	Rafael Costa (Vendor)	Mm.
+152	0	00:08:10.516	00:08:14.330	Martin Vasquez	Yeah, but that's because your product, if you look on the left-hand side,
+152	1	00:08:14.330	00:08:15.876	Martin Vasquez	the product is default mapped.
+153	0	00:08:17.956	00:08:18.516	Rafael Costa (Vendor)	Yeah.
+154	0	00:08:17.076	00:08:20.196	Martin Vasquez	Right, so, so that it's not modifiable because it's
+154	1	00:08:20.196	00:08:24.756	Martin Vasquez	inferred from the template and the template version that you're specifying.
+155	0	00:08:24.996	00:08:27.196	Rafael Costa (Vendor)	Correct, correct. OK.
+156	0	00:08:32.196	00:08:32.836	Rafael Costa (Vendor)	Yes.
+157	0	00:08:26.596	00:08:32.307	Martin Vasquez	So if you were to specify a different template, a PRIORITY-MARK mapped template,
+157	1	00:08:32.307	00:08:35.876	Martin Vasquez	would it change to PRIORITY-MARK mapped for instance?
+158	0	00:08:36.676	00:08:40.756	Rafael Costa (Vendor)	I don't know if this is supported. I don't know.
+159	0	00:08:52.116	00:08:52.676	Rafael Costa (Vendor)	Yeah.
+160	0	00:08:42.036	00:08:45.854	Martin Vasquez	But the question is, the question isn't even that we want to
+160	1	00:08:45.854	00:08:50.298	Martin Vasquez	do that. It's if we're importing into INVENTORY, existing service, whatever,
+160	2	00:08:50.298	00:08:55.244	Martin Vasquez	migrating it in, and it's PRIORITY-MARK mapped, and we do a modified bandwidth profile,
+160	3	00:08:55.244	00:08:59.876	Martin Vasquez	where does it map the template parameters from at the moment? And is that
+161	0	00:09:00.916	00:09:03.876	Martin Vasquez	Supported for PRIORITY-MARK map services.
+162	0	00:09:04.836	00:09:09.160	Rafael Costa (Vendor)	I think the discussion with Elena was we just for now we bring them to the INVENTORY,
+162	1	00:09:09.160	00:09:13.156	Rafael Costa (Vendor)	but there is no support to any of the orchestration flows at this stage.
+163	0	00:09:14.596	00:09:15.396	Rafael Costa (Vendor)	Right, Elena.
+164	0	00:09:17.396	00:09:21.316	Rafael Costa (Vendor)	We, we want to support, OK, OK.
+165	0	00:09:14.836	00:09:19.769	Elena Marchetti	No, no, no. That's not my call. That's definitely not my call. Yeah,
+165	1	00:09:19.769	00:09:25.274	Elena Marchetti	that would have to be something which we take to our stakeholders to verify.
+165	2	00:09:25.274	00:09:30.565	Elena Marchetti	But Marty's making a good point. If we're going to bring the services onto
+165	3	00:09:30.565	00:09:34.711	Elena Marchetti	the new platform, there would be an expectation that we'd
+165	4	00:09:34.711	00:09:36.356	Elena Marchetti	be able to modify this.
+166	0	00:09:36.916	00:09:39.704	Elena Marchetti	or if not, have some process bringing them into a
+166	1	00:09:39.704	00:09:43.719	Elena Marchetti	state in which they can be modified. Maybe there's some manual fallout,
+166	2	00:09:43.719	00:09:47.120	Elena Marchetti	something needs to happen, then the modifier can go ahead or
+166	3	00:09:47.120	00:09:48.236	Elena Marchetti	something like that.
+167	0	00:09:50.196	00:09:51.716	Elena Marchetti	You know, we don't want services that...
+168	0	00:09:52.916	00:09:54.916	Elena Marchetti	We need a, we need a process, right?
+169	0	00:09:55.316	00:09:56.596	Martin Vasquez	To to be honest.
+170	0	00:09:52.636	00:09:57.777	Peter Almqvist (Vendor)	Are we not basically then by default, basically then supporting all of these
+170	1	00:09:57.777	00:10:01.316	Peter Almqvist (Vendor)	services as part of orchestration then? So are we...
+171	0	00:10:00.596	00:10:03.902	Martin Vasquez	Yeah, but to be honest, it's just for the purposes of picking the
+171	1	00:10:03.902	00:10:07.860	Martin Vasquez	correct template ID and version that you need to send to METCO for your payload,
+171	2	00:10:07.860	00:10:10.916	Martin Vasquez	it's just another column in a lookup table. Like, that's it.
+172	0	00:10:13.876	00:10:18.748	Martin Vasquez	There's another column called product default mapped, PRIORITY-MARK mapped,
+172	1	00:10:18.748	00:10:23.767	Martin Vasquez	and you just plonk in all the template IDs in the template versions,
+172	2	00:10:23.767	00:10:29.076	Martin Vasquez	and a modified bandwidth profile would work against that service, right?
+174	0	00:10:30.596	00:10:34.331	Martin Vasquez	That's all METCO kind of cares about, that you're just using the correct
+174	1	00:10:34.331	00:10:36.436	Martin Vasquez	template for what you need to configure.
+175	0	00:10:35.556	00:10:38.596	Rafael Costa (Vendor)	Yeah, okay, so I'll just show you the.
+176	0	00:10:40.356	00:10:42.436	Rafael Costa (Vendor)	This one, one second.
+180	0	00:10:50.316	00:10:52.436	Rafael Costa (Vendor)	If I look at the Rosa.
+192	0	00:11:11.636	00:11:12.756	Rafael Costa (Vendor)	Sorry, it's a bit slow.
+213	0	00:11:47.396	00:11:55.396	Rafael Costa (Vendor)	Sometimes FILE-SHARE is not connecting. One second. Okay, let me get it from here.
+217	0	00:11:58.196	00:12:02.356	Rafael Costa (Vendor)	You should have it here somewhere in the DESIGN-DOC.
+218	0	00:12:04.916	00:12:05.076	Rafael Costa (Vendor)	Mm.
+221	0	00:12:11.316	00:12:11.476	Rafael Costa (Vendor)	Lena.
+230	0	00:12:27.156	00:12:27.396	Rafael Costa (Vendor)	Yeah.
+241	0	00:12:35.716	00:12:41.179	Rafael Costa (Vendor)	Okay, anyway, we we have like for this, like for every every other template which
+241	1	00:12:41.179	00:12:45.643	Rafael Costa (Vendor)	are not the default map, we have a separate sheet with a supported
+241	2	00:12:45.643	00:12:50.773	Rafael Costa (Vendor)	supporting other supported templates. I think if we will consider supporting
+241	3	00:12:50.773	00:12:55.903	Rafael Costa (Vendor)	all the other types of of templates, we will need to have a another round of
+241	4	00:12:55.903	00:12:56.836	Rafael Costa (Vendor)	discussion to.
+248	0	00:12:57.316	00:13:03.354	Rafael Costa (Vendor)	To see what are other attributes, maybe, maybe, maybe the only one is is the SEGMENT-TAG,
+248	1	00:13:03.354	00:13:08.520	Rafael Costa (Vendor)	the HANDOFF SEGMENT-TAG, like for example, in the other other ones we we have the
+248	2	00:13:08.520	00:13:13.686	Rafael Costa (Vendor)	HANDOFF SEGMENT-TAG under the under the ACCESS-CIRCUIT, but this is not available inside the
+248	3	00:13:13.686	00:13:15.796	Rafael Costa (Vendor)	default maps, not applicable.
+255	0	00:13:16.916	00:13:21.806	Rafael Costa (Vendor)	I don't know if there are other attributes that may be different,
+255	1	00:13:21.806	00:13:26.400	Rafael Costa (Vendor)	maybe mostly not, right? But I mean that supporting different
+255	2	00:13:26.400	00:13:32.550	Rafael Costa (Vendor)	types of SEGMENT-TAG modes is a decision that we need to take if this is required or not.
+255	3	00:13:32.550	00:13:34.996	Rafael Costa (Vendor)	Maybe this is the first question.
+258	0	00:13:35.236	00:13:38.423	Rafael Costa (Vendor)	If it is required, then we would need maybe we could kick
+258	1	00:13:38.423	00:13:42.820	Rafael Costa (Vendor)	off the discussion around what what what need to be to be added to whatever the
+258	2	00:13:42.820	00:13:47.161	Rafael Costa (Vendor)	model or the flows to look up also the other types of template based on the VM
+258	3	00:13:47.161	00:13:47.876	Rafael Costa (Vendor)	was selected.
+259	0	00:13:50.916	00:13:56.277	Rafael Costa (Vendor)	And same thing about, yeah, maybe a question to Marty. Marty,
+259	1	00:13:56.277	00:13:57.796	Rafael Costa (Vendor)	do you know if...
+262	0	00:13:59.156	00:14:02.470	Rafael Costa (Vendor)	If we can, like, if we have even in under the SEGMENT-TAG,
+262	1	00:14:02.470	00:14:06.103	Rafael Costa (Vendor)	the default maps, if we have a product which is using an
+262	2	00:14:06.103	00:14:09.736	Rafael Costa (Vendor)	old template and we have a modify, can we in the modify,
+262	3	00:14:09.736	00:14:14.070	Rafael Costa (Vendor)	we can use a new template, right? We don't need to use the existing
+262	4	00:14:14.070	00:14:18.596	Rafael Costa (Vendor)	template of the of the original product creation connect order, right?
+263	0	00:14:30.356	00:14:30.916	Rafael Costa (Vendor)	Yeah.
+264	0	00:14:20.836	00:14:24.332	Martin Vasquez	Yeah, I believe they used to not allow that,
+264	1	00:14:24.332	00:14:28.373	Martin Vasquez	but like, how do you then upgrade from one template
+264	2	00:14:28.373	00:14:33.735	Martin Vasquez	to another? Yeah, I think, like, your when you, like, as an example,
+264	3	00:14:33.735	00:14:37.853	Martin Vasquez	one of the very, very common differences between the
+264	4	00:14:37.853	00:14:39.796	Martin Vasquez	templates is when they...
+265	0	00:14:41.956	00:14:43.716	Rafael Costa (Vendor)	Correct. Yeah.
+266	0	00:14:46.756	00:14:47.236	Rafael Costa (Vendor)	Correct.
+267	0	00:14:50.116	00:14:54.596	Rafael Costa (Vendor)	Modify all this, correct, correct.
+268	0	00:14:40.116	00:14:43.509	Martin Vasquez	add new bandwidth profiles, they add high speed tiers,
+268	1	00:14:43.509	00:14:47.457	Martin Vasquez	they add just whatever, right? And the way to onboard onto that
+268	2	00:14:47.457	00:14:52.578	Martin Vasquez	particular template was to just specify it, auto modify, specify the new template,
+268	3	00:14:52.578	00:14:57.451	Martin Vasquez	specify the new speed, and away you go. The only thing that you couldn't do is
+268	4	00:14:57.451	00:14:59.796	Martin Vasquez	you couldn't do like in-flight amends.
+269	0	00:15:04.756	00:15:10.036	Rafael Costa (Vendor)	Yeah, so a lot of them, yeah, correct, correct, correct, yes.
+272	0	00:14:59.916	00:15:04.605	Martin Vasquez	onto a different, like you couldn't, yeah, if something was already in progress,
+272	1	00:15:04.605	00:15:09.237	Martin Vasquez	you couldn't then change the product template as part of that. You had to like,
+272	2	00:15:09.237	00:15:11.726	Martin Vasquez	yeah, either complete that or abandon that
+272	3	00:15:11.726	00:15:15.779	Martin Vasquez	order and try again, basically. So that's the only thing that came to
+272	4	00:15:15.779	00:15:18.384	Martin Vasquez	mind. That's the issues we used to run into,
+272	5	00:15:18.384	00:15:19.716	Martin Vasquez	but I think it's a bit.
+273	0	00:15:19.756	00:15:20.916	Martin Vasquez	Better these days, so...
+274	0	00:15:30.356	00:15:30.436	Daniel Okonkwo	Ohh.
+277	0	00:15:21.156	00:15:32.193	Rafael Costa (Vendor)	Okay, yep, yep. We can modify the templates for created
+277	1	00:15:32.193	00:15:34.756	Rafael Costa (Vendor)	NETCO products.
+278	0	00:15:36.036	00:15:44.276	Rafael Costa (Vendor)	Um, through modify, um, order, um.
+279	0	00:15:45.156	00:15:59.716	Rafael Costa (Vendor)	But we cannot amend the in-flight order to change the templates. An example is to.
+280	0	00:16:01.156	00:16:02.996	Rafael Costa (Vendor)	modify bandwidths.
+283	0	00:16:04.196	00:16:12.996	Rafael Costa (Vendor)	which to a value that was added in a more recent.
+286	0	00:16:14.836	00:16:26.098	Rafael Costa (Vendor)	Template version. OK, question: Can we move or modify,
+286	1	00:16:26.098	00:16:32.036	Rafael Costa (Vendor)	modify products changing the.
+287	0	00:16:33.916	00:16:35.716	Rafael Costa (Vendor)	The Larsen Tobias.
+290	0	00:16:37.076	00:16:41.782	Rafael Costa (Vendor)	I don't think this is supported, but you need to confirm on that one.
+290	1	00:16:41.782	00:16:46.220	Rafael Costa (Vendor)	I will check on my end, but is this something that, I don't know,
+290	2	00:16:46.220	00:16:49.716	Rafael Costa (Vendor)	Marty or someone can confirm on this from your side?
+291	0	00:16:54.676	00:16:55.316	Martin Vasquez	Um.
+292	0	00:16:54.436	00:16:56.116	Rafael Costa (Vendor)	Like changing the whole view mode, yeah?
+295	0	00:16:56.356	00:16:59.380	Martin Vasquez	I have never said it, I don't know anything about it.
+295	1	00:16:59.380	00:17:03.748	Martin Vasquez	It should be in the business rules for all the METCO documentation I would have
+295	2	00:17:03.748	00:17:04.196	Martin Vasquez	thought.
+296	0	00:17:05.836	00:17:05.956	Daniel Okonkwo	Yeah.
+297	0	00:17:05.156	00:17:05.956	Martin Vasquez	That you already have.
+298	0	00:17:07.956	00:17:12.041	Rafael Costa (Vendor)	I haven't seen anything like that. I'll, I can ask,
+298	1	00:17:12.041	00:17:18.483	Rafael Costa (Vendor)	but I went through the documentation and this wasn't one of the cases I have ever
+298	2	00:17:18.483	00:17:18.876	Rafael Costa (Vendor)	seen.
+301	0	00:17:19.636	00:17:21.942	Martin Vasquez	Yeah, like I've never done it myself either, so.
+301	1	00:17:21.942	00:17:22.036	Martin Vasquez	..
+302	0	00:17:25.556	00:17:26.036	Rafael Costa (Vendor)	Okay.
+303	0	00:17:28.836	00:17:32.916	Rafael Costa (Vendor)	OK, let us, let us give this one for now. I don't know who can.
+306	0	00:17:32.076	00:17:36.428	Elena Marchetti	Are you saying, so for that scenario, are you saying then that you retain the
+306	1	00:17:36.428	00:17:39.162	Elena Marchetti	same product template that it was originally on?
+306	2	00:17:39.162	00:17:43.236	Elena Marchetti	You changed the SEGMENT-TAG mode on that template, like it's in on the product?
+307	0	00:17:44.476	00:17:45.556	Elena Marchetti	Which mean by that one?
+310	0	00:17:45.076	00:17:47.864	Rafael Costa (Vendor)	No, the template is like under the same same
+310	1	00:17:47.864	00:17:51.892	Rafael Costa (Vendor)	like for default to maps, you could have an old template version
+310	2	00:17:51.892	00:17:56.911	Rafael Costa (Vendor)	version 9 and you you want to modify the product to make it version 10 on the on
+310	3	00:17:56.911	00:18:01.000	Rafael Costa (Vendor)	the same template, right? Or even another another template within
+310	4	00:18:01.000	00:18:02.116	Rafael Costa (Vendor)	the same template.
+311	0	00:18:02.276	00:18:06.748	Rafael Costa (Vendor)	VM mode, right? But moving the product from a VM mode to
+311	1	00:18:06.748	00:18:08.396	Rafael Costa (Vendor)	another VM mode, I...
+314	0	00:18:07.236	00:18:09.476	Elena Marchetti	But the template, change the template type, yep.
+319	0	00:18:10.476	00:18:15.797	Rafael Costa (Vendor)	Yeah, it's, but it's not just a, yeah, but it's a template under a different
+319	1	00:18:15.797	00:18:19.321	Rafael Costa (Vendor)	category. If you, this sheet is actually from METCO,
+319	2	00:18:19.321	00:18:23.605	Rafael Costa (Vendor)	and as you can see, the, actually, maybe I have, no, I moved,
+319	3	00:18:23.605	00:18:27.890	Rafael Costa (Vendor)	I think this one is moved, moving to all the other templates,
+319	4	00:18:27.890	00:18:30.516	Rafael Costa (Vendor)	could be here, like for example, here.
+324	0	00:18:32.516	00:18:38.255	Rafael Costa (Vendor)	Ohh, not not here, so there there could be there are other
+324	1	00:18:38.255	00:18:44.676	Rafael Costa (Vendor)	templates here that that that are supported under the same modes.
+325	0	00:18:48.516	00:18:50.196	Rafael Costa (Vendor)	Yeah, yeah, yeah.
+328	0	00:18:42.316	00:18:45.991	Martin Vasquez	But these would only be the default mapped templates because you're on a tab
+328	1	00:18:45.991	00:18:49.093	Martin Vasquez	called default mapped. So I imagine that it's only going to have
+328	2	00:18:49.093	00:18:50.716	Martin Vasquez	default mapped template IDs in it.
+331	0	00:18:51.316	00:18:55.148	Rafael Costa (Vendor)	Correct, but I mean that we are we should be okay
+331	1	00:18:55.148	00:19:00.208	Rafael Costa (Vendor)	to move the old version or even a new template under the same SEGMENT-TAG,
+331	2	00:19:00.208	00:19:06.570	Rafael Costa (Vendor)	the default map to another to the the the default one that we are using as part of
+331	3	00:19:06.570	00:19:11.476	Rafael Costa (Vendor)	the any new order, right? This should be okay. A question here,
+331	4	00:19:11.476	00:19:12.396	Rafael Costa (Vendor)	can we move?
+332	0	00:19:17.916	00:19:18.036	Daniel Okonkwo	It.
+333	0	00:19:12.476	00:19:15.381	Rafael Costa (Vendor)	to a template which is actually under different category,
+333	1	00:19:15.381	00:19:18.036	Rafael Costa (Vendor)	different beyond multi category. This is a question.
+334	0	00:19:20.916	00:19:22.796	Rafael Costa (Vendor)	But we need to answer.
+337	0	00:19:28.596	00:19:28.996	Rafael Costa (Vendor)	And.
+342	0	00:19:25.556	00:19:28.581	Martin Vasquez	I can't imagine why it wouldn't be possible, right? Like,
+342	1	00:19:28.581	00:19:32.702	Martin Vasquez	it'd be very strange for METCO to go, oh, you want to change from default map to
+342	2	00:19:32.702	00:19:35.258	Martin Vasquez	PRIORITY-MARK map? Now you need to disconnect the product
+342	3	00:19:35.258	00:19:37.762	Martin Vasquez	instance and free and submit a new order. Like,
+342	4	00:19:37.762	00:19:41.779	Martin Vasquez	that doesn't seem like something that, that seems like a thing very early on
+342	5	00:19:41.779	00:19:45.796	Martin Vasquez	that customers would have gone, no, that's unacceptable. We need to do this.
+343	0	00:19:53.556	00:19:53.716	Rafael Costa (Vendor)	Mm.
+344	0	00:19:45.956	00:19:49.667	Martin Vasquez	On the existing SERVICE-REF, like, we don't wanna submit a new order for
+344	1	00:19:49.667	00:19:53.435	Martin Vasquez	this, like it is in a new configure, a new XYZ for this. This is,
+344	2	00:19:53.435	00:19:57.889	Martin Vasquez	that's ridiculous, right? Like, it'd be, I'd be very surprised if that wasn't
+344	3	00:19:57.889	00:19:59.716	Martin Vasquez	wasn't something they supported.
+345	0	00:19:58.996	00:20:03.984	Rafael Costa (Vendor)	Okay, okay, so this should be fine as long as what we,
+345	1	00:20:03.984	00:20:07.884	Rafael Costa (Vendor)	okay, so the earlier decision that we will
+345	2	00:20:07.884	00:20:14.141	Rafael Costa (Vendor)	support these four categories. If we have a product which is running
+345	3	00:20:14.141	00:20:17.316	Rafael Costa (Vendor)	with a different SEGMENT-TAG tagging, we can
+346	0	00:20:17.556	00:20:21.111	Rafael Costa (Vendor)	have a modified order, but it will be to one of these four
+346	1	00:20:21.111	00:20:24.426	Rafael Costa (Vendor)	templates, right? Which we already support, basically.
+346	2	00:20:24.426	00:20:26.596	Rafael Costa (Vendor)	So this should be fine in this case.
+350	0	00:20:27.556	00:20:30.825	Rafael Costa (Vendor)	We should have, we shouldn't have a problem as long as we
+350	1	00:20:30.825	00:20:32.516	Rafael Costa (Vendor)	allow we allow this to happen.
+351	0	00:20:36.436	00:20:39.821	Rafael Costa (Vendor)	Then, we should be OK, because we are now what was the old
+351	1	00:20:39.821	00:20:42.632	Rafael Costa (Vendor)	template, as long as we are moving to one of the
+351	2	00:20:42.632	00:20:46.476	Rafael Costa (Vendor)	four things that we are supporting, then then they should be fine.
+352	0	00:20:48.036	00:20:49.556	Rafael Costa (Vendor)	We have actually no problem in this case.
+355	0	00:20:52.556	00:20:54.676	Elena Marchetti	Hold on, let me get this straight. So you're saying that...
+359	0	00:21:06.116	00:21:06.596	Rafael Costa (Vendor)	Yeah.
+360	0	00:20:55.636	00:21:01.585	Elena Marchetti	as long as if a modify speed comes in, let's say modified bandwidth comes in,
+360	1	00:21:01.585	00:21:05.856	Elena Marchetti	and this is a legacy service on a PRIORITY-MARK mapped template.
+360	2	00:21:05.856	00:21:11.805	Elena Marchetti	You're saying that as long as you can send out that modify bandwidth on a new
+360	3	00:21:11.805	00:21:13.636	Elena Marchetti	default mapped template,
+361	0	00:21:19.476	00:21:20.116	Rafael Costa (Vendor)	Yes.
+362	0	00:21:21.316	00:21:24.036	Rafael Costa (Vendor)	The one which we currently have, exactly, it should be fine.
+363	0	00:21:33.636	00:21:33.676	Daniel Okonkwo	Oh.
+364	0	00:21:14.996	00:21:18.378	Elena Marchetti	then you're okay. So not the Vendor workflow is fine.
+364	1	00:21:18.378	00:21:23.227	Elena Marchetti	You're just basically establishing that right. So there's two actions here.
+364	2	00:21:23.227	00:21:27.694	Elena Marchetti	One is to work out if that's possible, like if NETCO's okay with that,
+364	3	00:21:27.694	00:21:31.076	Elena Marchetti	because we don't actually know, we think it will be.
+365	0	00:21:33.716	00:21:36.489	Martin Vasquez	Well on the portal, I'm just looking at my service,
+365	1	00:21:36.489	00:21:38.196	Martin Vasquez	on the portal I can only select.
+367	0	00:21:39.156	00:21:42.229	Martin Vasquez	one of four templates and they're all default mapped.
+367	1	00:21:42.229	00:21:46.782	Martin Vasquez	So I don't even know if we've got the PRIORITY-MARK mapped ones. Are they configured or,
+367	2	00:21:46.782	00:21:47.636	Martin Vasquez	yeah, not sure.
+368	0	00:21:50.956	00:21:51.076	Daniel Okonkwo	Yeah.
+369	0	00:21:50.196	00:21:54.332	Elena Marchetti	The impression I got was that they're not offered anymore.
+369	1	00:21:54.332	00:21:56.996	Elena Marchetti	It's not a supported template anymore.
+370	0	00:21:58.436	00:21:58.916	Martin Vasquez	Right.
+371	0	00:22:00.996	00:22:02.036	Daniel Okonkwo	Good morning.
+372	0	00:22:03.956	00:22:04.156	Daniel Okonkwo	Yeah.
+373	0	00:21:58.676	00:22:03.316	Elena Marchetti	But that's yes, that's yes, I can't speak from any level of.
+374	0	00:22:06.116	00:22:07.956	Elena Marchetti	Thatti then.
+375	0	00:22:11.156	00:22:11.796	Elena Marchetti	Right, yeah.
+376	0	00:22:16.116	00:22:16.316	Daniel Okonkwo	Okay.
+377	0	00:22:13.156	00:22:17.076	Elena Marchetti	So I guess we need to figure that out. So who's best placed to figure that out?
+378	0	00:22:18.036	00:22:18.516	Elena Marchetti	That's them.
+379	0	00:22:21.716	00:22:25.396	Elena Marchetti	Do we need to do a test to do it like to we contact NETCO like what's the?
+380	0	00:22:33.476	00:22:33.636	Daniel Okonkwo	Yeah.
+381	0	00:22:34.276	00:22:35.316	Elena Marchetti	Ohh, there we go.
+382	0	00:22:23.956	00:22:31.178	Martin Vasquez	I can select when I when I configure a new PREMISES-DEVICE port on my service,
+382	1	00:22:31.178	00:22:34.196	Martin Vasquez	I can select PRIORITY-MARK templates.
+383	0	00:22:36.196	00:22:39.558	Martin Vasquez	So, it sounds like it's not supported, but to have to worry about it going
+383	1	00:22:39.558	00:22:40.276	Martin Vasquez	between the two.
+384	0	00:22:41.076	00:22:41.316	Daniel Okonkwo	Okay.
+385	0	00:22:42.676	00:22:43.996	Rafael Costa (Vendor)	Please come against this.
+386	0	00:22:46.516	00:22:46.916	Rafael Costa (Vendor)	Yeah.
+387	0	00:22:50.276	00:22:50.756	Rafael Costa (Vendor)	Mhm.
+388	0	00:22:51.836	00:22:52.036	Rafael Costa (Vendor)	Yeah.
+389	0	00:22:55.316	00:22:55.876	Rafael Costa (Vendor)	Okay.
+390	0	00:22:45.076	00:22:50.929	Martin Vasquez	So I'll just check the portal on my existing SERVICE-REF, which is default mapped.
+390	1	00:22:50.929	00:22:54.676	Martin Vasquez	I can only select new default mapped templates.
+391	0	00:22:58.356	00:22:58.676	Rafael Costa (Vendor)	Yeah.
+392	0	00:22:56.116	00:22:59.541	Martin Vasquez	On a brand new order for on a brand new port,
+392	1	00:22:59.541	00:23:03.636	Martin Vasquez	I can select the either default mapped or PRIORITY-MARK mapped.
+393	0	00:23:05.916	00:23:06.436	Rafael Costa (Vendor)	Okay.
+394	0	00:23:05.316	00:23:10.356	Martin Vasquez	So, based on the portal, you cannot swap between them.
+395	0	00:23:10.916	00:23:11.236	Rafael Costa (Vendor)	Okay.
+396	0	00:23:23.236	00:23:23.956	Peter Almqvist (Vendor)	So, maybe.
+397	0	00:23:13.516	00:23:17.436	Rafael Costa (Vendor)	Okay, so now the question that we, that this will raise,
+397	1	00:23:17.436	00:23:23.076	Rafael Costa (Vendor)	if we have a legacy service with like a PRIORITY-MARK mapped or a priority mapped or tags.
+398	0	00:23:24.516	00:23:27.636	Rafael Costa (Vendor)	This means that we cannot move them to the default maps.
+399	0	00:23:29.156	00:23:31.236	Rafael Costa (Vendor)	And this means that we need to support.
+400	0	00:23:32.996	00:23:35.741	Rafael Costa (Vendor)	Like, if we we we want to continue supporting
+400	1	00:23:35.741	00:23:39.382	Rafael Costa (Vendor)	these services, we need to support, like, define those ones,
+400	2	00:23:39.382	00:23:44.276	Rafael Costa (Vendor)	then we need to basically extend these sheets to cover all the other types of VM.
+401	0	00:23:45.796	00:23:53.316	Rafael Costa (Vendor)	We then, we then modes, right? Otherwise, we cannot deal with this, with this.
+402	0	00:23:54.516	00:23:55.396	Rafael Costa (Vendor)	existing products.
+403	0	00:23:56.756	00:23:57.556	Rafael Costa (Vendor)	We aim to find.
+404	0	00:23:56.916	00:23:59.316	Elena Marchetti	Is it possible you can go, you can go the other way?
+405	0	00:24:00.756	00:24:02.196	Elena Marchetti	It may be your PREMISES-DEVICE version.
+406	0	00:24:04.836	00:24:06.836	Elena Marchetti	I don't know, I was wondering if...
+407	0	00:24:06.036	00:24:08.755	Rafael Costa (Vendor)	No, interview version has nothing to do with
+407	1	00:24:08.755	00:24:13.769	Rafael Costa (Vendor)	the SEGMENT-TAG. This is purely on the HANDOFF side. You configure a specific SEGMENT-TAG on the HANDOFF
+407	2	00:24:13.769	00:24:18.603	Rafael Costa (Vendor)	and the consumer or the customer need to configure the same on the other end of
+407	3	00:24:18.603	00:24:21.261	Rafael Costa (Vendor)	the. You should expect that there will be a
+407	4	00:24:21.261	00:24:23.316	Rafael Costa (Vendor)	SEGMENT-TAG coming from this really port.
+408	0	00:24:24.436	00:24:28.426	Martin Vasquez	Well, the SEGMENT-TAG mode, like, I, I, on this, on the portal,
+408	1	00:24:28.426	00:24:32.276	Martin Vasquez	I cannot when I choose a PRIORITY-MARK mapped product template.
+409	0	00:24:33.316	00:24:36.912	Martin Vasquez	I cannot select the SEGMENT-TAG mode. So maybe it's just inferred from the
+409	1	00:24:36.912	00:24:39.716	Martin Vasquez	template. Like maybe that's why you can't change it.
+410	0	00:24:40.836	00:24:44.705	Rafael Costa (Vendor)	Yeah, yeah, that's why I wanted to just open the
+410	1	00:24:44.705	00:24:48.810	Rafael Costa (Vendor)	other one, but but basically the the the other ones
+410	2	00:24:48.810	00:24:54.811	Rafael Costa (Vendor)	here priority has has been defined SEGMENT-TAG tagged is is open, it open a range,
+410	3	00:24:54.811	00:24:58.996	Rafael Costa (Vendor)	so you can I'm talking about from METCO, not from ClientCo.
+413	0	00:25:18.796	00:25:20.116	Elena Marchetti	This Victor brought it up.
+414	0	00:24:58.276	00:25:02.397	Martin Vasquez	I guess my question then is what legacy templates have we inherited here?
+414	1	00:25:02.397	00:25:06.072	Martin Vasquez	Like is it just PRIORITY-MARK mapped? Is it priority tagged? Is it tagged?
+414	2	00:25:06.072	00:25:10.081	Martin Vasquez	Is it all of them? Like I don't know, I didn't do any of these imports.
+414	3	00:25:10.081	00:25:14.592	Martin Vasquez	I've got no idea what these services are. I don't know who found out about them.
+414	4	00:25:14.592	00:25:18.156	Martin Vasquez	Is that an Elena question? Like why has this come up as a thing?
+417	0	00:25:21.156	00:25:28.002	Elena Marchetti	And then Daniel verified that that's a it's an issue of services coming in from
+417	1	00:25:28.002	00:25:28.436	Elena Marchetti	LEGACY-CARRIER.
+420	0	00:25:30.676	00:25:32.196	Elena Marchetti	And the way it was.
+421	0	00:25:29.476	00:25:32.917	Martin Vasquez	Yeah, so do we know if they're PRIORITY-MARK priority or
+421	1	00:25:32.917	00:25:33.796	Martin Vasquez	just tagged?
+422	0	00:25:35.476	00:25:36.356	Daniel Okonkwo	It's just tagged.
+425	0	00:25:37.876	00:25:40.196	Martin Vasquez	So not PRIORITY-MARK, not priority, just tagged.
+428	0	00:25:40.916	00:25:42.756	Daniel Okonkwo	No, it's yeah, you need to be tagged.
+440	0	00:25:49.676	00:25:54.614	Elena Marchetti	The way it was described to me, Daniel, was that it's a mode which tags by
+440	1	00:25:54.614	00:25:58.084	Elena Marchetti	product and when it's invisible to us. So it's not,
+440	2	00:25:58.084	00:26:02.088	Elena Marchetti	it doesn't come in as a C tag, it comes in as an inner tag.
+440	3	00:26:02.088	00:26:03.156	Elena Marchetti	But essentially.
+445	0	00:26:02.116	00:26:05.870	Daniel Okonkwo	It doesn't come in at all, right? It's transparent to us.
+445	1	00:26:05.870	00:26:09.819	Daniel Okonkwo	It is tagged on the HANDOFF, and basically it does a one to two
+445	2	00:26:09.819	00:26:13.703	Daniel Okonkwo	translation where they basically call SEGMENT-TAG 100 on the HANDOFF,
+445	3	00:26:13.703	00:26:19.141	Daniel Okonkwo	then they'll translate that to the S&amp; C tag. It's completely transparent to us.
+445	4	00:26:19.141	00:26:20.436	Daniel Okonkwo	We don't see it, but
+450	0	00:26:21.156	00:26:25.878	Daniel Okonkwo	We need to know about it because it's important that we can support the
+450	1	00:26:25.878	00:26:31.060	Daniel Okonkwo	customer. And LEGACY-CARRIER are big on doing it. They did it back in the day as original
+450	2	00:26:31.060	00:26:34.602	Daniel Okonkwo	part of their product spec because they wanted to go,
+450	3	00:26:34.602	00:26:38.276	Daniel Okonkwo	call SEGMENT-TAG 100 for data and we'll do SEGMENT-TAG 200 for voice.
+451	0	00:26:46.756	00:26:46.916	Rafael Costa (Vendor)	I...
+454	0	00:26:39.476	00:26:42.157	Daniel Okonkwo	So, it's a product thing from legacy LEGACY-CARRIER
+454	1	00:26:42.157	00:26:45.158	Daniel Okonkwo	services, but we don't really care a whole lot
+454	2	00:26:45.158	00:26:46.116	Daniel Okonkwo	about it, so...
+455	0	00:26:46.276	00:26:49.507	Martin Vasquez	Yep, so for the tag, for the tagged template,
+455	1	00:26:49.507	00:26:52.738	Martin Vasquez	the only the only in the again in the portal,
+455	2	00:26:52.738	00:26:57.796	Martin Vasquez	but the only different thing I can now change is the CUSTOMER-EDGE-TAG. That's it.
+456	0	00:27:00.996	00:27:01.956	Daniel Okonkwo	Yeah, well, see.
+457	0	00:27:00.836	00:27:03.076	Rafael Costa (Vendor)	The CUSTOMER-EDGE-TAG then on the inline, on the inline.
+458	0	00:27:05.476	00:27:05.716	Daniel Okonkwo	Bye.
+459	0	00:27:01.196	00:27:05.908	Martin Vasquez	And I guess the question for probably you, Daniel, maybe,
+459	1	00:27:05.908	00:27:09.876	Martin Vasquez	is it would we ever need to change that CUSTOMER-EDGE-TAG?
+460	0	00:27:11.356	00:27:13.890	Daniel Okonkwo	What does that represent? Does that represent the unit A tag or
+460	1	00:27:13.890	00:27:15.236	Daniel Okonkwo	does that represent the state tag?
+461	0	00:27:17.396	00:27:17.636	Rafael Costa (Vendor)	Yeah.
+462	0	00:27:18.836	00:27:19.716	Rafael Costa (Vendor)	Yeah, you.
+463	0	00:27:16.676	00:27:19.956	Martin Vasquez	It's the CUSTOMER-EDGE-TAG ID, the CUSTOMER-EDGE-TAG ID.
+466	0	00:27:22.836	00:27:26.759	Daniel Okonkwo	Yep, then which represents the say tag or the,
+466	1	00:27:26.759	00:27:28.596	Daniel Okonkwo	but is that a HANDOFF tag?
+467	0	00:27:30.596	00:27:31.156	Daniel Okonkwo	Okay.
+470	0	00:27:32.756	00:27:35.276	Daniel Okonkwo	Okay, so then I would suspect, yeah.
+471	0	00:27:27.956	00:27:31.439	Martin Vasquez	C tag is separate, C tag is another field. Yeah, so it's that,
+471	1	00:27:31.439	00:27:35.476	Martin Vasquez	it's that inner one that you mentioned, the transparent one or whatever.
+472	0	00:27:37.076	00:27:37.556	Daniel Okonkwo	Do we have?
+473	0	00:27:36.316	00:27:37.716	Martin Vasquez	Like, will we ever need to change it?
+476	0	00:27:39.076	00:27:42.369	Daniel Okonkwo	I mean, probably, yeah, I think we have to assume that if it's
+476	1	00:27:42.369	00:27:42.996	Daniel Okonkwo	there, we...
+479	0	00:27:44.436	00:27:45.396	Daniel Okonkwo	Change of aura.
+482	0	00:27:44.356	00:27:46.627	Martin Vasquez	Well, if it's transparent and we don't need to
+482	1	00:27:46.627	00:27:49.236	Martin Vasquez	do anything with it on the network and stuff, like...
+491	0	00:27:50.756	00:27:54.190	Martin Vasquez	It doesn't, it wouldn't affect any, I don't know. Like it,
+491	1	00:27:54.190	00:27:57.334	Martin Vasquez	the other question I would have is how many of these,
+491	2	00:27:57.334	00:28:00.128	Martin Vasquez	how many of these services do we actually have?
+491	3	00:28:00.128	00:28:03.853	Martin Vasquez	Like how far do you go in terms of automation, in terms of INVENTORY,
+491	4	00:28:03.853	00:28:07.579	Martin Vasquez	storing it and retrieving it? And is it going to be part of any
+491	5	00:28:07.579	00:28:11.596	Martin Vasquez	workflows? Do we need to, how far do we need to support changing it?
+494	0	00:28:09.996	00:28:14.215	Daniel Okonkwo	We see this come up, we see this come up pretty often in terms
+494	1	00:28:14.215	00:28:15.956	Daniel Okonkwo	of migrating in customers.
+501	0	00:28:33.676	00:28:33.876	Martin Vasquez	Yeah.
+502	0	00:28:19.716	00:28:22.384	Daniel Okonkwo	So, like, we could have someone turn around,
+502	1	00:28:22.384	00:28:27.008	Daniel Okonkwo	like future broadband or something, right? Could turn around tomorrow and go,
+502	2	00:28:27.008	00:28:30.506	Daniel Okonkwo	we want to migrate 30, 000 services in with SEGMENT-TAG tags. So,
+502	3	00:28:30.506	00:28:32.996	Daniel Okonkwo	and I would just build it like we need it.
+503	0	00:28:38.756	00:28:42.592	Martin Vasquez	In terms of, because obviously like changing SEGMENT-TAG mode
+503	1	00:28:42.592	00:28:44.476	Martin Vasquez	as a function would be a...
+506	0	00:28:45.636	00:28:51.852	Martin Vasquez	Modify order order modify thing that we would need to potentially need to support,
+506	1	00:28:51.852	00:28:52.676	Martin Vasquez	but like...
+511	0	00:28:53.756	00:28:57.274	Martin Vasquez	Where does that sit in terms of CR and time frames and all that sort of stuff,
+511	1	00:28:57.274	00:28:59.456	Martin Vasquez	right? Especially if you can just go and quickly
+511	2	00:28:59.456	00:29:00.436	Martin Vasquez	do that in the portal.
+518	0	00:29:02.316	00:29:08.976	Martin Vasquez	For now, I don't know, like, yeah, that's more of a that's more of a design
+518	1	00:29:08.976	00:29:13.970	Martin Vasquez	decision than anything, but basically from a from an METCO
+518	2	00:29:13.970	00:29:19.316	Martin Vasquez	perspective, yes, for new services we can we can definitely.
+521	0	00:29:21.396	00:29:25.587	Martin Vasquez	select tag as a product template, and once you do that,
+521	1	00:29:25.587	00:29:29.703	Martin Vasquez	you get access to the CUSTOMER-EDGE-TAG or the customer edge SEGMENT-TAG ID,
+521	2	00:29:29.703	00:29:35.690	Martin Vasquez	and you can set that to whatever you want. Has to start, has to be from 2 to 4,
+521	3	00:29:35.690	00:29:37.636	Martin Vasquez	094 inclusive, apparently.
+522	0	00:29:40.196	00:29:41.956	Martin Vasquez	Yep, yep.
+523	0	00:29:46.116	00:29:46.516	Martin Vasquez	Yeah.
+524	0	00:29:36.516	00:29:40.583	Rafael Costa (Vendor)	This is, this is for, yeah, you can see my screen, right? Yeah,
+524	1	00:29:40.583	00:29:45.223	Rafael Costa (Vendor)	this is the, the, the, oh, actually, this is a unique SEGMENT-TAG for the text,
+524	2	00:29:45.223	00:29:50.053	Rafael Costa (Vendor)	like the PRIORITY-MARK actually doesn't have the unique SEGMENT-TAG as well as a parameter.
+524	3	00:29:50.053	00:29:54.756	Rafael Costa (Vendor)	It's only applicable for an ACCESS-VARIANT-N, so for the tagged and for the priority.
+525	0	00:30:00.996	00:30:01.396	Rafael Costa (Vendor)	Yeah.
+528	0	00:30:04.996	00:30:06.116	Rafael Costa (Vendor)	Yeah, correct.
+529	0	00:29:54.196	00:29:57.389	Martin Vasquez	Yeah, that's why I wanted to clarify, if Daniel,
+529	1	00:29:57.389	00:30:01.114	Martin Vasquez	which which actual product templates he was mentioning,
+529	2	00:30:01.114	00:30:05.771	Martin Vasquez	and the tag one makes sense, 'cause that that's where you specify the
+529	3	00:30:05.771	00:30:06.836	Martin Vasquez	the actual SEGMENT-TAG.
+530	0	00:30:16.036	00:30:16.356	Martin Vasquez	Yeah.
+533	0	00:30:07.156	00:30:11.669	Rafael Costa (Vendor)	And that priority is always fixed as a zero, so yeah, so this is the only,
+533	1	00:30:11.669	00:30:15.039	Rafael Costa (Vendor)	so basically, the unique SEGMENT-TAG is only applicable at the
+533	2	00:30:15.039	00:30:19.914	Rafael Costa (Vendor)	tagged, like the input is in the tagged, and it's mandatory mandatory to come in
+533	3	00:30:19.914	00:30:20.516	Rafael Costa (Vendor)	the order.
+534	0	00:30:24.396	00:30:26.737	Martin Vasquez	Yep, it says required for tagged HANDOFF mapping
+534	1	00:30:26.737	00:30:27.236	Martin Vasquez	mode only.
+535	0	00:30:28.036	00:30:29.716	Rafael Costa (Vendor)	Correct, exactly, yes.
+536	0	00:30:30.836	00:30:31.796	Rafael Costa (Vendor)	And, and if you look...
+540	0	00:30:30.916	00:30:34.756	Martin Vasquez	Does that say 4004? Can't quite read your screen.
+541	0	00:30:35.316	00:30:36.996	Rafael Costa (Vendor)	Yeah, yeah, yeah, yes, correct, yeah.
+544	0	00:30:42.036	00:30:42.436	Rafael Costa (Vendor)	Yeah.
+547	0	00:30:36.676	00:30:41.637	Martin Vasquez	Cause in the port in the portal it says 4000 and ninety-four, so anyway,
+547	1	00:30:41.637	00:30:42.996	Martin Vasquez	just ambient things.
+548	0	00:30:44.716	00:30:47.804	Elena Marchetti	Yeah, so we, so we, so you're saying we're sure that these
+548	1	00:30:47.804	00:30:51.102	Elena Marchetti	are infest tagged product templates, these services coming in,
+548	2	00:30:51.102	00:30:53.615	Elena Marchetti	or are you just saying when you mention tagged,
+548	3	00:30:53.615	00:30:56.076	Elena Marchetti	are you just saying they have they are tagged?
+551	0	00:30:54.716	00:30:58.251	Martin Vasquez	Do you have, hey, hey Daniel, do you have an example XYZ or SERVICE-REF-ID?
+551	1	00:30:58.251	00:30:59.556	Martin Vasquez	I'm gonna go look it up.
+552	0	00:31:00.516	00:31:01.076	Elena Marchetti	Good idea.
+553	0	00:31:02.996	00:31:05.716	Daniel Okonkwo	Off the top of my head, no, but I probably...
+554	0	00:31:04.836	00:31:07.321	Martin Vasquez	You don't remember them? They're only 12 digits long.
+554	1	00:31:07.321	00:31:08.196	Martin Vasquez	How hard can it be?
+556	0	00:31:09.156	00:31:11.396	Daniel Okonkwo	Yeah, I know it starts with XYZ0.
+557	0	00:31:11.716	00:31:13.236	Martin Vasquez	Does it have a bunch of zeros at the start?
+558	0	00:31:14.116	00:31:15.316	Daniel Okonkwo	It does, yeah, yeah.
+559	0	00:31:17.156	00:31:18.196	Daniel Okonkwo	You know the one? Yeah.
+560	0	00:31:14.916	00:31:19.956	Martin Vasquez	Yeah, well, we're halfway there, so yeah, hit that one.
+561	0	00:31:19.236	00:31:20.596	Daniel Okonkwo	Um, not would would not have a clue.
+566	0	00:31:21.316	00:31:24.980	Martin Vasquez	All right, cool, 'cause yeah, obviously just be able to look,
+566	1	00:31:24.980	00:31:29.059	Martin Vasquez	do a query PR on it, basically, and and see what it comes back with,
+566	2	00:31:29.059	00:31:30.596	Martin Vasquez	look at the template idea.
+567	0	00:31:29.636	00:31:31.876	Elena Marchetti	Does you be able to get us one night?
+573	0	00:31:38.116	00:31:40.921	Daniel Okonkwo	Not really, because this isn't documented anywhere,
+573	1	00:31:40.921	00:31:45.238	Daniel Okonkwo	right? We have to see which ones decide. This is the whole other problem. Marty,
+573	2	00:31:45.238	00:31:48.906	Daniel Okonkwo	you might be able to just... Is there anything you can filter on in
+573	3	00:31:48.906	00:31:49.716	Daniel Okonkwo	the NETCO portal?
+576	0	00:31:52.596	00:31:58.479	Martin Vasquez	No, not because I'm searching. They don't quite seem to have that sort
+576	1	00:31:58.479	00:31:59.556	Martin Vasquez	of filtering.
+577	0	00:31:58.036	00:32:00.149	Daniel Okonkwo	Well, if only there was people in here that had
+577	1	00:32:00.149	00:32:02.836	Daniel Okonkwo	access to the NETCO side of the systems that might be able to.
+578	0	00:32:02.076	00:32:05.426	Martin Vasquez	No, no, no, no, I've thought of a way to do it.
+578	1	00:32:05.426	00:32:08.916	Martin Vasquez	All of these would appear on our NETCO bill, right?
+579	0	00:32:09.996	00:32:10.596	Daniel Okonkwo	Yes.
+580	0	00:32:10.836	00:32:13.607	Martin Vasquez	Yeah, so I'll be able to search the METCO bill.
+580	1	00:32:13.607	00:32:17.522	Martin Vasquez	I'll let you know, Rafael, what product templates we actually are
+580	2	00:32:17.522	00:32:21.076	Martin Vasquez	paying for, I think, is probably the easiest way to do it.
+581	0	00:32:38.996	00:32:39.316	Martin Vasquez	Yeah.
+582	0	00:32:21.716	00:32:26.821	Rafael Costa (Vendor)	Yes, so, so you mean that, OK, maybe, maybe this is something which we can
+582	1	00:32:26.821	00:32:30.769	Rafael Costa (Vendor)	relate to another, do we need support these variations of
+582	2	00:32:30.769	00:32:35.670	Rafael Costa (Vendor)	the of the templates or not, because this will require some some, yeah,
+582	3	00:32:35.670	00:32:41.116	Rafael Costa (Vendor)	some changes at our end. At the moment, we we kept it to the to this this ones.
+589	0	00:32:41.236	00:32:44.950	Rafael Costa (Vendor)	The the the four categories here, but yeah,
+589	1	00:32:44.950	00:32:50.352	Rafael Costa (Vendor)	if we would need to go to the different categories, yeah, yeah,
+589	2	00:32:50.352	00:32:56.851	Rafael Costa (Vendor)	we did the model change, but but yeah, my I my my old perception was that we
+589	3	00:32:56.851	00:33:01.156	Rafael Costa (Vendor)	just to bring them to the the INVENTORY, but but we are.
+591	0	00:33:01.196	00:33:06.836	Rafael Costa (Vendor)	Not yet there to support, like, modify and disconnect all these services.
+592	0	00:33:07.996	00:33:08.116	Rafael Costa (Vendor)	Um...
+593	0	00:33:17.196	00:33:17.316	Daniel Okonkwo	Yeah.
+596	0	00:33:23.556	00:33:24.036	Rafael Costa (Vendor)	Mhm.
+597	0	00:33:07.556	00:33:11.309	Martin Vasquez	Yep, you would pretty much have to, like, at the moment in the current
+597	1	00:33:11.309	00:33:15.539	Martin Vasquez	implementation from how I understand all of your workflows and everything work,
+597	2	00:33:15.539	00:33:18.817	Martin Vasquez	they're unimportable because the second that you import them,
+597	3	00:33:18.817	00:33:22.888	Martin Vasquez	you could in theory do a bandwidth profile change on them and it would break
+597	4	00:33:22.888	00:33:25.584	Martin Vasquez	their SEGMENT-TAG mode, it would go back to default maps.
+597	5	00:33:25.584	00:33:27.276	Martin Vasquez	Actually, it wouldn't even work.
+598	0	00:33:31.316	00:33:31.796	Rafael Costa (Vendor)	Yeah.
+601	0	00:33:27.356	00:33:30.129	Martin Vasquez	Work right, it did just fail because, as we know,
+601	1	00:33:30.129	00:33:33.956	Martin Vasquez	it doesn't allow you to change it, so any any of those orders would.
+602	0	00:33:37.876	00:33:40.196	Rafael Costa (Vendor)	Correct, correct, yes, correct, yes.
+603	0	00:33:35.036	00:33:39.281	Martin Vasquez	Although, is that really a problem? Any of those orders would just go to fall
+603	1	00:33:39.281	00:33:42.547	Martin Vasquez	out, wouldn't they? So, or at least fail back to the BIZ-SUPPORT or
+603	2	00:33:42.547	00:33:43.636	Martin Vasquez	something. So, yeah.
+604	0	00:33:48.516	00:33:48.836	Martin Vasquez	Yeah.
+605	0	00:33:41.796	00:33:45.228	Rafael Costa (Vendor)	Yeah, yeah, we should, we should, if we need to handle them,
+605	1	00:33:45.228	00:33:49.505	Rafael Costa (Vendor)	we should handle them properly by like supporting these other types of SEGMENT-TAG
+605	2	00:33:49.505	00:33:52.881	Rafael Costa (Vendor)	modes and that the templates. So we can take this on board,
+605	3	00:33:52.881	00:33:56.032	Rafael Costa (Vendor)	I mean that if it is required, we can take it on board,
+605	4	00:33:56.032	00:34:00.196	Rafael Costa (Vendor)	then we will just need to decide if this is a day one requirement or not.
+606	0	00:34:01.116	00:34:03.956	Rafael Costa (Vendor)	Uh, and you can, we can take it from there, yes.
+607	0	00:34:10.276	00:34:11.156	Elena Marchetti	Absolutely.
+608	0	00:34:04.356	00:34:06.843	Martin Vasquez	Yep, just needs to be thrown up into a CR list
+608	1	00:34:06.843	00:34:09.382	Martin Vasquez	for someone to go through again, Elena, I think,
+608	2	00:34:09.382	00:34:12.716	Martin Vasquez	and approve whether they actually want it, want to pay for it.
+610	0	00:34:12.236	00:34:15.033	Elena Marchetti	Yeah, I think we need to work out what the
+610	1	00:34:15.033	00:34:18.416	Elena Marchetti	options are. But yeah, that's fine. We can do that.
+610	2	00:34:18.416	00:34:23.490	Elena Marchetti	Once we have a bit more information, I'll throw that into our lists and yeah,
+610	3	00:34:23.490	00:34:24.596	Elena Marchetti	we'll figure out.
+611	0	00:34:25.676	00:34:27.876	Elena Marchetti	Links, how that lands, yeah.
+612	0	00:34:31.396	00:34:31.796	Rafael Costa (Vendor)	Okay.
+613	0	00:34:36.276	00:34:39.981	Rafael Costa (Vendor)	Should I start the the the multi-gig and entity place discussion,
+613	1	00:34:39.981	00:34:42.676	Rafael Costa (Vendor)	or or you you wanna cover something else, Elena?
+614	0	00:34:46.196	00:34:46.596	Rafael Costa (Vendor)	Okay.
+615	0	00:34:43.276	00:34:46.981	Elena Marchetti	No, that's okay. I wanted Daniel here for that because he's
+615	1	00:34:46.981	00:34:51.440	Elena Marchetti	not needed for the PREMISES-DEVICE stuff, just to provide the context around those
+615	2	00:34:51.440	00:34:55.020	Elena Marchetti	services. The rest of it, Daniel, you can drop off, mate,
+615	3	00:34:55.020	00:34:56.276	Elena Marchetti	because this is all.
+616	0	00:34:57.436	00:34:58.836	Elena Marchetti	NETCO PREMISES-DEVICE stuff.
+617	0	00:35:00.276	00:35:01.476	Daniel Okonkwo	Thank you very much.
+618	0	00:35:01.916	00:35:02.276	Rafael Costa (Vendor)	Thank you.
+619	0	00:35:02.236	00:35:04.516	Daniel Okonkwo	I don't even know what I'm going to do with all this spare time now.
+620	0	00:35:06.116	00:35:06.356	Rafael Costa (Vendor)	Yep.
+621	0	00:35:06.356	00:35:07.716	Martin Vasquez	I've got some stuff you can do.
+622	0	00:35:08.236	00:35:10.836	Daniel Okonkwo	No, don't talk to me, just delete me from CHAT-TOOL.
+623	0	00:35:08.796	00:35:11.716	Martin Vasquez	Mmm, that's what I thought. That's what I thought.
+624	0	00:35:13.236	00:35:14.196	Daniel Okonkwo	I suggest.
+626	0	00:35:13.236	00:35:24.833	Rafael Costa (Vendor)	Okay, thanks, thanks, Daniel. So, yeah, the entity plays and multi-gig thing. So,
+626	1	00:35:24.833	00:35:31.276	Rafael Costa (Vendor)	it's a big topic, but it was actually, yeah.
+627	0	00:35:32.436	00:35:32.996	Rafael Costa (Vendor)	The doc.
+630	0	00:35:32.116	00:35:34.780	Elena Marchetti	Right, sorry, can I just one thing before we get going?
+630	1	00:35:34.780	00:35:37.017	Elena Marchetti	Marty, just a quick question: Do you know if we
+630	2	00:35:37.017	00:35:39.396	Elena Marchetti	support these templates natively out of CONFIG-MGMT then?
+631	0	00:35:40.996	00:35:44.036	Martin Vasquez	but the PRIORITY-MARK and the tagged ones.
+632	0	00:35:45.396	00:35:46.276	Martin Vasquez	Absolutely not.
+633	0	00:35:48.116	00:35:49.396	Elena Marchetti	We already have this problem.
+634	0	00:35:52.356	00:35:54.356	Elena Marchetti	If we had imported these into CONFIG-MGMT.
+635	0	00:35:56.516	00:36:00.766	Elena Marchetti	And is already, I don't know, like we should look into what our current
+635	1	00:36:00.766	00:36:02.596	Elena Marchetti	state is, I suppose, because...
+636	0	00:36:02.276	00:36:04.196	Martin Vasquez	Assuming they're in CONFIG-MGMT and not in...
+639	0	00:36:22.676	00:36:24.396	Elena Marchetti	I'll just put in CONFIG-MGMT spoke on.
+640	0	00:36:06.596	00:36:09.313	Martin Vasquez	source, but that would still throw through to,
+640	1	00:36:09.313	00:36:13.128	Martin Vasquez	yeah, I don't know. Yeah, it's probably broken and if they try to
+640	2	00:36:13.128	00:36:16.713	Martin Vasquez	do bandwidth changes, they probably have to go in manually to
+640	3	00:36:16.713	00:36:20.239	Martin Vasquez	the portal and do it. They're probably all manually managed,
+640	4	00:36:20.239	00:36:21.916	Martin Vasquez	basically, I would say. Yeah.
+641	0	00:36:25.996	00:36:26.836	Elena Marchetti	Thank you.
+644	0	00:36:28.756	00:36:33.803	Rafael Costa (Vendor)	Okay, so I'll try to summarize this and maybe
+644	1	00:36:33.803	00:36:38.301	Rafael Costa (Vendor)	we can, I don't know if we like a lot of
+644	2	00:36:38.301	00:36:45.761	Rafael Costa (Vendor)	information to discuss today. Maybe let me start with ACCESS-TYPE-A and ACCESS-TYPE-B.
+644	3	00:36:45.761	00:36:47.956	Rafael Costa (Vendor)	Then we can take the
+647	0	00:36:48.436	00:36:54.522	Rafael Costa (Vendor)	The ACCESS-TYPE-C, because it's it's actually has different
+647	1	00:36:54.522	00:36:57.316	Rafael Costa (Vendor)	different maybe rules, so...
+648	0	00:36:59.876	00:37:02.676	Rafael Costa (Vendor)	Maybe I, I'll, I'll start from from here.
+655	0	00:37:04.996	00:37:14.459	Rafael Costa (Vendor)	We have actually four types of, or four versions of the entities,
+655	1	00:37:14.459	00:37:21.915	Rafael Costa (Vendor)	entity GEN-1, which basically the legacy in the ACCESS-TYPE-A,
+655	2	00:37:21.915	00:37:23.636	Rafael Costa (Vendor)	and we have.
+658	0	00:37:24.916	00:37:28.258	Rafael Costa (Vendor)	Version, this is actually what what is called in
+658	1	00:37:28.258	00:37:33.784	Rafael Costa (Vendor)	ACCESS-TYPE-A at the internal at the entity type, and for ACCESS-TYPE-B, this is internal as well.
+658	2	00:37:33.784	00:37:37.399	Rafael Costa (Vendor)	For V.GEN-3, we don't have GEN-2, this is a smart place,
+658	3	00:37:37.399	00:37:42.516	Rafael Costa (Vendor)	so we don't know about that. So, V. 3 is basically the one single HANDOFF-PORT.
+659	0	00:37:42.596	00:37:54.438	Rafael Costa (Vendor)	new generation and and GEN-4 it's the four ports PREMISES-DEVICE for ACCESS-TYPE-A. GEN-2 is only the 2.
+659	1	00:37:54.438	00:38:02.636	Rafael Costa (Vendor)	5G ACCESS-TYPE-B. So, the legacy one supports everything except
+660	0	00:38:02.836	00:38:06.393	Rafael Costa (Vendor)	the hyper fast, hyper, hyper, hyper fast profile.
+660	1	00:38:06.393	00:38:09.594	Rafael Costa (Vendor)	But all the other ones, even the ultra fast,
+660	2	00:38:09.594	00:38:13.223	Rafael Costa (Vendor)	can be supported on a legacy. Only the hyper fast,
+660	3	00:38:13.223	00:38:16.993	Rafael Costa (Vendor)	which because it's a multi-gig, it's actually 2 gig.
+660	4	00:38:16.993	00:38:22.542	Rafael Costa (Vendor)	This is the only one which requires GEN-3 and GEN-4 of the ACCESS-TYPE-A and requires GEN-2 on
+660	5	00:38:22.542	00:38:22.756	Rafael Costa (Vendor)	the
+661	0	00:38:22.956	00:38:26.744	Rafael Costa (Vendor)	ACCESS-TYPE-B. That's why METCO has released a multi-gig
+661	1	00:38:26.744	00:38:30.532	Rafael Costa (Vendor)	manual, and this is only for the hyper-fast.
+661	2	00:38:30.532	00:38:35.667	Rafael Costa (Vendor)	The other high-speed tiers, including the ultra-fast and the
+661	3	00:38:35.667	00:38:41.139	Rafael Costa (Vendor)	super-fast and the home, can still be supported on the legacy GEN-1
+661	4	00:38:41.139	00:38:41.476	Rafael Costa (Vendor)	PREMISES-DEVICE.
+662	0	00:38:45.716	00:38:46.036	Martin Vasquez	Yeah.
+663	0	00:38:42.996	00:38:46.165	Rafael Costa (Vendor)	Of course, depending on the capacity. Yeah, okay,
+663	1	00:38:46.165	00:38:50.602	Rafael Costa (Vendor)	so this was actually a good conclusion, and that's why the multi-gig,
+663	2	00:38:50.602	00:38:54.025	Rafael Costa (Vendor)	when we are saying multi-gig, is only the hyper-fast.
+663	3	00:38:54.025	00:38:58.716	Rafael Costa (Vendor)	High-speed tiers include the other profiles, which include the home fast,
+663	4	00:38:58.716	00:39:02.836	Rafael Costa (Vendor)	super fast, and ultra fast. So I think this is a very important.
+664	0	00:39:03.876	00:39:08.632	Rafael Costa (Vendor)	concept to understand before we, for the whole team here,
+664	1	00:39:08.632	00:39:13.716	Rafael Costa (Vendor)	to understand before we move forward with this one. So again,
+664	2	00:39:13.716	00:39:17.980	Rafael Costa (Vendor)	multi-gig refers to the hyper-fast, which is 2 gig.
+664	3	00:39:17.980	00:39:23.556	Rafael Costa (Vendor)	The other high-speed tiers are the lower ones, which is super fast.
+667	0	00:39:24.076	00:39:30.777	Rafael Costa (Vendor)	ultra fast and home fast can still be supported on the legacy entities.
+667	1	00:39:30.777	00:39:37.199	Rafael Costa (Vendor)	The legacy entities capacity also mentioned, I think somewhere here,
+667	2	00:39:37.199	00:39:43.156	Rafael Costa (Vendor)	maybe the bandwidth here. Yeah, so anyway, the capacity for the
+672	0	00:39:43.436	00:39:49.513	Rafael Costa (Vendor)	The GEN-1 is 1 gig, 1.3, I think, for the ACCESS-TYPE-A and maybe one for ACCESS-TYPE-B.
+672	1	00:39:49.513	00:39:55.501	Rafael Costa (Vendor)	So it supported the ultra fast. OK, so this is the first one. Now,
+672	2	00:39:55.501	00:40:01.846	Rafael Costa (Vendor)	when we receive the other important concept, when we receive an order,
+672	3	00:40:01.846	00:40:03.276	Rafael Costa (Vendor)	we tend to check
+675	0	00:40:03.636	00:40:07.314	Rafael Costa (Vendor)	If we can use, of course, the existing entity,
+675	1	00:40:07.314	00:40:11.539	Rafael Costa (Vendor)	this will be also our rule. If the existing entities,
+675	2	00:40:11.539	00:40:16.782	Rafael Costa (Vendor)	one of the one of the existing entities can support the new order,
+675	3	00:40:16.782	00:40:21.556	Rafael Costa (Vendor)	then we will use it. And AUTO-CONNECT now. So if it is a...
+678	0	00:40:22.436	00:40:28.007	Rafael Costa (Vendor)	If one of the existing entities has a free port and can support the required
+678	1	00:40:28.007	00:40:32.999	Rafael Costa (Vendor)	bandits, then we will use this one. This will be our old preference.
+678	2	00:40:32.999	00:40:36.616	Rafael Costa (Vendor)	If none of the existing entities has a free port,
+678	3	00:40:36.616	00:40:40.596	Rafael Costa (Vendor)	then we must go with a new entity. There is no option.
+679	0	00:40:40.836	00:40:45.841	Rafael Costa (Vendor)	And in this case, NETCO, I think will not charge ClientCo for that
+679	1	00:40:45.841	00:40:51.347	Rafael Costa (Vendor)	because the, there is no, the existing entities are all consumed.
+679	2	00:40:51.347	00:40:55.768	Rafael Costa (Vendor)	If there is an entity that has a free port, then it,
+679	3	00:40:55.768	00:41:00.356	Rafael Costa (Vendor)	the scenario of the replacement may be candidate here.
+681	0	00:41:00.676	00:41:04.431	Rafael Costa (Vendor)	So, and this again has some conditions. So,
+681	1	00:41:04.431	00:41:11.003	Rafael Costa (Vendor)	if there is an existing entity that has a free port, but it is a legacy one,
+681	2	00:41:11.003	00:41:17.403	Rafael Costa (Vendor)	or actually the capacity is the current capacity is not is not sufficient,
+681	3	00:41:17.403	00:41:19.196	Rafael Costa (Vendor)	and this is actually.
+682	0	00:41:20.196	00:41:24.186	Rafael Costa (Vendor)	The only case here applicable for is a ACCESS-TYPE-A GEN-1, ACCESS-TYPE-A GEN-1,
+682	1	00:41:24.186	00:41:26.756	Rafael Costa (Vendor)	which basically you have a four ports.
+683	0	00:41:28.356	00:41:32.565	Rafael Costa (Vendor)	and you receive an order. So assume this, the ACCESS-TYPE-A, as I said,
+683	1	00:41:32.565	00:41:35.853	Rafael Costa (Vendor)	the ACCESS-TYPE-A capacity is 1.3. Just give me a second,
+683	2	00:41:35.853	00:41:40.391	Rafael Costa (Vendor)	I'll just show you this one here just to make sure that we are here.
+683	3	00:41:40.391	00:41:44.403	Rafael Costa (Vendor)	So that this is a ACCESS-TYPE-A, the ACCESS-TYPE-A is downstream 1.3, right?
+683	4	00:41:44.403	00:41:49.796	Rafael Costa (Vendor)	So assume we have an existing site which has a one entity and this one entity has
+684	0	00:41:49.836	00:41:53.316	Rafael Costa (Vendor)	Two ports used, and...
+689	0	00:41:54.436	00:41:59.616	Rafael Costa (Vendor)	And the capacity which is used is around maybe say 500 is used.
+689	1	00:41:59.616	00:42:05.202	Rafael Costa (Vendor)	So we only have 800 left, right? So if we receive an order like this
+689	2	00:42:05.202	00:42:10.545	Rafael Costa (Vendor)	holder is only requesting 500, then we can use one of the current
+689	3	00:42:10.545	00:42:14.916	Rafael Costa (Vendor)	available ports on the on this entity with no change.
+692	0	00:42:15.316	00:42:20.428	Rafael Costa (Vendor)	So this will be a no change to the entity and everybody's happy.
+692	1	00:42:20.428	00:42:23.967	Rafael Costa (Vendor)	We will just use this port #3 and that's it.
+692	2	00:42:23.967	00:42:29.158	Rafael Costa (Vendor)	But if we haven't received a new order, we have one gig, one gig,
+692	3	00:42:29.158	00:42:33.956	Rafael Costa (Vendor)	which I think the ultra, ultra fast, one gig speed. Then the
+693	0	00:42:34.236	00:42:39.653	Rafael Costa (Vendor)	The total capacity of the entity doesn't doesn't actually support this one,
+693	1	00:42:39.653	00:42:44.571	Rafael Costa (Vendor)	then we then you are eligible for a free upgrade for entity replace.
+693	2	00:42:44.571	00:42:48.706	Rafael Costa (Vendor)	In this scenario, we will go with an entity replace which
+693	3	00:42:48.706	00:42:52.555	Rafael Costa (Vendor)	still has an appointment, but it's a free for charge,
+693	4	00:42:52.555	00:42:54.836	Rafael Costa (Vendor)	then we we we don't have to pay.
+698	0	00:42:54.956	00:42:59.524	Rafael Costa (Vendor)	to METCO. In this case, we still can request a new entity,
+698	1	00:42:59.524	00:43:05.295	Rafael Costa (Vendor)	so it will be an entity adds, but then ClientCo will have to pay extra money
+698	2	00:43:05.295	00:43:09.142	Rafael Costa (Vendor)	to METCO. Or the cost or the charge will be extra
+698	3	00:43:09.142	00:43:15.314	Rafael Costa (Vendor)	in this scenario because this entity or this location is eligible for a free
+698	4	00:43:15.314	00:43:16.516	Rafael Costa (Vendor)	entity upgrade.
+699	0	00:43:17.076	00:43:22.499	Rafael Costa (Vendor)	So the rules will be basically first check the available capacity of the
+699	1	00:43:22.499	00:43:26.956	Rafael Costa (Vendor)	existing entity as is. If it is sufficient, we will use it.
+699	2	00:43:26.956	00:43:32.527	Rafael Costa (Vendor)	If not, then, and there is a free port, then are we eligible for upgrades,
+699	3	00:43:32.527	00:43:37.876	Rafael Costa (Vendor)	free upgrades? If yes, then use it. If not, then we go to the last one.
+700	0	00:43:38.276	00:43:42.225	Rafael Costa (Vendor)	So the scenario here, what if we were actually,
+700	1	00:43:42.225	00:43:47.244	Rafael Costa (Vendor)	in my example here, we were already 500 meg consumed, right?
+700	2	00:43:47.244	00:43:53.003	Rafael Costa (Vendor)	But the request came up for a hyper fast, hyper fast. Then of course,
+700	3	00:43:53.003	00:43:55.636	Rafael Costa (Vendor)	this one will not be sufficient.
+701	0	00:43:58.396	00:44:02.411	Rafael Costa (Vendor)	Yeah, sorry, maybe, maybe I just want to step back. So,
+701	1	00:44:02.411	00:44:08.363	Rafael Costa (Vendor)	if we were actually we have an entity and the entity was was only two was only 100
+701	2	00:44:08.363	00:44:12.593	Rafael Costa (Vendor)	meg, 100 meg used, right? But we received at a hyper fast,
+701	3	00:44:12.593	00:44:13.956	Rafael Costa (Vendor)	a hyper fast order.
+706	0	00:44:14.876	00:44:20.068	Rafael Costa (Vendor)	Then we, which makes me 2 gig, then we can actually go for a four port
+706	1	00:44:20.068	00:44:25.918	Rafael Costa (Vendor)	entity and this four port entity will be sufficient to basically use it for the
+706	2	00:44:25.918	00:44:31.476	Rafael Costa (Vendor)	existing services plus the new service because its total is 2.2 gig, right?
+709	0	00:44:32.676	00:44:38.986	Rafael Costa (Vendor)	But if actually the existing capacity were 500, then even if we did upgrades,
+709	1	00:44:38.986	00:44:45.216	Rafael Costa (Vendor)	it doesn't actually will not resolve our problem because there is not enough
+709	2	00:44:45.216	00:44:51.769	Rafael Costa (Vendor)	capacity after we add the two gig to the existing 500, right? Then in this case,
+709	3	00:44:51.769	00:44:54.116	Rafael Costa (Vendor)	we must go with a new entity.
+710	0	00:44:56.196	00:44:57.716	Rafael Costa (Vendor)	other than we request some upgrades.
+711	0	00:44:58.756	00:45:02.152	Rafael Costa (Vendor)	And, yes, this would be NETCO will not charge us
+711	1	00:45:02.152	00:45:06.270	Rafael Costa (Vendor)	anything extra, because actually there may be an special
+711	2	00:45:06.270	00:45:10.678	Rafael Costa (Vendor)	charge, that's fine, but we are not actually paying anything
+711	3	00:45:10.678	00:45:14.290	Rafael Costa (Vendor)	that we cannot we can we can save, basically. So,
+711	4	00:45:14.290	00:45:19.276	Rafael Costa (Vendor)	the rule will always be when we receive the order, we have to check.
+712	0	00:45:20.356	00:45:23.856	Rafael Costa (Vendor)	the existing capacity, existing utilization,
+712	1	00:45:23.856	00:45:30.234	Rafael Costa (Vendor)	and are we eligible for upgrade or not? And if we actually added the new required
+712	2	00:45:30.234	00:45:35.600	Rafael Costa (Vendor)	capacity for the new order, will one entity be sufficient or we will
+712	3	00:45:35.600	00:45:39.956	Rafael Costa (Vendor)	have to go for a new entity anyway for the new service?
+713	0	00:45:42.916	00:45:44.356	Rafael Costa (Vendor)	Okay, so far so good.
+714	0	00:45:47.556	00:45:49.396	Elena Marchetti	I'm going to use this.
+715	0	00:45:48.276	00:45:52.349	Martin Vasquez	with conditions, but because like if you read down,
+715	1	00:45:52.349	00:45:57.676	Martin Vasquez	it says for a single port, you don't have to consider it. So, yeah.
+717	0	00:45:55.356	00:45:59.204	Rafael Costa (Vendor)	Yeah, yeah, I'll come to these all exception cases
+717	1	00:45:59.204	00:46:02.676	Rafael Costa (Vendor)	now, but I mean that, just, yeah, yeah, yeah.
+718	0	00:46:01.236	00:46:04.596	Martin Vasquez	I guess the only question I would have is that 500 meg, is that...
+719	0	00:46:08.436	00:46:09.956	Rafael Costa (Vendor)	No, yeah, yeah, we.
+720	0	00:46:11.556	00:46:11.876	Rafael Costa (Vendor)	Ooi.
+721	0	00:46:05.436	00:46:08.429	Martin Vasquez	Is that your service that you're upgrading or is that someone else's?
+721	1	00:46:08.429	00:46:10.738	Martin Vasquez	Because if it's yours, then the two replaces the 500.
+721	2	00:46:10.738	00:46:11.636	Martin Vasquez	You know what I mean?
+726	0	00:46:12.996	00:46:18.149	Rafael Costa (Vendor)	We, we OK, so we don't we we don't actually know
+726	1	00:46:18.149	00:46:22.777	Rafael Costa (Vendor)	that, and basically when we do the like for
+726	2	00:46:22.777	00:46:28.036	Rafael Costa (Vendor)	this case, like we have here an SERVICE-CLASS 3 maybe a QUAL-CHECK.
+729	0	00:46:31.716	00:46:36.040	Rafael Costa (Vendor)	Like this one here, you will get back here the remaining
+729	1	00:46:36.040	00:46:39.758	Rafael Costa (Vendor)	capacity. So this remaining capacity can be ClientCo,
+729	2	00:46:39.758	00:46:43.400	Rafael Costa (Vendor)	I mean, the consumed capacity can be across ClientCo
+729	3	00:46:43.400	00:46:45.676	Rafael Costa (Vendor)	plus other operators capacity.
+730	0	00:46:44.676	00:46:47.345	Martin Vasquez	Yep, so does that does that mean you have to
+730	1	00:46:47.345	00:46:49.956	Martin Vasquez	subtract your your SERVICE-REF's bandwidth from it?
+733	0	00:46:51.356	00:46:53.855	Rafael Costa (Vendor)	No, I mean that the new order or the modified
+733	1	00:46:53.855	00:46:57.116	Rafael Costa (Vendor)	order, you mean? I'm talking about connect so far, connect.
+734	0	00:46:55.316	00:46:59.544	Martin Vasquez	Well, yeah, on the modifier, like if you're modifying your existing
+734	1	00:46:59.544	00:47:01.036	Martin Vasquez	bandwidth profile, yeah.
+735	0	00:47:09.036	00:47:09.796	Martin Vasquez	Yes, yeah.
+736	0	00:46:58.836	00:47:02.251	Rafael Costa (Vendor)	Yeah, yeah, yes, yes. When you do a modify,
+736	1	00:47:02.251	00:47:08.383	Rafael Costa (Vendor)	you have to check the original capacity and take it out from this or add it to
+736	2	00:47:08.383	00:47:11.876	Rafael Costa (Vendor)	this remaining balance. That's correct, yes.
+737	0	00:47:13.036	00:47:16.206	Rafael Costa (Vendor)	But, but, but this one should be enough for us,
+737	1	00:47:16.206	00:47:19.508	Rafael Costa (Vendor)	we don't really need to know anything more about,
+737	2	00:47:19.508	00:47:24.461	Rafael Costa (Vendor)	but so we just compare this remaining capacity plus the the new one or the
+737	3	00:47:24.461	00:47:28.027	Rafael Costa (Vendor)	delta, 1575. Is it sufficient on the is it sufficient
+737	4	00:47:28.027	00:47:32.716	Rafael Costa (Vendor)	to support the new requested bundles or not? If not, then we we check.
+740	0	00:47:32.996	00:47:37.076	Rafael Costa (Vendor)	the upgrade the upgrade eligibility in this scenario.
+740	1	00:47:37.076	00:47:41.307	Rafael Costa (Vendor)	I'll come to the one port for port variations, but yes,
+740	2	00:47:41.307	00:47:43.876	Rafael Costa (Vendor)	this is the key guiding rule here.
+741	0	00:47:46.676	00:47:48.116	Rafael Costa (Vendor)	Elena, you were saying something?
+742	0	00:47:49.716	00:47:52.791	Elena Marchetti	That's OK. I think I'm going to need a BPNM diagram
+742	1	00:47:52.791	00:47:56.693	Elena Marchetti	to fully understand this, but I'm probably going to use AI-ASSISTANT to
+742	2	00:47:56.693	00:47:57.876	Elena Marchetti	do it, so it's fine.
+743	0	00:47:59.156	00:47:59.796	Elena Marchetti	Keep going.
+744	0	00:47:58.356	00:48:04.084	Rafael Costa (Vendor)	Yeah, yeah, actually, the army, yeah, the army scenario is actually here about
+744	1	00:48:04.084	00:48:07.782	Rafael Costa (Vendor)	the this. There is no easy way actually to submit.
+744	2	00:48:07.782	00:48:11.480	Rafael Costa (Vendor)	I tried to summarize these rules in some document,
+744	3	00:48:11.480	00:48:15.396	Rafael Costa (Vendor)	but I just wanted to walk you through the this first.
+745	0	00:48:17.156	00:48:21.263	Rafael Costa (Vendor)	OK, so now, now we have other other scenarios where,
+745	1	00:48:21.263	00:48:22.116	Rafael Costa (Vendor)	like, um...
+750	0	00:48:23.716	00:48:27.715	Rafael Costa (Vendor)	Yeah, and this was one of my questions, Marty,
+750	1	00:48:27.715	00:48:34.236	Rafael Costa (Vendor)	around adding the changing the default to be 4 ports rather than one port.
+750	2	00:48:34.236	00:48:39.191	Rafael Costa (Vendor)	The reason for that, whenever we add a new entity to the
+750	3	00:48:39.191	00:48:44.756	Rafael Costa (Vendor)	location, it must be a four ports, any new entity. If we try to
+755	0	00:48:44.836	00:48:51.277	Rafael Costa (Vendor)	add a new entity and the existing entities were used, it with one entity,
+755	1	00:48:51.277	00:48:55.978	Rafael Costa (Vendor)	one port entity, this will always be rejected by METCO.
+755	2	00:48:55.978	00:49:00.766	Rafael Costa (Vendor)	The idea here, if you are like having many services in
+755	3	00:49:00.766	00:49:05.728	Rafael Costa (Vendor)	this location, I assume that METCO assume that one port is
+755	4	00:49:05.728	00:49:07.556	Rafael Costa (Vendor)	not a reasonable ask.
+756	0	00:49:07.916	00:49:10.596	Rafael Costa (Vendor)	because you already have other entity that is fully utilized.
+757	0	00:49:14.116	00:49:14.676	Rafael Costa (Vendor)	Correct.
+758	0	00:49:10.436	00:49:13.798	Martin Vasquez	Yeah, it's basically just METCO saving money,
+758	1	00:49:13.798	00:49:18.460	Martin Vasquez	right? Like if 97. 2% of customers only need one PREMISES-DEVICE port on
+758	2	00:49:18.460	00:49:22.357	Martin Vasquez	whatever, like why would they install an expensive
+758	3	00:49:22.357	00:49:27.248	Martin Vasquez	4 port PREMISES-DEVICE? But yeah, obviously if you need a second connection
+758	4	00:49:27.248	00:49:30.076	Martin Vasquez	at that point, you may as well do it.
+759	0	00:49:30.156	00:49:33.827	Martin Vasquez	do a four port rather than replace, rather than have Q1 ports.
+759	1	00:49:33.827	00:49:38.604	Martin Vasquez	That's going to cost them even more money to support. They could just, in theory,
+759	2	00:49:38.604	00:49:42.800	Martin Vasquez	they could, if they wanted to, they could swap both of those out with a
+759	3	00:49:42.800	00:49:46.995	Martin Vasquez	single PREMISES-DEVICE anyway, right? Like, and there's probably provision for them
+759	4	00:49:46.995	00:49:47.636	Martin Vasquez	to do that.
+761	0	00:49:49.396	00:49:53.316	Rafael Costa (Vendor)	Yes, and actually, if you actually, if you are in...
+767	0	00:49:54.596	00:49:58.700	Rafael Costa (Vendor)	If you are actually, if you have one entity,
+767	1	00:49:58.700	00:50:03.716	Rafael Costa (Vendor)	one port for the nutrition, one port entity in a site.
+768	0	00:50:11.556	00:50:11.796	Martin Vasquez	Yeah.
+771	0	00:50:04.836	00:50:11.152	Rafael Costa (Vendor)	and you requested a hyper-fast multi-gig, you are eligible actually for an entity
+771	1	00:50:11.152	00:50:16.312	Rafael Costa (Vendor)	replace to for for for four ports entities, as long as, of course,
+771	2	00:50:16.312	00:50:21.781	Rafael Costa (Vendor)	the piece would be sufficient. So this is eligible criteria to upgrade
+771	3	00:50:21.781	00:50:23.476	Rafael Costa (Vendor)	to a four port entity.
+774	0	00:50:25.236	00:50:28.869	Rafael Costa (Vendor)	replacing the one port new generation entity.
+774	1	00:50:28.869	00:50:34.871	Rafael Costa (Vendor)	So this is the only applicable scenario where we can replace a one port new
+774	2	00:50:34.871	00:50:41.504	Rafael Costa (Vendor)	generation entity with a four port entity when we are actually adding a new service
+774	3	00:50:41.504	00:50:43.716	Rafael Costa (Vendor)	to a location with one port.
+776	0	00:50:44.196	00:50:50.165	Rafael Costa (Vendor)	And this location and the the new requested bandwidth is a multi-gig or
+776	1	00:50:50.165	00:50:55.139	Rafael Costa (Vendor)	hyper hyper fast. So this is the only condition that we can
+776	2	00:50:55.139	00:51:00.196	Rafael Costa (Vendor)	request upgrade from one to four. But additions of entities.
+783	0	00:51:01.076	00:51:06.151	Rafael Costa (Vendor)	Always mandate that we go for a four ports, 4 ports,
+783	1	00:51:06.151	00:51:12.471	Rafael Costa (Vendor)	so whenever we have a this is actually the the additional entity,
+783	2	00:51:12.471	00:51:20.036	Rafael Costa (Vendor)	we cannot we cannot request a one one port entity, it will always be rejected.
+784	0	00:51:20.276	00:51:23.556	Rafael Costa (Vendor)	By, by, um, uh, by METCO.
+785	0	00:51:24.756	00:51:25.396	Rafael Costa (Vendor)	And...
+788	0	00:51:26.516	00:51:29.716	Rafael Costa (Vendor)	Yeah, yeah, this rule is basically for a hyper fast.
+791	0	00:51:30.996	00:51:34.107	Rafael Costa (Vendor)	So, I maybe I can check that as well for the
+791	1	00:51:34.107	00:51:38.255	Rafael Costa (Vendor)	other other SPTs, but I would imagine that it's always like
+791	2	00:51:38.255	00:51:41.504	Rafael Costa (Vendor)	that whenever we have a new additional entity,
+791	3	00:51:41.504	00:51:46.412	Rafael Costa (Vendor)	we can we need to request it as a as a as a hyper as a as a full port.
+791	4	00:51:46.412	00:51:49.316	Rafael Costa (Vendor)	Let me let me double check this one again.
+794	0	00:51:50.036	00:51:56.374	Rafael Costa (Vendor)	quickly. So what I'm saying when we have, when we request an additional entity,
+794	1	00:51:56.374	00:51:58.196	Rafael Costa (Vendor)	so this will be an add.
+801	0	00:52:03.316	00:52:10.679	Rafael Costa (Vendor)	And we actually, like, if I have the, the, the existing one is an internal one,
+801	1	00:52:10.679	00:52:11.876	Rafael Costa (Vendor)	so this is...
+802	0	00:52:14.196	00:52:19.796	Rafael Costa (Vendor)	in place entity is should be a legacy or internal should be the same.
+809	0	00:52:22.196	00:52:26.476	Rafael Costa (Vendor)	So, this is a criteria here. So, when we, when we, when we do that,
+809	1	00:52:26.476	00:52:31.574	Rafael Costa (Vendor)	if you look here, accepted is 4 ports, accepted is 4 ports, accepted is 4 ports,
+809	2	00:52:31.574	00:52:35.854	Rafael Costa (Vendor)	accepted is 4 ports, accepted is, yeah, this is ACCESS-TYPE-B. So, basically,
+809	3	00:52:35.854	00:52:40.008	Rafael Costa (Vendor)	what we are saying here, any additional entity in a ACCESS-TYPE-A must be
+809	4	00:52:40.008	00:52:43.343	Rafael Costa (Vendor)	a four port, regardless if it is a hyper fast or not
+809	5	00:52:43.343	00:52:44.036	Rafael Costa (Vendor)	hyper fast.
+810	0	00:52:44.756	00:52:49.476	Rafael Costa (Vendor)	And this was this was important, so that's why I felt that.
+813	0	00:52:50.436	00:52:58.581	Rafael Costa (Vendor)	Going without with the default one port maybe will will will mean that maybe we
+813	1	00:52:58.581	00:53:00.516	Rafael Costa (Vendor)	might need to like.
+816	0	00:53:02.116	00:53:06.142	Rafael Costa (Vendor)	Yeah, whenever we have a new a new a new order
+816	1	00:53:06.142	00:53:11.282	Rafael Costa (Vendor)	for the same site, we will go with with we must have a four
+816	2	00:53:11.282	00:53:12.996	Rafael Costa (Vendor)	ports request, so...
+819	0	00:53:14.276	00:53:19.383	Rafael Costa (Vendor)	Do you want to keep the decision to go for a one port in the as a default or we
+819	1	00:53:19.383	00:53:20.916	Rafael Costa (Vendor)	move it to a four ports?
+820	0	00:53:25.716	00:53:26.036	Rafael Costa (Vendor)	Marty.
+823	0	00:53:27.196	00:53:31.696	Martin Vasquez	I mean, I'm not, I'm not fussed. You need to go with the one that doesn't
+823	1	00:53:31.696	00:53:33.156	Martin Vasquez	cost any money, alright?
+825	0	00:53:35.716	00:53:38.205	Martin Vasquez	Most of our customers do service transfers,
+825	1	00:53:38.205	00:53:42.506	Martin Vasquez	they don't add additional products. And our default stance on ACCESS-TYPE-A used to
+825	2	00:53:42.506	00:53:46.806	Martin Vasquez	be that we would not do a service transfer and then we would do a different
+825	3	00:53:46.806	00:53:51.050	Martin Vasquez	port and then it was up to the customer to cancel their service with their
+825	4	00:53:51.050	00:53:54.276	Martin Vasquez	previous provider. But that logic's been flipped like...
+826	0	00:54:02.756	00:54:03.316	Rafael Costa (Vendor)	Entity.
+827	0	00:54:05.956	00:54:06.276	Rafael Costa (Vendor)	Okay.
+828	0	00:54:09.716	00:54:09.876	Rafael Costa (Vendor)	Mm.
+829	0	00:53:54.956	00:53:59.611	Martin Vasquez	A few years ago now, and so service transfer is pretty much
+829	1	00:53:59.611	00:54:05.508	Martin Vasquez	the default, which means, you know, most of the time you don't need a new a
+829	2	00:54:05.508	00:54:11.716	Martin Vasquez	new four port PREMISES-DEVICE, so we should, you know, basically default to the one that...
+830	0	00:54:12.916	00:54:15.446	Martin Vasquez	Yeah, is the most seamless for the customer,
+830	1	00:54:15.446	00:54:18.314	Martin Vasquez	logical order over physical order. Like, you know,
+830	2	00:54:18.314	00:54:20.676	Martin Vasquez	there's obviously a list of things that...
+831	0	00:54:29.636	00:54:30.676	Rafael Costa (Vendor)	Replace.
+832	0	00:54:21.796	00:54:25.075	Martin Vasquez	that you want to do. One is to do logical first,
+832	1	00:54:25.075	00:54:30.362	Martin Vasquez	because we know that that's the quickest. The second is use the same user do a
+832	2	00:54:30.362	00:54:35.448	Martin Vasquez	service transfer, because again, that's also a logical one. But yeah, it's,
+832	3	00:54:35.448	00:54:38.794	Martin Vasquez	you know, you would only really need to do a full
+832	4	00:54:38.794	00:54:42.876	Martin Vasquez	port if the customer wasn't doing a service transfer, right?
+833	0	00:54:43.316	00:54:43.556	Martin Vasquez	Ooi.
+834	0	00:54:49.636	00:54:49.916	Martin Vasquez	Yeah.
+835	0	00:54:44.036	00:54:46.846	Rafael Costa (Vendor)	Correct. If it's a new install and you connect
+835	1	00:54:46.846	00:54:50.492	Rafael Costa (Vendor)	with that little transfer, which is I know that it's not the
+835	2	00:54:50.492	00:54:53.900	Rafael Costa (Vendor)	mainstream now, but is there a difference in cost if you
+835	3	00:54:53.900	00:54:58.503	Rafael Costa (Vendor)	request a full or one port? I mean, is it any benefit to ClientCo to use one port
+835	4	00:54:58.503	00:55:00.596	Rafael Costa (Vendor)	or is the same for ClientCo perspective?
+836	0	00:54:59.556	00:55:02.444	Martin Vasquez	Well, if you're not doing a service transfer
+836	1	00:55:02.444	00:55:07.772	Martin Vasquez	and there's an existing service and it's on a full one port PREMISES-DEVICE, then that's fine,
+836	2	00:55:07.772	00:55:11.624	Martin Vasquez	right? Obviously, you have to do a full port at that point,
+836	3	00:55:11.624	00:55:16.759	Martin Vasquez	because again, as we mentioned before, METCO aren't going to want you to have two
+836	4	00:55:16.759	00:55:18.236	Martin Vasquez	single port PREMISES-DEVICEs there.
+837	0	00:55:21.876	00:55:25.645	Rafael Costa (Vendor)	Correct, it has to be for both. It has to be for both and the additional
+837	1	00:55:25.645	00:55:26.316	Rafael Costa (Vendor)	entity. Yeah.
+838	0	00:55:30.996	00:55:34.596	Rafael Costa (Vendor)	I mean, at the first, first, first, first entity, first entity.
+839	0	00:55:18.556	00:55:23.115	Martin Vasquez	Given your propensity to connect multiple connections at the same premises, yeah,
+839	1	00:55:23.115	00:55:26.285	Martin Vasquez	so it's kind of like just, so I don't think the default,
+839	2	00:55:26.285	00:55:29.399	Martin Vasquez	the default isn't, it depends what you mean by default,
+839	3	00:55:29.399	00:55:33.236	Martin Vasquez	like the default in what circumstance, you know what I mean, like...
+840	0	00:55:47.396	00:55:49.236	Rafael Costa (Vendor)	Yes, yes.
+841	0	00:55:52.436	00:55:53.236	Rafael Costa (Vendor)	Okay, so you...
+842	0	00:55:35.516	00:55:38.512	Martin Vasquez	Yeah, the first PREMISES-DEVICE, you will not be able to put a four port
+842	1	00:55:38.512	00:55:41.853	Martin Vasquez	PREMISES-DEVICE in and have it. Like, NETCO are only going to want to install one
+842	2	00:55:41.853	00:55:44.309	Martin Vasquez	port for free. Like, say at a brand new premises,
+842	3	00:55:44.309	00:55:47.748	Martin Vasquez	say it's service class 2, right? It hasn't been connected to NETCO yet,
+842	4	00:55:47.748	00:55:50.794	Martin Vasquez	it's missing an PREMISES-DEVICE. NETCO are not going to install a four port
+842	5	00:55:50.794	00:55:51.236	Martin Vasquez	for free.
+843	0	00:55:55.876	00:55:56.116	Rafael Costa (Vendor)	Oh.
+844	0	00:56:02.356	00:56:04.756	Rafael Costa (Vendor)	Yeah, you know it's it's it's.
+847	0	00:55:52.516	00:55:55.006	Martin Vasquez	I wouldn't, I wouldn't, I wouldn't have thought,
+847	1	00:55:55.006	00:55:58.613	Martin Vasquez	because it cost them more money, you know, you know what I mean? Like,
+847	2	00:55:58.613	00:56:01.866	Martin Vasquez	they they want to install A1 port entity. You could check that,
+847	3	00:56:01.866	00:56:06.083	Martin Vasquez	but I would be very surprised if they if they let you just pick and not charge you
+847	4	00:56:06.083	00:56:08.116	Martin Vasquez	anything for the for the difference, so.
+852	0	00:56:08.916	00:56:14.891	Rafael Costa (Vendor)	You can, you can. This is a case here. Maybe this is just for hyper fast,
+852	1	00:56:14.891	00:56:20.381	Rafael Costa (Vendor)	but let me check quickly. So this is like an adding and this is not
+852	2	00:56:20.381	00:56:24.256	Rafael Costa (Vendor)	available here. So this will be not applicable.
+852	3	00:56:24.256	00:56:26.356	Rafael Costa (Vendor)	So this will be no entity.
+855	0	00:56:27.716	00:56:32.996	Rafael Costa (Vendor)	No entity, right? So this will be here.
+858	0	00:56:36.916	00:56:41.236	Rafael Costa (Vendor)	You, you must go for one or four.
+861	0	00:56:42.676	00:56:47.191	Rafael Costa (Vendor)	One or four, so no, not not legacy. So 4 is still fine, one is still fine.
+861	1	00:56:47.191	00:56:51.766	Rafael Costa (Vendor)	So that this is the default that we are talking about here. A first entity,
+861	2	00:56:51.766	00:56:54.596	Rafael Costa (Vendor)	there is no other one. This is basically a C2.
+862	0	00:56:55.956	00:56:58.791	Rafael Costa (Vendor)	And, or one, and we are going with this one. So,
+862	1	00:56:58.791	00:57:02.378	Rafael Costa (Vendor)	which one is the default? If it is cheaper to go as one port,
+862	2	00:57:02.378	00:57:05.791	Rafael Costa (Vendor)	then we keep it one port, but if it is the same from a ClientCo
+862	3	00:57:05.791	00:57:08.742	Rafael Costa (Vendor)	perspective, I think 4 ports will will be will be,
+862	4	00:57:08.742	00:57:11.461	Rafael Costa (Vendor)	yeah, seems to be more reasonable based on the
+862	5	00:57:11.461	00:57:12.676	Rafael Costa (Vendor)	other other criteria.
+863	0	00:57:15.396	00:57:16.756	Martin Vasquez	Well, I can tell you that.
+864	0	00:57:21.236	00:57:22.276	Rafael Costa (Vendor)	Okay, okay.
+865	0	00:57:29.156	00:57:29.636	Rafael Costa (Vendor)	Okay.
+866	0	00:57:32.036	00:57:33.716	Rafael Costa (Vendor)	Yeah, yeah, yeah, I understand.
+867	0	00:57:18.996	00:57:22.127	Martin Vasquez	We default to one port at the moment. But again, like,
+867	1	00:57:22.127	00:57:25.942	Martin Vasquez	that's what we currently do. We need someone from the business to,
+867	2	00:57:25.942	00:57:30.041	Martin Vasquez	if they want to change that, potentially, that requires business input.
+867	3	00:57:30.041	00:57:34.596	Martin Vasquez	It doesn't require me making a decision. So I can't make that sort of decision.
+868	0	00:57:34.996	00:57:39.212	Rafael Costa (Vendor)	Okay, okay. Yeah, I think we are running out of time.
+868	1	00:57:39.212	00:57:41.476	Rafael Costa (Vendor)	Just on the service transfer.
+869	0	00:57:44.036	00:57:49.853	Rafael Costa (Vendor)	The service transfer has to be logical, and this was also clearly called out here
+869	1	00:57:49.853	00:57:51.556	Rafael Costa (Vendor)	about service transfers.
+876	0	00:57:57.076	00:58:01.455	Rafael Costa (Vendor)	But it has to be logical, meaning that if, if, yeah, if we are,
+876	1	00:58:01.455	00:58:05.767	Rafael Costa (Vendor)	if we have to change the entity to support like the new speed,
+876	2	00:58:05.767	00:58:10.968	Rafael Costa (Vendor)	it is not going to have a service, it has must be a disconnect and connect.
+876	3	00:58:10.968	00:58:13.910	Rafael Costa (Vendor)	So, a service transfer always assumes that
+876	4	00:58:13.910	00:58:14.116	Rafael Costa (Vendor)	the
+883	0	00:58:15.396	00:58:19.486	Rafael Costa (Vendor)	the listing entity can support the new bandwidth that is requested.
+883	1	00:58:19.486	00:58:24.419	Rafael Costa (Vendor)	So if you have a legacy GEN-1 and you are requesting a hyper, a hyper fast, it will,
+883	2	00:58:24.419	00:58:28.209	Rafael Costa (Vendor)	you cannot do that. It will, you cannot do a service transfer.
+883	3	00:58:28.209	00:58:30.676	Rafael Costa (Vendor)	You have to disconnect and connect again.
+887	0	00:58:47.956	00:58:48.436	Rafael Costa (Vendor)	EE.
+888	0	00:58:50.676	00:58:50.996	Rafael Costa (Vendor)	Okay.
+889	0	00:58:32.596	00:58:36.826	Martin Vasquez	Yeah, and back to the one port thing, my suspicion too is that, and again,
+889	1	00:58:36.826	00:58:40.098	Martin Vasquez	I don't know too much about it, I don't talk to ops much,
+889	2	00:58:40.098	00:58:44.836	Martin Vasquez	but I imagine that it's much simpler for, it's much simpler to troubleshoot because
+889	3	00:58:44.836	00:58:48.164	Martin Vasquez	the customer can only plug it in in one spot, right? Like,
+889	4	00:58:48.164	00:58:51.436	Martin Vasquez	they can only plug their Ethernet cable in a single port.
+892	0	00:59:07.396	00:59:08.036	Rafael Costa (Vendor)	Correct.
+893	0	00:59:12.196	00:59:13.316	Rafael Costa (Vendor)	I understand, yeah.
+894	0	00:58:51.876	00:58:57.231	Martin Vasquez	And so it's much simpler to support. So like defaulting it to four port seems
+894	1	00:58:57.231	00:59:01.145	Martin Vasquez	like opening a can of worms in terms of support hassles.
+894	2	00:59:01.145	00:59:05.814	Martin Vasquez	So especially if 95% of your customers are getting one port anyway,
+894	3	00:59:05.814	00:59:11.307	Martin Vasquez	already have a one port one. So yeah, that definitely needs a business decision
+894	4	00:59:11.307	00:59:13.436	Martin Vasquez	if we want to think about that.
+895	0	00:59:13.796	00:59:14.076	Martin Vasquez	Ooi.
+896	0	00:59:14.836	00:59:20.087	Rafael Costa (Vendor)	I think it makes sense going with the problem that here, that these 5%,
+896	1	00:59:20.087	00:59:24.317	Rafael Costa (Vendor)	which is a meaning add a lot of other rules to handle it,
+896	2	00:59:24.317	00:59:30.151	Rafael Costa (Vendor)	that all the other rules like, okay, adding a new, yeah, justify that these 5%,
+896	3	00:59:30.151	00:59:30.516	Rafael Costa (Vendor)	yeah.
+897	0	00:59:26.596	00:59:29.295	Martin Vasquez	It's complicated stuff, right? Yep, and that's why it took us,
+897	1	00:59:29.295	00:59:32.594	Martin Vasquez	that's why our project to do this took longer than the business expected and
+897	2	00:59:32.594	00:59:35.636	Martin Vasquez	cost more money than they expected, because there's a lot to consider.
+898	0	00:59:36.756	00:59:37.516	Rafael Costa (Vendor)	Correct, yeah.
+899	0	00:59:37.956	00:59:39.316	Martin Vasquez	Wasn't just a plan change.
+900	0	00:59:40.356	00:59:41.236	Rafael Costa (Vendor)	Yeah, yeah.
+901	0	00:59:42.436	00:59:47.625	Rafael Costa (Vendor)	OK, OK, so just on this one, we and we can we can finish by this one.
+901	1	00:59:47.625	00:59:51.035	Rafael Costa (Vendor)	So, service transfer doesn't support changing
+901	2	00:59:51.035	00:59:56.817	Rafael Costa (Vendor)	the entity, and and this was allowed. You have to use the same same entity to
+901	3	00:59:56.817	01:00:01.636	Rafael Costa (Vendor)	to move the service. However, the only exception was actually...
+910	0	01:00:03.076	01:00:06.935	Rafael Costa (Vendor)	this one here. So basically here, service transfer,
+910	1	01:00:06.935	01:00:11.611	Rafael Costa (Vendor)	you have to have the same entity. But the connect outstanding,
+910	2	01:00:11.611	01:00:15.470	Rafael Costa (Vendor)	for some reason, it allows to do an entity replace,
+910	3	01:00:15.470	01:00:19.404	Rafael Costa (Vendor)	for some reason. So I don't know what is difference,
+910	4	01:00:19.404	01:00:22.076	Rafael Costa (Vendor)	why METCO supported here and actually.
+915	0	01:00:22.196	01:00:26.187	Rafael Costa (Vendor)	This was not only a mistake in the documentation,
+915	1	01:00:26.187	01:00:32.175	Rafael Costa (Vendor)	because actually the scenario is coming after that mentioned this clearly.
+915	2	01:00:32.175	01:00:36.246	Rafael Costa (Vendor)	You have, you can have actually a service transfer
+915	3	01:00:36.246	01:00:41.276	Rafael Costa (Vendor)	with an ad and a placement scenario. So, for some reason, METCO.
+916	0	01:00:41.356	01:00:45.356	Rafael Costa (Vendor)	Support that, does ClientCo support it as well?
+919	0	01:00:47.596	01:00:49.916	Rafael Costa (Vendor)	We want support this scenario, like a...
+920	0	01:01:06.716	01:01:08.876	Rafael Costa (Vendor)	As with, as with notes, yes.
+921	0	01:00:49.316	01:00:51.924	Martin Vasquez	Well, we definitely support service transfer to
+921	1	01:00:51.924	01:00:55.294	Martin Vasquez	home hyper fast requesting the replacement of the legacy PREMISES-DEVICE,
+921	2	01:00:55.294	01:00:58.229	Martin Vasquez	PREMISES-DEVICE add and raising code. I can see that in our code.
+921	3	01:00:58.229	01:01:00.620	Martin Vasquez	We definitely do that. And that'll be your,
+921	4	01:01:00.620	01:01:04.261	Martin Vasquez	probably in that spreadsheet, it's probably like add, what was it,
+921	5	01:01:04.261	01:01:07.196	Martin Vasquez	add with notes or something like that, I think I saw.
+922	0	01:01:09.556	01:01:11.116	Martin Vasquez	Yeah, so we currently do that.
+923	0	01:01:12.316	01:01:14.807	Rafael Costa (Vendor)	But this is quite outstanding. This is not a service transfer,
+923	1	01:01:14.807	01:01:15.756	Rafael Costa (Vendor)	normal service transfer.
+926	0	01:01:15.836	01:01:21.593	Martin Vasquez	Yeah, my guess for that is, my guess for ACCESS-TYPE-B, and again, guessing,
+926	1	01:01:21.593	01:01:25.374	Martin Vasquez	you'd have to ask NETCO or SME, I don't know,
+926	2	01:01:25.374	01:01:29.756	Martin Vasquez	but quite often the customers take the ACCESS-TYPE-B modems.
+931	0	01:01:30.916	01:01:33.695	Martin Vasquez	And, and, and so they have METCO have a lot of issues
+931	1	01:01:33.695	01:01:38.023	Martin Vasquez	with that, and so my suspicion is like, well, they probably just go, okay, well,
+931	2	01:01:38.023	01:01:40.642	Martin Vasquez	connect outstanding means that the new customer,
+931	3	01:01:40.642	01:01:43.902	Martin Vasquez	the new customer has just moved into the premises, you know,
+931	4	01:01:43.902	01:01:47.055	Martin Vasquez	maybe there's a modem there, maybe there's not, they want,
+931	5	01:01:47.055	01:01:50.636	Martin Vasquez	they want hyper fast, they want, you know, all that sort of stuff.
+934	0	01:01:52.076	01:01:56.596	Martin Vasquez	Maybe we'll ship them a new, a new up-to-date, you know,
+934	1	01:01:56.596	01:02:01.750	Martin Vasquez	modern ACCESS-TYPE-B modem or PREMISES-DEVICE, whatever you want to call it. But yeah,
+934	2	01:02:01.750	01:02:05.398	Martin Vasquez	I don't know why that would be allowed. Like,
+934	3	01:02:05.398	01:02:10.236	Martin Vasquez	I don't know why Connect Outstanding would be special there.
+935	0	01:02:10.356	01:02:13.116	Martin Vasquez	Apart from guessing at that, that sort of stuff, so...
+936	0	01:02:18.396	01:02:18.716	Martin Vasquez	Yeah.
+939	0	01:02:15.356	01:02:19.346	Rafael Costa (Vendor)	Okay, okay, so this is only a vehicle for ACCESS-TYPE-B,
+939	1	01:02:19.346	01:02:23.930	Rafael Costa (Vendor)	not for HTTP. Okay, so connect outstanding for ACCESS-TYPE-B is
+939	2	01:02:23.930	01:02:27.836	Rafael Costa (Vendor)	allowing the entity to replace, not the HTTP.
+942	0	01:02:29.836	01:02:30.716	Rafael Costa (Vendor)	Right, so.
+943	0	01:02:30.876	01:02:33.116	Martin Vasquez	Well, it's also entirely possible that, um...
+944	0	01:02:34.236	01:02:34.636	Martin Vasquez	That.
+947	0	01:02:35.516	01:02:38.716	Rafael Costa (Vendor)	Actually, it says 23 as well, yeah, 3 as well, yeah.
+950	0	01:02:37.676	01:02:40.076	Martin Vasquez	Yeah, yeah, so...
+951	0	01:02:42.396	01:02:47.116	Martin Vasquez	Anyway, yeah, I don't know. It's fun, fun stuff, lots of business rules.
+960	0	01:02:48.716	01:02:54.452	Rafael Costa (Vendor)	A lot of business rules. Yeah. Okay, I think we can stop here. But yeah,
+960	1	01:02:54.452	01:02:58.696	Rafael Costa (Vendor)	we are still in meetings to discuss about this point.
+960	2	01:02:58.696	01:03:04.432	Rafael Costa (Vendor)	Should I schedule another meeting sometime this week to continue on this
+960	3	01:03:04.432	01:03:08.676	Rafael Costa (Vendor)	discussion for the entity replace and entity upgrade?
+962	0	01:03:10.876	01:03:14.934	Rafael Costa (Vendor)	I don't know, do you want to have one tomorrow or one
+962	1	01:03:14.934	01:03:15.836	Rafael Costa (Vendor)	on Thursday?
+963	0	01:03:20.476	01:03:21.276	Elena Marchetti	And you, Marty.
+965	0	01:03:34.476	01:03:35.116	Rafael Costa (Vendor)	Yeah.
+966	0	01:03:22.396	01:03:25.573	Martin Vasquez	I mean, I think you've like pretty much apart
+966	1	01:03:25.573	01:03:30.685	Martin Vasquez	from historical knowledge and suspicions on on what METCO done, you've got,
+966	2	01:03:30.685	01:03:36.211	Martin Vasquez	you've read way more into the business rules of the specifications that I have.
+966	3	01:03:36.211	01:03:41.116	Martin Vasquez	Apart from those business decisions, like if you've got any more, hey,
+967	0	01:03:46.236	01:03:47.116	Rafael Costa (Vendor)	Think, yeah.
+968	0	01:04:02.436	01:04:02.716	Elena Marchetti	But.
+969	0	01:03:41.436	01:03:45.801	Martin Vasquez	we want it to fault to a four port type thing that that probably needs us to at
+969	1	01:03:45.801	01:03:48.475	Martin Vasquez	least agree on. And if you've got a few of them,
+969	2	01:03:48.475	01:03:52.895	Martin Vasquez	maybe just chuck them in the chat saying, hey, we just we want to do this, this,
+969	3	01:03:52.895	01:03:56.550	Martin Vasquez	this and this. Do you agree? And then we can just async it and not
+969	4	01:03:56.550	01:04:00.916	Martin Vasquez	have to waste everyone's potentially waste everyone's time with a long meeting.
+974	0	01:04:03.436	01:04:08.179	Rafael Costa (Vendor)	I actually have a few other questions, but I think it would be hard to just,
+974	1	01:04:08.179	01:04:12.183	Rafael Costa (Vendor)	because it's not very very straightforward, one-to-one question,
+974	2	01:04:12.183	01:04:17.173	Rafael Costa (Vendor)	I think it requires some discussions. So we can have a smaller audience meeting.
+974	3	01:04:17.173	01:04:21.116	Rafael Costa (Vendor)	We don't have to have everybody in the meeting, but I prefer to
+975	0	01:04:22.076	01:04:26.236	Rafael Costa (Vendor)	to discuss the, I can send it to the chat, but I doubt that this would be very...
+978	0	01:04:36.636	01:04:37.036	Rafael Costa (Vendor)	Yeah.
+979	0	01:04:25.276	01:04:29.256	Elena Marchetti	I think I would agree. I think I would like to see a walkthrough
+979	1	01:04:29.256	01:04:33.603	Elena Marchetti	of it all, because as we discuss it, I think stuff comes up. You know,
+979	2	01:04:33.603	01:04:37.031	Elena Marchetti	we start to explore what does CONFIG-MGMT do in this situation,
+979	3	01:04:37.031	01:04:40.399	Elena Marchetti	what's implication of that, you know, stuff like that.
+979	4	01:04:40.399	01:04:42.236	Elena Marchetti	I think that's really helpful.
+980	0	01:04:43.396	01:04:45.596	Elena Marchetti	I would like to continue with the walkthrough.
+981	0	01:04:48.116	01:04:48.476	Rafael Costa (Vendor)	Okay.
+982	0	01:04:51.196	01:04:52.156	Rafael Costa (Vendor)	Okay, okay, I'll.
+983	0	01:04:46.316	01:04:52.876	Martin Vasquez	Yeah, that, that's fine. Just find some, find some time and we'll go, go from it.
+983	1	01:04:52.876	01:04:55.196	Martin Vasquez	At this stage, probably like.
+984	0	01:04:56.476	01:04:59.026	Martin Vasquez	I don't know. Friday morning's pretty good for me,
+984	1	01:04:59.026	01:05:00.876	Martin Vasquez	but probably maybe not for you, Elena.
+985	0	01:05:02.716	01:05:03.356	Martin Vasquez	Not sure.
+986	0	01:05:05.556	01:05:06.156	Rafael Costa (Vendor)	What, what?
+987	0	01:05:05.276	01:05:10.055	Martin Vasquez	Because we do Friday afternoon free, we tend to people tend to stack Fridays,
+987	1	01:05:10.055	01:05:12.996	Martin Vasquez	but mine's mine's relatively free before 10:30.
+988	0	01:05:13.276	01:05:16.809	Rafael Costa (Vendor)	If you want, if you want to have it like 1 P.m.
+988	1	01:05:16.809	01:05:18.796	Rafael Costa (Vendor)	on Thursday, is it okay or?
+989	0	01:05:20.076	01:05:20.956	Martin Vasquez	Um...
+990	0	01:05:22.476	01:05:23.996	Martin Vasquez	Yeah, I can, I can probably do that.
+991	0	01:05:22.236	01:05:24.876	Elena Marchetti	I'm free on to something. Yep.
+992	0	01:05:24.916	01:05:25.956	Martin Vasquez	Yeah, I can do that.
+993	0	01:05:26.636	01:05:29.009	Rafael Costa (Vendor)	Yeah, I'll send another question and maybe keep
+993	1	01:05:29.009	01:05:32.075	Rafael Costa (Vendor)	a smaller audience. I'll just mention that in the in the chat
+993	2	01:05:32.075	01:05:33.756	Rafael Costa (Vendor)	that only this for METCO discussion.
+994	0	01:05:38.636	01:05:44.556	Rafael Costa (Vendor)	Okay. Yeah. Yeah. Yeah.
+995	0	01:05:34.396	01:05:38.123	Martin Vasquez	Yeah, I've got a I've got a conflict, but it's it keeps it's a recurring
+995	1	01:05:38.123	01:05:40.931	Martin Vasquez	meeting that keeps getting cancelled before it starts,
+995	2	01:05:40.931	01:05:44.556	Martin Vasquez	so it's fine to assume that it's also going to be cancelled again. So,
+996	0	01:05:45.756	01:05:49.516	Rafael Costa (Vendor)	Okay, cool. That was a good one today. A lot of things, but yeah,
+996	1	01:05:49.516	01:05:53.676	Rafael Costa (Vendor)	I'll try to summarize the other rules before we start the meeting, guys.
+997	0	01:05:55.116	01:05:56.716	Rafael Costa (Vendor)	As much as that, yeah, yeah.
+998	0	01:05:54.876	01:05:58.451	Martin Vasquez	Yeah, that'd be good. Especially the juicy ones like, hey,
+998	1	01:05:58.451	01:06:02.876	Martin Vasquez	we want to potentially change physical things that we send to customers.
+999	0	01:06:03.196	01:06:07.404	Rafael Costa (Vendor)	Yeah, yeah, so, yeah, correct. So, the all the priorities go with a logical,
+999	1	01:06:07.404	01:06:10.956	Rafael Costa (Vendor)	if not an interior place, if not, then we go with an additional.
+1000	0	01:06:14.876	01:06:15.676	Rafael Costa (Vendor)	Of course, yes.
+1001	0	01:06:18.236	01:06:18.716	Rafael Costa (Vendor)	Yeah.
+1002	0	01:06:28.156	01:06:29.356	Rafael Costa (Vendor)	Yes.
+1003	0	01:06:10.236	01:06:14.524	Martin Vasquez	for us, it used to just be whatever, whatever we could get for free, right?
+1003	1	01:06:14.524	01:06:18.474	Martin Vasquez	Like, was the main main thing, because as soon as you've got a, well,
+1003	2	01:06:18.474	01:06:21.351	Martin Vasquez	as soon as you, as soon as you get charged and you
+1003	3	01:06:21.351	01:06:24.398	Martin Vasquez	haven't told the customer that they're copying a fee,
+1003	4	01:06:24.398	01:06:28.743	Martin Vasquez	you have to you have to absorb it, and that's very expensive for ACCESS-TYPE-A PREMISES-DEVICEs,
+1003	5	01:06:28.743	01:06:30.436	Martin Vasquez	because it's typically like...
+1004	0	01:06:33.436	01:06:34.076	Elena Marchetti	Wow.
+1005	0	01:06:30.596	01:06:34.476	Rafael Costa (Vendor)	Correct, yeah, yeah, I am.
+1006	0	01:06:30.556	01:06:35.476	Martin Vasquez	Three 100 bucks a pop, right? So, if you get it wrong, so yeah.
+1007	0	01:06:41.796	01:06:42.396	Elena Marchetti	Because.
+1010	0	01:06:35.836	01:06:40.415	Rafael Costa (Vendor)	You're burning the revenue, yes correct, yeah. Okay, that sounds good. Okay,
+1010	1	01:06:40.415	01:06:42.556	Rafael Costa (Vendor)	thank you. I'll see you on Thursday.
+1012	0	01:06:43.276	01:06:43.916	Peter Almqvist (Vendor)	Thanks a lot.
+1013	0	01:06:43.836	01:06:44.476	Rafael Costa (Vendor)	Thanks, bye.
+1014	0	01:06:41.516	01:06:44.396	Martin Vasquez	No worries. See you guys. Have a good one. Bye.

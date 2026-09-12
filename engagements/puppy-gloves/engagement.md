@@ -1,11 +1,11 @@
 # Engagement: puppy-gloves
 
-Version 0.3, 10 September 2026.
+Version 0.4, 12 September 2026.
 
 - Client: puppy-gloves (sanitised name)
-- Domain: to be set at S0
-- Ingester version last used: 0.5.1
-- Rules version last used: 1.1
+- Domain: Access ordering
+- Ingester version last used: 0.6.0
+- Rules version last used: 1.2
 
 ## Phases
 
