@@ -141,4 +141,4 @@ claim_list_add() { awk -v s="$2" -v key="$3" -v v="$4" '
     on && inlist { print "  - " v; inlist = 0; done = 1 }
     on && /^$/ { nb++; next }
     { print }
-    END { close_section() }' "$1" > "$1.tmp" && mv "$1.tmp" "$1"; }
+    END { close_section() }' "$1" | awk 'NR == 1 || !(prev == "" && $0 == "") { print } { prev = $0 }' > "$1.tmp" && mv "$1.tmp" "$1"; }

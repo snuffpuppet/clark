@@ -1,6 +1,6 @@
 # Engagement: puppy-gloves
 
-Version 0.4, 12 September 2026.
+Version 0.5, 12 September 2026.
 
 - Client: puppy-gloves (sanitised name)
 - Domain: Access ordering

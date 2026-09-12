@@ -15,8 +15,8 @@ tsv="$sdir/$tid.utterances.tsv"; sheet="$sdir/$tid.session.md"
 { printf 'utterance\tfragment\tstart\tend\tspeaker\ttext\n'
   awk '
     { sub(/\r$/, "") }
-    /^[0-9a-fA-F-]+\/[0-9]+-[0-9]+$/ { split($0, a, "/"); split(a[2], b, "-"); utt = b[1] + 0; frag = b[2] + 0; next }
-    /^[0-9:.]+ --> [0-9:.]+/ { start = $1; end = $3; next }
+    /^[0-9a-fA-F-]+\/[0-9]+-[0-9]+$/ { split($0, a, "/"); split(a[2], b, "-"); utt = b[1] + 0; frag = b[2] + 0; haveid = 1; next }
+    /^[0-9:.]+ --> [0-9:.]+/ { if (!haveid) { print "cue at " $1 " has no <id>/<utterance>-<fragment> line before it; not a Teams or Webex VTT" > "/dev/stderr"; exit 2 } start = $1; end = $3; haveid = 0; next }
     /^<v / { s = $0; sub(/^<v /, "", s); spk = s; sub(/>.*/, "", spk); sub(/^[^>]*>/, "", s); text = s; intext = 1
              if (s ~ /<\/v>$/) { emit(); intext = 0 }; next }
     intext { text = text " " $0; if ($0 ~ /<\/v>$/) { emit(); intext = 0 } }

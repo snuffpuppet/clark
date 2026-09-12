@@ -54,7 +54,7 @@ upper_snake() { printf '%s' "$1" | tr 'a-z ' 'A-Z_' | sed 's/MOSCOW/MOSCOW/'; }
 kebab() { printf '%s' "$1" | tr 'A-Z ' 'a-z-'; }
 resolve_items() { s=$1; for pair in $IDMAP; do it=${pair%%=*}; id=${pair#*=}; s=$(printf '%s' "$s" | sed "s/item $it\$/$id/g; s/item $it\([^0-9]\)/$id\1/g"); done; printf '%s' "$s"; }
 RES=$(mktemp -d "${TMPDIR:-/tmp}/ing.XXXXXXXX")
-reserve_id() { p=$1; n=$(next_id "$eng" "$p" | sed "s/^$p-//"); [ -f "$RES/$p" ] && r=$(( $(cat "$RES/$p") + 1 )) && [ "$r" -gt "$n" ] && n=$r; printf '%s' "$n" > "$RES/$p"; printf '%s-%04d\n' "$p" "$n"; }
+reserve_id() { p=$1; n=$(next_id "$eng" "$p" | sed "s/^$p-//; s/^0*//"); [ -f "$RES/$p" ] && r=$(( $(cat "$RES/$p") + 1 )) && [ "$r" -gt "$n" ] && n=$r; printf '%s' "$n" > "$RES/$p"; printf '%s-%04d\n' "$p" "$n"; }
 
 # Pass one: ids for new items so links between them resolve.
 IDMAP=""

@@ -1,0 +1,22 @@
+utterance	fragment	start	end	speaker	text
+1	0	00:00:02.000	00:00:08.000	Rafael Costa (Vendor)	Okay, thanks everyone. So this is the follow-up on the entity replace and upgrade rules. I sent the summary document on Wednesday, did you get it?
+2	0	00:00:08.500	00:00:13.000	Martin Vasquez	Yep, got it, read it. So that one's done as far as I'm concerned, the summary is there.
+3	0	00:00:13.500	00:00:20.000	Elena Marchetti	Yes, I have it too. Before we go through it, can we close out a couple of things from Monday first?
+4	0	00:00:20.500	00:00:32.000	Martin Vasquez	Sure. So I went through the METCO bill. We are paying for forty two services on the tagged template and none on PRIORITY-MARK mapped. So it is only tagged, forty two of them. I sent the list to Rafael this morning.
+5	0	00:00:32.500	00:00:35.000	Rafael Costa (Vendor)	Yes, I received it, thank you Marty.
+6	0	00:00:35.500	00:00:48.000	Elena Marchetti	Good, so that action is closed. And on the CR, I have put the tagged mode support on the CR list, and the business have asked for the options and the vendor estimate before they decide, so that one is in progress, it is with Rafael for the estimate now.
+7	0	00:00:48.500	00:00:52.000	Rafael Costa (Vendor)	Correct, I will have the estimate for the forty two tagged services by next week.
+8	0	00:00:52.500	00:01:06.000	Elena Marchetti	And the port default. I took the one port or four port question to the business on Tuesday and they decided to keep one port as the default. They do not want to change what we send to customers. So that is decided, we keep one port.
+9	0	00:01:06.500	00:01:10.000	Martin Vasquez	Good, that is the right call, that is what we do today anyway.
+10	0	00:01:10.500	00:01:14.000	Rafael Costa (Vendor)	Okay, so the default stays one port, and we do not need the four port default rule. Noted.
+11	0	00:01:14.500	00:01:30.000	Rafael Costa (Vendor)	Now on the capacity of the GEN-1, I checked the METCO specification. The GEN-1 ACCESS-TYPE-A is 1.3 gig downstream and the GEN-1 ACCESS-TYPE-B is 1 gig downstream. So it is confirmed, it is in the spec, page twelve.
+12	0	00:01:30.500	00:01:36.000	Martin Vasquez	Yep, I have the same spec open, 1.3 and 1 gig. Confirmed.
+13	0	00:01:36.500	00:01:52.000	Rafael Costa (Vendor)	And I asked NETCO about the connect outstanding. They came back and said connect outstanding allows an entity replace for both ACCESS-TYPE-A and ACCESS-TYPE-B, because the premises may have an old device left behind by the previous occupant. So it is both, not only ACCESS-TYPE-B.
+14	0	00:01:52.500	00:01:56.000	Martin Vasquez	Makes sense. So that question is answered then.
+15	0	00:01:56.500	00:02:14.000	Rafael Costa (Vendor)	Now the charge risk you raised, Marty, the three hundred dollar one. What we propose is that whenever the entity selection lands on a chargeable add or replace, the orchestration flow will stop and raise a manual task for approval before the order goes to METCO. So nothing chargeable goes out automatically.
+16	0	00:02:14.500	00:02:22.000	Martin Vasquez	Yes, that is what I want. A manual approval step on anything chargeable. Then we are not burning revenue by accident.
+17	0	00:02:22.500	00:02:28.000	Elena Marchetti	Agreed, let us review that risk again at the end of the month once the flow is designed.
+18	0	00:02:28.500	00:02:40.000	Rafael Costa (Vendor)	Okay. And the entity selection rule itself, Elena, Marty, did you get a chance to walk through the summary? We still need your approval on that one.
+19	0	00:02:40.500	00:02:48.000	Elena Marchetti	Not yet, Marty and I will walk through it on Monday and come back to you. So that stays open, next step is our walkthrough.
+20	0	00:02:48.500	00:02:52.000	Rafael Costa (Vendor)	Okay, no problem. Thanks everyone, see you Monday.
+21	0	00:02:52.500	00:02:54.000	Martin Vasquez	Cheers, bye.
