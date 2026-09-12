@@ -362,6 +362,7 @@ Written 10 September 2026 after Adam's review. Built the same day as ingester 0.
 | Change | Why | Source |
 |---|---|---|
 | Every register item, claim element, stakeholder, topic and transcript is one markdown file with YAML frontmatter, named by its id | A change to one item is a diff on one file; the item's history is `git log` on that file; no pipe escaping, no end markers, no row surgery | Adam, 10 September 2026 |
+| Changes to an existing item are recorded in the file itself, as one History line per change (F10) with old and new values, mirrored in the session log and rendered into `index/changes.md` | The register is readable without the repository; hand edits and skill edits use the same line; git becomes the backup rather than the record | Adam, 11 September 2026 |
 | Ids are four digits: `REQ-0004`, `PRC-0005`, `STK-0003`, claims `SYS-0002.f1` | Engagements will exceed 999 requirements | Adam |
 | Transcript ids stay `T001`, episode ids `T001-E02` | Typed by hand often; never near a thousand | Recommended, to confirm |
 | Stakeholders gain Segment (Residential, BE&G, Wholesale, or blank) and Department (free text such as product, operations, finance) | A BE&G SME speaks for BE&G; a Finance SME speaks for the whole business, so blank means not segment-specific. Department says where they sit | Adam |

@@ -1,6 +1,6 @@
 # Extraction rules
 
-Version 1.1, 10 September 2026.
+Version 1.2, 12 September 2026.
 
 These rules are the method. The skill reads them before S1 and applies them to every exchange. Each rule carries the failure modes that map to it (design Q4) and a table of test passages. When a run report tags a failure against a rule, the fix is made here: the statement is edited and the failing passage is added as a test passage under the rule, with the run that found it. A rule change that lowers any kind's Right count on an earlier reference is a regression and is reverted or explained in the change log. Every test passage citation passes `ingester/bin/check-citations`.
 
@@ -215,6 +215,30 @@ None yet.
 ### R17 The ledger is context
 
 Before proposing a claim or row, check the engagement's existing claims, items and topics. A match updates the existing id; a conflict is Needs a human with both ids; a closure names the open item it closes.
+
+A follow-up session is read against the outstanding set as much as against the transcript. Before segmenting, build that set from the item files: open items not Closed, risks not Realised or Retired, decisions in Proposed, requirements in Draft, limitations in Identified or Under assessment, claims Hedged or Contested, and every Question under Questions for the SMEs in the earlier dossiers under `sessions/`. Read the transcript with the set in hand. A member the session touches yields a mutation item; an on-subject member the session never reaches is listed under Closing, Outstanding not reached, so the reviewer can see what is still open.
+
+A mutation is an item block whose `- Target:` is an existing id. The block carries only the fields that change, each as it should read afterwards, with the citations that justify the change. The Gist states every change as `Field: old to new` so the reviewer judges it without opening the file. The write stage sets the fields, adds the citations to Source (Raised by on an open item) or to the claim's evidence, and appends one History line (F10) recording each old and new value.
+
+The moves the model allows, and what each needs in the block. A move that needs a companion record is two items in one dossier, the new one referred to as `item nn`.
+
+| Type | Move | Block carries |
+|---|---|---|
+| OI | Open, In progress or Blocked to Closed | Status Closed, Resolution (the id or `item nn` of the record it produced, or `No record: <reason>`), Closed on, Next action if it changes. Never reopen a Closed item; raise a new one. |
+| OI | to Blocked, or out of it | Status, Blocked by (set when entering, cleared to blank when leaving), Next action |
+| OI | Owner, Next action or Due changes | The changed field only |
+| DEC | Proposed to Accepted or Rejected | Status, Approved by (a person or forum on our side whose Decides covers it, R19), Decided on, Consulted if it grows |
+| DEC | Accepted to Superseded | Status Superseded and `Links: superseded by item nn` on the old one; a new DEC in the same dossier. An Accepted decision changes in no other way. |
+| REQ | Draft to Agreed, Designed, Delivered, Verified, Deferred or Withdrawn | Status, MoSCoW or Phase if they change, Owner if it changes |
+| LIM | Identified to Under assessment | Status, Impact, `Links: assessed by <OI or item nn>` with an open item that carries the owner |
+| LIM | Under assessment to Accepted | Status, Options (at least two), Chosen option, Disposition record (a DEC in Accepted, or `item nn`) |
+| LIM | Under assessment to Resolved | Status, evidence in the citations |
+| RSK | Identified to Mitigating | Status, Trigger, Mitigation, Due as the next review |
+| RSK | to Realised | Status Realised, `Links: realised as item nn` with a new OI in the same dossier |
+| RSK | to Retired | Status Retired, Mitigation carrying the one-line reason |
+| RSK | Likelihood, Impact or Mitigation changes | The changed field only |
+| Claim | Hedged or Contested to Stated | Confidence, with the confirming citation as new evidence |
+| Claim | Current to Retired, or to Current, not needed | Status, with the citation (R5, R6) |
 
 **Failure modes:** none yet
 

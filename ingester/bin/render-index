@@ -53,4 +53,12 @@ claims_index SYS Systems; claims_index PRC Processes
   printf '\n## 5. Requirements in Draft\n\n'; row ID Title Owner "Raised on" MoSCoW; sep 1 2 3 4 5
   for f in "$d"/requirements/REQ-*.md; do [ -f "$f" ] || continue; [ "$(fm "$f" status)" = Draft ] && row "$(fm "$f" id)" "$(fm "$f" title)" "$(fm "$f" owner)" "$(fm "$f" raised-on)" "$(fm "$f" moscow)"; done
   printf '\nSections 4 and 5 list every Proposed decision and Draft requirement; the model flags those older than 14 days, which `check-integrity` reports as I15 warnings.\n'; } > "$d/index/outstanding.md"
+# Changes (F10): every History line on a register item and every history entry on a claim, oldest first.
+{ header Changes; printf 'One row per change to an existing item or claim, from the History section of each item file and the history list of each claim. A new item has no row here; see the session logs.\n\n'
+  row Id Date Source Change Evidence; sep 1 2 3 4 5
+  for f in "$d"/requirements/REQ-*.md "$d"/decisions/DEC-*.md "$d"/limitations/LIM-*.md "$d"/risks/RSK-*.md "$d"/open-items/OI-*.md; do [ -f "$f" ] || continue
+    body_section "$f" History | grep '^- ' | sed 's/^- //' | while IFS= read -r l; do row "$(fm "$f" id)" "$(printf '%s' "$l" | cut -d'|' -f1 | sed 's/ *$//')" "$(printf '%s' "$l" | cut -d'|' -f2 | sed 's/^ *//; s/ *$//')" "$(printf '%s' "$l" | cut -d'|' -f3 | sed 's/^ *//; s/ *$//')" "$(printf '%s' "$l" | cut -d'|' -f4- | sed 's/^ *//')"; done; done
+  for f in "$d"/systems/SYS-*.md "$d"/processes/PRC-*.md; do [ -f "$f" ] || continue; id=$(fm "$f" id)
+    for sec in $(claim_sections "$f"); do awk -v s="$sec" '/^## / { on = ($2 == s) } on && $0 == "- history:" { inl = 1; next } on && inl && /^  - / { sub(/^  - /, ""); print; next } { inl = 0 }' "$f" | while IFS= read -r l; do
+      row "$id.$sec" "$(printf '%s' "$l" | cut -d'|' -f1 | sed 's/ *$//')" "$(printf '%s' "$l" | cut -d'|' -f2 | sed 's/^ *//; s/ *$//')" "$(printf '%s' "$l" | cut -d'|' -f3 | sed 's/^ *//; s/ *$//')" "$(printf '%s' "$l" | cut -d'|' -f4- | sed 's/^ *//')"; done; done; done; } > "$d/index/changes.md"
 printf 'index: %s tables under %s\n' "$(ls "$d/index" | grep -c '\.md$')" "$d/index"

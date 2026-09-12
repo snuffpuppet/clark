@@ -14,7 +14,7 @@ The skill is `.claude/skills/ingest-transcript/SKILL.md` at the repository root 
 
 - `engagement.md`: client, domain, phases, glossary, ingester version last used. Edit by hand.
 - `LOG.md`: running log of what happened to this engagement, one line per event, appended by the scripts and by hand.
-- One file per item: `requirements/`, `decisions/`, `limitations/`, `risks/`, `open-items/`, `processes/`, `systems/`, `stakeholders/`, `topics/`, `transcripts/Tnnn.md`. Written by the write stage after a signed dossier; edit by hand only with a dated note.
+- One file per item: `requirements/`, `decisions/`, `limitations/`, `risks/`, `open-items/`, `processes/`, `systems/`, `stakeholders/`, `topics/`, `transcripts/Tnnn.md`. Written by the write stage after a signed dossier; edit by hand only with a line under the file's History section in the F10 form, `- <date> | <your name> | <Field>: <old> to <new> |`.
 - `index/`: generated tables. Never edit; run `../../ingester/bin/render-index {{ENGAGEMENT}}` to refresh.
 - `transcripts/unprocessed/` and `transcripts/processed/`: VTT files as received. Never edit, rename or delete.
 - `sessions/Tnnn/`: utterance table, session sheet, exchanges, episodes, dossier, session log, `TASKS.md`.

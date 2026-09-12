@@ -9,12 +9,14 @@ Version 0.1, {{DATE}}.
 - Ingester version: {{INGESTER_VERSION}}
 - Rules version: {{RULES_VERSION}}
 - Dossier version: 1
+- New items:
+- Mutations:
 - Completed by:
 - Completed on:
 
 ## How to review
 
-Read every episode. Each item carries a grade. Items graded Needs a human must each get a Verdict of Accept, Edit or Reject. Items graded Confident may be accepted individually, or in bulk for an episode by writing `Bulk accept: <your name>` on the line under the episode heading after reading them; the write stage treats a blank Verdict on a Confident item in a bulk-accepted episode as Accept. To edit an item, change its field lines in place and write Edit. Questions get an answer in the Gist line or the verdict `raise an OI`. Missed passages are added as new items with citations. When every verdict is filled the dossier is complete: the skill writes Completed by and Completed on and goes straight to S3. There is no separate approval step. A blank verdict outside a bulk-accepted episode is pending and blocks S3.
+Read every episode. Each item carries a grade. An item whose Target is an existing id changes that record: its field lines are the new values and its Gist says what each was before. Items graded Needs a human must each get a Verdict of Accept, Edit or Reject. Items graded Confident may be accepted individually, or in bulk for an episode by writing `Bulk accept: <your name>` on the line under the episode heading after reading them; the write stage treats a blank Verdict on a Confident item in a bulk-accepted episode as Accept. To edit an item, change its field lines in place and write Edit. Questions get an answer in the Gist line or the verdict `raise an OI`. Missed passages are added as new items with citations. When every verdict is filled the dossier is complete: the skill writes Completed by and Completed on and goes straight to S3. There is no separate approval step. A blank verdict outside a bulk-accepted episode is pending and blocks S3.
 
 ## {{TID}}-E01 Example episode title
 
@@ -41,11 +43,26 @@ Read every episode. Each item carries a grade. Items graded Needs a human must e
   - accepted | T001/633:0 | Elena Marchetti | 00:35:48 | "We already have this problem."
 - Gist: Example item in the shape every item takes. Delete when writing a real dossier.
 
+### Item 02 | OI | Confident
+- Episode: {{TID}}-E01
+- Target: OI-0001
+- Grade: Confident
+- Verdict:
+- Title: Confirm whether CONFIG-MGMT supports tagged templates
+- Status: Closed
+- Resolution: item 01
+- Closed on: 12 September 2026
+- Citations:
+  - answered | T001/631:0, 632:0 | Martin Vasquez | 00:35:40 | "but the PRIORITY-MARK and the tagged ones. Absolutely not."
+- Gist: Example mutation: Status Open to Closed; Resolution set to the claim written from item 01. Only the fields that change appear. Delete when writing a real dossier.
+
 ## Closing
 
 ### Questions for the SMEs
 
 ### Empty episodes
+
+### Outstanding not reached
 
 ### Citation check
 

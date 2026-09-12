@@ -1,6 +1,6 @@
 # The ingester
 
-Version 0.8, 10 September 2026.
+Version 0.9, 12 September 2026.
 
 ## Purpose
 
@@ -52,7 +52,7 @@ The skill finds the next unsigned gate and acts on it, or says which file is wai
 | S0 Prepare | `bin/s0-prepare`, then the skill proposes roles | VTT, stakeholder register | `Tnnn.utterances.tsv`, `Tnnn.session.md` | Session sheet signed, every verdict filled |
 | S1 Read | `bin/s1-stakeholders` writes the accepted stakeholder rows, then the skill reads | Utterance table, signed sheet, rules, the engagement's records | `Tnnn.exchanges.md`, `Tnnn.episodes.md`, `Tnnn.dossier.md` | Dossier signed, every verdict filled |
 | S2 Review | The human | Dossier | Dossier with verdicts | As above |
-| S3 Write | `bin/s3-write` | Both signed files | Registers, record, ledger, stakeholder edits, session log; VTT moved to `processed/` | None |
+| S3 Write | `bin/s3-write` | Both signed files | Registers, record, ledger, stakeholder edits, History lines on changed items, session log; VTT moved to `processed/` | None |
 | Evaluate | `bin/score`, then the human tags | Dossier and reference | `evaluation/Tnnn-run-nn.md` | None |
 
 ## Formats
@@ -62,14 +62,15 @@ These are the shapes every script and the skill agree on. `IMPLEMENTATION-PLAN.m
 - **F1 Utterance table.** TSV, header `utterance fragment start end speaker text`, one row per cue, whitespace collapsed, sorted by utterance then fragment numerically.
 - **F2 Citation.** `<label> | Tnnn/<utt>:<frag>[-<frag>][, ...] | <speaker> | <hh:mm:ss> | "<quote>"`. Labels: asked, answered, proposed, restated, accepted, challenged, deferred, hedged. Timestamp is the start of the first cited fragment cut to seconds. Quote is verbatim; `...` skips words inside the range. In a table cell `|` is written `\|` and citations are separated by `; `.
 - **F3 Item files.** One markdown file per item, named by its id (`REQ-0004.md`), with YAML frontmatter for short fields (kebab-case keys, lists as `  - ` items) and fixed body headings for long ones (Source, Rationale, Impact, Options, Trigger, Mitigation, Raised by, Next action, Notes). Ids are four digits; transcripts are `T001`.
-- **F4 Item block.** `### Item n | <kind> | <grade>` followed by `- Field: value` lines, a `- Citations:` list and a `- Gist:` line. Kinds: PRC, PRC.step, SYS, SYS.fact, REQ, DEC, LIM, RSK, OI, CR, Question, STK.edit, TOP. `- Target:` is `new` or an existing id. `- Verdict:` is blank, Accept, Edit or Reject.
+- **F4 Item block.** `### Item n | <kind> | <grade>` followed by `- Field: value` lines, a `- Citations:` list and a `- Gist:` line. Kinds: PRC, PRC.step, SYS, SYS.fact, REQ, DEC, LIM, RSK, OI, CR, Question, STK.edit, TOP. `- Target:` is `new` or an existing id. With an existing id the block is a mutation: it carries only the fields that change, as they should read afterwards, and its Gist says `Field: old to new` for each. `- Verdict:` is blank, Accept, Edit or Reject.
 - **F5 Gate.** A file is signed when `- Approver:` and `- Approved on:` are filled, no `- Verdict:` is blank, and no session sheet table row has an empty last cell.
 - **F6 Claims.** A system or process file holds its claims as sections `## f1 <description>` or `## s1 <description>`, each with `- key: value` lines (kind, status, confidence, asserted-by, episode, session, evidence list). Claim ids are `SYS-0002.f1`. Sections are never renumbered or removed.
-- **F7 Index tables.** `index/*.md` are rendered from the item files by `bin/render-index` after every S3 and on request; never edited.
+- **F7 Index tables.** `index/*.md` are rendered from the item files by `bin/render-index` after every S3 and on request; never edited. `index/changes.md` lists every History line and claim history entry across the register.
 - **F8 Session log.** `sessions/Tnnn/Tnnn.session-log.md`, one row per id created or changed.
 - **F9 Run log.** `logs/<UTC timestamp>-<Tnnn>-<stage>.md`, append only.
+- **F10 History line.** The last section of every register item file is `## History`, one line per change: `- <D Month YYYY> | <Tnnn item nn, or a person's name for a hand edit> | <Field>: <old> to <new>; ... | <F2 citations, or blank>`. A blank old value is written `blank`. A claim carries the same as `- history:` list entries under its section, and its new evidence joins `- evidence:`. The session log row for the id repeats the change summary.
 
-Documents (README, rules, runbooks, engagement.md, session sheet, dossier) carry `Version X.Y, D Month YYYY.` near the top and are bumped on change. Item files carry `updated:` instead; their history is the file's git history.
+Documents (README, rules, runbooks, engagement.md, session sheet, dossier) carry `Version X.Y, D Month YYYY.` near the top and are bumped on change. Item files carry `updated:` and a History section (F10) instead; git is the backup, not the record.
 
 ## Scripts
 
@@ -82,10 +83,10 @@ All in `bin/`, POSIX sh with awk, sed, grep, shasum and date. `ENGAGEMENTS_ROOT`
 | `s0-prepare` | `s0-prepare <engagement> <Tnnn>` | Verifies the SHA, writes the utterance table and the session sheet with speakers matched against the stakeholder register. |
 | `s1-stakeholders` | `s1-stakeholders <engagement> <Tnnn>` | Runs when the signed session sheet opens the S1 gate. Writes one `stakeholders/STK-nnnn.md` per accepted row, extends `sessions` on attendees, starts the session log. Once per transcript. |
 | `check-citations` | `check-citations <engagement> <Tnnn> <file>` | Checks every F2 citation in a file against the utterance table. Exit 1 on any failure. |
-| `check-integrity` | `check-integrity <engagement> [--proposed <dossier>]` | Runs the model's integrity rules over the item files, optionally merged with the accepted items of a dossier. |
+| `check-integrity` | `check-integrity <engagement> [--proposed <dossier>]` | Runs the model's integrity rules over the item files, optionally merged with the accepted items of a dossier: new items as new rows, mutations overlaid on the rows they target. Refuses a mutation of a missing id, a reopened open item or a changed Accepted decision. |
 | `dossier2tsv` | `dossier2tsv <file>` | Flattens F4 item blocks to one TSV row per item. |
-| `s3-write` | `s3-write <engagement> <Tnnn>` | Checks every gate, writes one file per accepted item, appends claims, extends topics, completes the transcript file, writes the session log, renders the index, moves the VTT to `processed/`. Restores everything on failure. |
-| `render-index` | `render-index <engagement>` | Regenerates the tables under `index/`, including `outstanding.md`. |
+| `s3-write` | `s3-write <engagement> <Tnnn>` | Checks every gate, writes one file per accepted new item, applies each mutation to its existing file with a History line, appends claims, extends topics, completes the transcript file, writes the session log, renders the index, moves the VTT to `processed/`. Restores everything on failure. |
+| `render-index` | `render-index <engagement>` | Regenerates the tables under `index/`, including `outstanding.md` and `changes.md`. |
 | `score` | `score <engagement> <Tnnn> <reference> [<dossier>]` | Writes `evaluation/Tnnn-run-nn.md` with the counts from design Q4. |
 | `stage` | `stage <engagement> <Tnnn> <status\|tasks\|S0\|S1\|S3\|check\|score>` | Driver. Reports the state, runs a stage, refuses a stage whose predecessor is unsigned, writes a run log. |
 | `tasks` | `tasks <engagement> <Tnnn>` | Prints the ingestion checklist for one transcript with each step marked from the files on disk, and writes `sessions/Tnnn/TASKS.md`. Also `stage <engagement> <Tnnn> tasks`. |

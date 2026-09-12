@@ -46,10 +46,13 @@ if [ -n "$dossier" ]; then
       if (kind == "SYS.fact" || kind == "PRC.step") { id = (target == "new") ? "CLAIM-item" item : target; st = ""
         n = split(fields, kv, "\001"); for (i = 1; i <= n; i++) { k = kv[i]; sub(/=.*/, "", k); v = kv[i]; sub(/^[^=]*=/, "", v); if (k == "Status") st = v }
         printf "CLAIM\t%s\tStatus\t%s\n", id, st; printf "ITEMMAP\titem %s\tid\t%s\n", item, id; next }
-      if (kind == "SYS" || kind == "PRC") { id = (target == "new") ? kind "-item" item : target; printf "ELEM\t%s\tID\t%s\n", id, id; printf "ITEMMAP\titem %s\tid\t%s\n", item, id; next }
+      if (kind == "SYS" || kind == "PRC") { id = (target == "new") ? kind "-item" item : target; if (target == "new") printf "ELEM\t%s\tID\t%s\n", id, id; printf "ITEMMAP\titem %s\tid\t%s\n", item, id; next }
       if (type != "REQ" && type != "DEC" && type != "LIM" && type != "RSK" && type != "OI") next
       id = (target == "new") ? type "-item" item : target
-      printf "ITEMMAP\titem %s\tid\t%s\n", item, id; printf "%s\t%s\tID\t%s\n%s\t%s\tProposed\tyes\n", type, id, id, type, id
+      printf "ITEMMAP\titem %s\tid\t%s\n", item, id
+      # A new item declares its id; a mutation overlays its changed fields on the row read from disk (F4 Target).
+      if (target == "new") printf "%s\t%s\tID\t%s\n", type, id, id; else printf "%s\t%s\tMUTATES\titem %s\n", type, id, item
+      printf "%s\t%s\tProposed\tyes\n", type, id
       n = split(fields, kv, "\001"); for (i = 1; i <= n; i++) { k = kv[i]; sub(/=.*/, "", k); v = kv[i]; sub(/^[^=]*=/, "", v); if (k != "Gist") printf "%s\t%s\t%s\t%s\n", type, id, k, v }
       if ($9 != "") { c = $9; gsub(/\002/, "; ", c); printf "%s\t%s\t%s\t%s\n", type, id, (type == "OI" ? "Raised by" : "Source"), c } }' >> "$facts"
   if [ -f "$sheet" ]; then
@@ -84,6 +87,7 @@ awk -F'\t' -v today="$(today)" '
     if (type == "STK") { STK[id] = 1; if (key == "Name") STKname[id] = val; if (key == "Variants") STKvar[id] = val; if (key == "Role") STKrole[id] = val; if (key == "Segment") STKseg[id] = val; next }
     if (type == "ELEM") { if (id in ELEM) dupe[id] = 1; ELEM[id] = 1; next }
     if (type == "CLAIM") { CLAIM[id] = val; next }
+    if (key == "MUTATES") { MUT[id] = val; if (!(id in T)) { T[id] = type; order[++cnt] = id; seen[id]++; MISSING[id] = 1 } OLD[id] = F[id, "Status"]; next }
     if (!(id in T)) { T[id] = type; order[++cnt] = id; seen[id]++ } else if (T[id] != type || key == "ID") seen[id]++
     F[id, key] = val }
   END {
@@ -98,6 +102,9 @@ awk -F'\t' -v today="$(today)" '
     for (e in dupe) fail("I1", e, "element id appears more than once")
     for (i = 1; i <= cnt; i++) { id = order[i]; t = T[id]; st = F[id, "Status"]; term = ((t " " st) in TERM)
       if (seen[id] > 1 || (id in ELEM) || (id in STK)) fail("I1", id, "id appears more than once")
+      if (id in MISSING) fail("I6", id, MUT[id] " targets " id ", which does not exist")
+      if ((id in MUT) && t == "DEC" && OLD[id] == "Accepted" && st != "Accepted" && st != "Superseded") fail("I11", id, MUT[id] " changes an Accepted decision to " st "; an Accepted decision can only be Superseded")
+      if ((id in MUT) && t == "OI" && OLD[id] == "Closed") fail("I9", id, MUT[id] " changes a Closed open item; raise a new one instead")
       if (!((t SUBSEP st) in V)) fail("I2", id, "status \"" st "\" is not a " t " status")
       if (t == "REQ") { if (!has(id, "MoSCoW")) fail("I2", id, "no MoSCoW"); if (!has(id, "Raised on")) fail("I2", id, "no Raised on") }
       if (t == "LIM") { if (!has(id, "Identified on")) fail("I2", id, "no Identified on"); if (st != "Identified" && !has(id, "Impact")) fail("I2", id, "no Impact past Identified")

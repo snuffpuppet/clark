@@ -71,18 +71,27 @@ while IFS="$US" read -r item kind grade verdict target episode bulk fields cites
       path=$(item_path "$eng" "$id")
       if [ "$target" = new ]; then
         vals; set_val ID "$id"; set_val TID "$tid"; set_val EPISODE "$episode"; set_val DATE "$TODAY"
-        printf '%s' "$fields" | tr '\001' '\n' | while IFS= read -r kv; do k=${kv%%=*}; v=${kv#*=}; [ "$k" = Gist ] && k=Notes; [ "$k" = Links ] && continue; set_val "$(upper_snake "$k")" "$v"; done
+        printf '%s' "$fields" | tr '\001' '\n' | while IFS= read -r kv; do k=${kv%%=*}; v=$(resolve_items "${kv#*=}"); [ "$k" = Gist ] && k=Notes; [ "$k" = Links ] && continue; set_val "$(upper_snake "$k")" "$v"; done
         set_list LINKS "$(resolve_items "$(fld "$fields" Links)" | tr ';' '\n' | sed 's/^ *//')"
         if [ "$type" = OI ]; then set_val RAISED_BY "$(cite_lines "$cites")"; else set_val SOURCE "$(cite_lines "$cites")"; fi
         render "$INGESTER_DIR/templates/items/$type.md" "$path"; vals_done
         logrow "$id" created "$(item_dir "$type")/$id.md" "$(fld "$fields" Title)"
       else
+        # A mutation (F4 Target): every field in the block is set as it should read afterwards, the block's
+        # citations join Source (Raised by on an open item), and one F10 History line records each old and new value.
         [ -f "$path" ] || die "item $item targets $id, which does not exist"
-        printf '%s' "$fields" | tr '\001' '\n' | while IFS= read -r kv; do k=${kv%%=*}; v=${kv#*=}; case $k in Gist|Title|Links|Source|Rationale|Impact|Options|Trigger|Mitigation|"Next action"|"Raised by") continue ;; esac; fm_set "$path" "$(kebab "$k")" "$v"; done
-        for l in $(resolve_items "$(fld "$fields" Links)" | tr ';' '\n' | sed 's/^ *//; s/ /_/g'); do fm_list_add "$path" links "$(printf '%s' "$l" | tr '_' ' ')"; done
+        changes=$(printf '%s' "$fields" | tr '\001' '\n' | while IFS= read -r kv; do k=${kv%%=*}; v=$(resolve_items "${kv#*=}")
+          case $k in (Gist|Source|"Raised by") continue ;;
+            (Links) for l in $(printf '%s' "$v" | tr ';' '\n' | sed 's/^ *//; s/ /_/g'); do fm_list_add "$path" links "$(printf '%s' "$l" | tr '_' ' ')"; done; printf 'Links: added %s; ' "$v" ;;
+            (Rationale|Impact|Options|Trigger|Mitigation|"Next action"|Notes) old=$(body_section "$path" "$k"); [ "$old" = "$v" ] && continue; body_set "$path" "$k" "$v"; printf '%s: %s to %s; ' "$k" "${old:-blank}" "$v" ;;
+            (*) old=$(fm "$path" "$(kebab "$k")"); [ "$old" = "$v" ] && continue; fm_set "$path" "$(kebab "$k")" "$v"; printf '%s: %s to %s; ' "$k" "${old:-blank}" "$v" ;;
+          esac; done | sed 's/; $//')
+        sec=Source; [ "$type" = OI ] && sec="Raised by"
+        printf '%s' "$cites" | tr '\002' '\n' | grep . | while IFS= read -r c; do body_append "$path" "$sec" "- $c"; done
         fm_set "$path" updated "$TODAY"
-        printf '\n%s, item %s: %s\n' "$tid" "$item" "$(fld "$fields" Gist)" >> "$path"
-        logrow "$id" updated "$(item_dir "$type")/$id.md" "$(fld "$fields" Title)"
+        history_add "$path" "$TODAY | $tid item $item | ${changes:-no field changed} | $(printf '%s' "$cites" | tr '\002' '\n' | grep . | paste -sd ';' - | sed 's/;/; /g')"
+        [ "$type" = OI ] && [ "$(fld "$fields" Status)" = Closed ] && printf '%s\t%s\t%s\n' "$episode" "$id" "$(resolve_items "$(fld "$fields" Resolution)")" >> "$RES/closures"
+        logrow "$id" updated "$(item_dir "$type")/$id.md" "${changes:-no field changed}"
       fi ;;
     SYS|PRC)
       path=$(item_path "$eng" "$id")
@@ -96,6 +105,7 @@ while IFS="$US" read -r item kind grade verdict target episode bulk fields cites
     SYS.fact|PRC.step)
       parent=$(resolve_items "$(fld "$fields" System)$(fld "$fields" Process)"); [ "$type" = PRC ] && parent=$(resolve_items "$(fld "$fields" Process)")
       [ "$type" = SYS ] && parent=$(resolve_items "$(fld "$fields" System)")
+      [ "$target" = new ] || parent=${target%.*}
       ppath=$(item_path "$eng" "$parent"); [ -f "$ppath" ] || die "item $item names $parent, which does not exist"
       if [ "$target" = new ]; then
         pre=f; [ "$type" = PRC ] && pre=s
@@ -110,10 +120,14 @@ while IFS="$US" read -r item kind grade verdict target episode bulk fields cites
         awk -v ins="$RES/claim2" '/^## Questions/ && !done { while ((getline l < ins) > 0) print l; print ""; done=1 } { print } END { if (!done) while ((getline l < ins) > 0) print l }' "$ppath" > "$ppath.tmp" && mv "$ppath.tmp" "$ppath"
         fm_set "$ppath" updated "$TODAY"; cid="$parent.$sec"; IDMAP="$IDMAP $item=$cid"; logrow "$cid" created "$(item_dir "$type")/$parent.md" "$(fld "$fields" Title)"
       else
-        sec=${target##*.}
-        for k in Status Confidence; do v=$(fld "$fields" "$k"); [ -n "$v" ] || continue
-          awk -v s="$sec" -v key="$(kebab "$k")" -v v="$v" '/^## / { on = ($2 == s) } on && index($0, "- " key ": ") == 1 { print "- " key ": " v; next } { print }' "$ppath" > "$ppath.tmp" && mv "$ppath.tmp" "$ppath"; done
-        fm_set "$ppath" updated "$TODAY"; logrow "$target" updated "$(item_dir "$type")/$parent.md" "$(fld "$fields" Title)"
+        # A claim mutation: status and confidence set, the block's citations added to evidence, a history entry (F10).
+        sec=${target##*.}; changes=""
+        for k in Status Confidence; do v=$(fld "$fields" "$k"); [ -n "$v" ] || continue; old=$(claim_field "$ppath" "$sec" "$(kebab "$k")"); [ "$old" = "$v" ] && continue
+          claim_set "$ppath" "$sec" "$(kebab "$k")" "$v"; changes="$changes$(kebab "$k"): ${old:-blank} to $v; "; done
+        changes=$(printf '%s' "$changes" | sed 's/; $//')
+        printf '%s' "$cites" | tr '\002' '\n' | grep . | while IFS= read -r c; do claim_list_add "$ppath" "$sec" evidence "$c"; done
+        claim_list_add "$ppath" "$sec" history "$TODAY | $tid item $item | ${changes:-no field changed} | session $tid, $session_date"
+        fm_set "$ppath" updated "$TODAY"; logrow "$target" updated "$(item_dir "$type")/$parent.md" "${changes:-no field changed}"
       fi ;;
     TOP)
       path=$(item_path "$eng" "$id")
@@ -140,6 +154,10 @@ if [ -f "$RES/topics" ]; then
     top=$(awk -F'\t' -v e="$episode" '$1 == e { print $2; exit }' "$RES/topics"); [ -n "$top" ] || continue
     key=closed-by; [ "$kind" = OI ] && key=open-items; fm_list_add "$(item_path "$eng" "$top")" "$key" "$id"
   done < "$items"
+  # An open item closed in an episode: its Resolution id (when it is an id) joins the topic's closed-by.
+  [ -f "$RES/closures" ] && while IFS="$TAB" read -r episode oid res; do
+    top=$(awk -F'\t' -v e="$episode" '$1 == e { print $2; exit }' "$RES/topics"); [ -n "$top" ] || continue
+    case $res in REQ-*|DEC-*|LIM-*|RSK-*|OI-*) fm_list_add "$(item_path "$eng" "$top")" closed-by "$res" ;; esac; done < "$RES/closures"
 fi
 
 # Transcript file, engagement.md.

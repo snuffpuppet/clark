@@ -114,3 +114,31 @@ phases() { awk '/^## Phases/ { on=1; next } /^## / { on=0 } on && /^- / { sub(/^
 current_phase() { awk '/^## Phases/ { on=1; next } /^## / { on=0 } on && /^- .* \(current\)$/ { sub(/^- /, ""); sub(/ \(current\)$/, ""); print; exit }' "$(eng_dir "$1")/engagement.md"; }
 # eng_log engagement "message": appends one dated line to the engagement's LOG.md.
 eng_log() { f="$(eng_dir "$1")/LOG.md"; [ -f "$f" ] || printf '# Log: %s\n\nRunning log of this engagement, newest last.\n\n' "$1" > "$f"; printf -- '- %s: %s\n' "$(today)" "$2" >> "$f"; }
+
+# ---- Body sections and history (F10) ----
+# body_section file "Heading": text under "## Heading" up to the next "## ", trimmed of blank lines.
+body_section() { awk -v h="$2" '/^## / { on = ($0 == "## " h); next } on { print }' "$1" | awk 'NF { p = 1 } p { buf = buf $0 "\n" } END { sub(/\n+$/, "", buf); printf "%s", buf }'; }
+# body_set file "Heading" "text": replace the text under "## Heading"; the section is appended if missing.
+body_set() { printf '%s\n' "$3" > "$1.sec"
+  awk -v h="$2" -v sec="$1.sec" '
+    function emit() { print "## " h; print ""; while ((getline l < sec) > 0) print l; close(sec); print ""; done = 1 }
+    /^## / { if (on) on = 0; if ($0 == "## " h) { emit(); on = 1; next } }
+    on { next } { print }
+    END { if (!done) emit() }' "$1" | awk 'NR == 1 || !(prev == "" && $0 == "") { print } { prev = $0 }' | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' > "$1.tmp" && mv "$1.tmp" "$1"; rm -f "$1.sec"; }
+# body_append file "Heading" "line": append a line to the section (created if missing) before the next heading.
+body_append() { cur=$(body_section "$1" "$2"); body_set "$1" "$2" "$(printf '%s\n%s' "$cur" "$3" | awk 'NF || p { p = 1; print }')"; }
+# history_add file "line": one F10 line under "## History", which is always the last section.
+history_add() { body_append "$1" History "- $2"; }
+# claim_set file section key value: set "- key: value" under "## <section> ...".
+claim_set() { awk -v s="$2" -v key="$3" -v v="$4" '/^## / { on = ($2 == s) } on && index($0, "- " key ": ") == 1 { print "- " key ": " v; next } { print }' "$1" > "$1.tmp" && mv "$1.tmp" "$1"; }
+# claim_list_add file section key value: append "  - value" under "- key:" in the section (key created last if missing).
+claim_list_add() { awk -v s="$2" -v key="$3" -v v="$4" '
+    function close_section() { if (on && !done) { if (!seen) print "- " key ":"; print "  - " v; done = 1 } for (i = 1; i <= nb; i++) print ""; nb = 0 }
+    /^## / { close_section(); on = ($2 == s) }
+    on && nb && !/^$/ { for (i = 1; i <= nb; i++) print ""; nb = 0 }
+    on && ($0 == "- " key ":" || index($0, "- " key ": ") == 1) { print "- " key ":"; seen = 1; inlist = 1; next }
+    on && inlist && /^  - / { print; next }
+    on && inlist { print "  - " v; inlist = 0; done = 1 }
+    on && /^$/ { nb++; next }
+    { print }
+    END { close_section() }' "$1" > "$1.tmp" && mv "$1.tmp" "$1"; }
