@@ -13,6 +13,7 @@ The name is a nod to Clark Kent. A clerk by day, taking down what was said and f
 | `.claude/skills/ingest-transcript/` | The `/ingest-transcript` skill. Lives at the root so Claude Code finds it; it is part of the ingester. |
 | `BRIEF.md` | The original brief. |
 | `HANDOFF.md` | Where the work is up to and what to read first. |
+| `ARCHITECTURE.md` | Which document owns which fact about the mechanism, and the decisions behind the repository shape. Read before moving anything or changing what a document says. |
 | `CLAUDE.md` | Working instructions for Claude Code in this repository. |
 
 ## How it runs
