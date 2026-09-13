@@ -397,7 +397,7 @@ On approval: a fact on the LEGACY-CARRIER handoff, tagging is applied on the han
 The project is split into the ingester, which holds the mechanism, and the engagements, which hold everything produced for a client. The ingester contains nothing that belongs to one client. An engagement contains nothing that describes how ingestion works. Either can change without touching the other, and an engagement folder can be handed over, archived or deleted on its own.
 
 ```
-clerk/                            the git repository
+clark/                            the git repository
   .claude/skills/ingest-transcript/SKILL.md
                                      the ingest skill, at the root so that
                                      Claude Code finds it; part of the ingester

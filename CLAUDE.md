@@ -1,4 +1,4 @@
-# clerk
+# clark
 
 This repository holds two independent parts. `ingester/` is the mechanism for turning discovery transcripts into register items and a current-state record. `engagements/<name>/` holds everything produced for one client and says nothing about how ingestion works.
 
