@@ -1,6 +1,6 @@
 # The ingester
 
-Version 0.9, 12 September 2026.
+Version 0.10, 14 September 2026.
 
 ## Purpose
 
@@ -10,15 +10,16 @@ The ingester turns a discovery transcript (WebVTT from Teams or Webex) into rows
 
 | Path | Purpose |
 |---|---|
-| `../.claude/skills/ingest-transcript/SKILL.md` | The skill. Lives at the repository root so Claude Code finds it. Part of the ingester. |
+| `../.claude/skills/ingest-transcript/SKILL.md` | The skill. Lives at the repository root so Claude Code finds it. Part of the ingester. Holds only how Claude operates the stages; the procedure itself is in `runbooks/`. |
 | `README.md` | This file. |
 | `VERSION` | Version of the mechanism as a whole. Bumped on any change to the skill, scripts, runbooks or templates. |
 | `extraction-solution-design.md` | The design. |
 | `solution-register-model.md` | The register model. |
 | `extraction-rules.md` | Rules R1 to R19 and the grading conditions, with test passages. Carries its own version. |
 | `IMPLEMENTATION-PLAN.md` | The build plan, with the formats the scripts agree on. |
+| `mutation-design.md` | Design note for mutating existing items from a follow-up transcript (ingester 0.6.0, F10). |
 | `bin/` | Shell scripts, listed under Scripts. |
-| `runbooks/` | `S0.md` to `S3.md`, `staged-review.md`, `evaluate.md`. |
+| `runbooks/` | `S0.md` to `S3.md`, `staged-review.md`, `evaluate.md`. The source of truth for what each stage reads, produces, checks and reports; the skill file operates them and does not restate them. |
 | `templates/` | Every engagement file in empty form. |
 
 An engagement lives at `engagements/<name>/` with `engagement.md`, one file per item under `requirements/`, `decisions/`, `limitations/`, `risks/` and `open-items/`, one file per element under `processes/` and `systems/` (claims as sections), one file per person under `stakeholders/`, one file per topic under `topics/`, one file per transcript under `transcripts/` beside `transcripts/unprocessed/` and `transcripts/processed/`, generated tables under `index/`, and `sessions/Tnnn/`, `evaluation/` and `logs/`. Design section 7.1 gives the full tree.

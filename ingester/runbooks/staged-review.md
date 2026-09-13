@@ -1,6 +1,6 @@
 # Runbook: staged review
 
-Version 0.1, 10 September 2026.
+Version 0.2, 14 September 2026.
 
 ## Purpose
 
@@ -12,7 +12,7 @@ As S1, plus `- Review path: staged` on the signed session sheet.
 
 ## Command
 
-`/ingest-transcript Tnnn <engagement>`, three times. Each invocation finds the last stop and continues from it.
+`/ingest-transcript Tnnn` from inside the engagement folder, three times. Each invocation finds the last stop and continues from it.
 
 ## Outputs
 
