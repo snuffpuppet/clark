@@ -107,6 +107,10 @@ dossier_signed() { f=$1
   [ -n "$on" ] || { echo "dossier has no Completed on"; return 1; }
   pend=$("$INGESTER_DIR/bin/dossier2tsv" "$f" | awk -F'\t' '$4 == "" && !($3 == "Confident" && $7 != "") { printf "%s ", $1 }')
   [ -z "$pend" ] || { echo "dossier has pending verdicts on item(s): $pend"; return 1; }
+  # A verdict outside the controlled list passes as "filled" but is merged by nothing, so the reviewer's
+  # words would vanish silently. Name the items instead (S1 review notes 5.1).
+  bad=$("$INGESTER_DIR/bin/dossier2tsv" "$f" | awk -F'\t' '$4 != "" && $4 != "Accept" && $4 != "Edit" && $4 != "Reject" { printf "%s ", $1 }')
+  [ -z "$bad" ] || { echo "dossier has a verdict that is not Accept, Edit or Reject on item(s): $bad"; return 1; }
   return 0; }
 accepted_items() { "$INGESTER_DIR/bin/dossier2tsv" "$1" | awk -F'\t' '$4 == "Accept" || $4 == "Edit" || ($4 == "" && $3 == "Confident" && $7 != "")'; }
 # phases engagement: phase names in order; current_phase engagement: the one marked (current).

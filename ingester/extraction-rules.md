@@ -1,6 +1,6 @@
 # Extraction rules
 
-Version 1.2, 12 September 2026.
+Version 1.3, 18 September 2026.
 
 These rules are the method. The skill reads them before S1 and applies them to every exchange. Each rule carries the failure modes that map to it (design Q4) and a table of test passages. When a run report tags a failure against a rule, the fix is made here: the statement is edited and the failing passage is added as a test passage under the rule, with the run that found it. A rule change that lowers any kind's Right count on an earlier reference is a regression and is reverted or explained in the change log. Every test passage citation passes `ingester/bin/check-citations`.
 
@@ -114,7 +114,7 @@ A plain assertion about a system or practice the speaker owns or operates is Sta
 
 ### R8 Explicit deferral is an open item
 
-"That requires business input", "I can't make that decision", "someone needs to check" yields an OI candidate. The named party or role goes in the gist so the reviewer can set Owner.
+"That requires business input", "I can't make that decision", "someone needs to check" yields an OI candidate. The named party or role goes in the gist, and is proposed as the Owner when it resolves to a person in the stakeholder register whose Role is not Mentioned. Where it does not, the Owner is proposed from whoever raised the deferral; it is never left blank.
 
 **Failure modes:** none yet
 
@@ -216,7 +216,9 @@ None yet.
 
 Before proposing a claim or row, check the engagement's existing claims, items and topics. A match updates the existing id; a conflict is Needs a human with both ids; a closure names the open item it closes.
 
-A follow-up session is read against the outstanding set as much as against the transcript. Before segmenting, build that set from the item files: open items not Closed, risks not Realised or Retired, decisions in Proposed, requirements in Draft, limitations in Identified or Under assessment, claims Hedged or Contested, and every Question under Questions for the SMEs in the earlier dossiers under `sessions/`. Read the transcript with the set in hand. A member the session touches yields a mutation item; an on-subject member the session never reaches is listed under Closing, Outstanding not reached, so the reviewer can see what is still open.
+A follow-up session is read against the outstanding set as much as against the transcript. Before segmenting, build that set from the item files: open items not Closed, risks not Realised or Retired, decisions in Proposed, requirements in Draft, limitations in Identified or Under assessment, claims Hedged or Contested, and every Question under Questions for the SMEs in the earlier dossiers under `sessions/`. `index/outstanding.md` sections 1 to 6 hold the same set, regenerated at every S3.
+
+This is what clears a hedged claim and an open Question, and it is the reason neither asks for a verdict at S2. A claim recorded as Hedged or Contested, and a Question, is complete work the moment it is written: the passage is kept and the uncertainty recorded, and nothing enters the current state as agreed. The reviewer cannot resolve the hedge from the transcript either. A later session or a reviewer's answer upgrades it (design section 4). Read the transcript with the set in hand. A member the session touches yields a mutation item; an on-subject member the session never reaches is listed under Closing, Outstanding not reached, so the reviewer can see what is still open.
 
 A mutation is an item block whose `- Target:` is an existing id. The block carries only the fields that change, each as it should read afterwards, with the citations that justify the change. The Gist states every change as `Field: old to new` so the reviewer judges it without opening the file. The write stage sets the fields, adds the citations to Source (Raised by on an open item) or to the claim's evidence, and appends one History line (F10) recording each old and new value.
 
@@ -274,7 +276,7 @@ An item is **Confident** only when every condition holds (design Q3, R16):
 - [ ] Nobody challenged it in the exchange.
 - [ ] It carries no hedge word or deferral.
 - [ ] It does not conflict with an existing claim or item in the engagement.
-- [ ] Every field the register model requires at its status is filled from the transcript, or is one the reviewer always fills (Owner, MoSCoW).
+- [ ] Every field the register model requires at its status is filled. Owner and MoSCoW are **proposed**, not left blank: an Owner from the person who raised the item or whose Decides covers the subject, a MoSCoW from the strength of the commitment language, with the Gist saying the value is a proposal. A blank Owner on a requirement or open item, or a blank MoSCoW on a requirement, is not Confident and is not cautious: `check-integrity` I3 and I2 fail the whole dossier at S3, and R17 makes correcting a wrong proposal a one-line mutation.
 
 Anything else is **Needs a human** with exactly one reason from this list, so the evaluation can count them:
 
@@ -284,7 +286,7 @@ Anything else is **Needs a human** with exactly one reason from this list, so th
 - standing unclear
 - authority check (always given to a DEC accepted from the transcript under R19)
 - conflicts with an existing claim or item
-- field needs a decision
+- field needs a decision (a field that genuinely cannot be proposed from the transcript and the session sheet, not a field left blank)
 - kind uncertain between two types
 
 When in doubt between Confident and Needs a human, choose Needs a human. Overconfidence is a counted failure; caution is not.
@@ -314,5 +316,6 @@ The controlled list for run reports. Each maps to one rule.
 
 | Version | Date | Change |
 |---|---|---|
+| 1.3 | 18 September 2026 | Owner and MoSCoW are proposed at S1 rather than left blank for the reviewer, because the integrity gate fails a blank one at S3 while the grading conditions called it Confident (grading condition 5, R17). Hedged and Contested claims and Questions stated as complete work cleared by the outstanding set, not as items awaiting a verdict (R17). From the first end-to-end run, T001 techm-bss, 17 September 2026. |
 | 1.1 | 10 September 2026 | Scope dropped from the grading conditions (register model 2.17). |
 | 1.0 | 10 September 2026 | First version: R1 to R19 from design 1.2 section 5.6, grading conditions from Q3, test passages seeded from design section 6 with two ranges corrected (see design-review-notes.md). |

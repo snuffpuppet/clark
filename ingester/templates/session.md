@@ -1,6 +1,6 @@
 # Session sheet: {{TID}}
 
-Version 0.1, {{DATE}}.
+Version 0.2, {{DATE}}.
 
 - Transcript: {{TID}}
 - File: {{FILE}}
@@ -24,7 +24,7 @@ Confirm the session date and domain. For each attendee, Verdict is Correct or Ed
 
 ## New stakeholders
 
-Speakers not in the register, and people named as owners or deciders who were not present. Role and standing are proposed from the transcript with the passage that suggested them.
+Speakers not in the register, and people named as owners or deciders who were not present. Role and standing are proposed from the transcript with the passage that suggested them. The Proposed column takes `new` on every row, including a person who did not speak; what the person is goes in Role (Mentioned for someone named but absent, Forum for an approving body). A stakeholder file is written only for the people who spoke; a Mentioned or Forum row stays here, where the reviewer sees who was named and the integrity check reads it.
 
 | Proposed | Name | Organisation | Role | Segment | Department | Standing | Decides | Passage | Verdict |
 |---|---|---|---|---|---|---|---|---|---|

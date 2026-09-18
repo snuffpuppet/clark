@@ -14,16 +14,39 @@ if [ -f "$log" ] && grep -q '^- Stakeholders written on:' "$log"; then echo "sta
 [ -f "$log" ] || fill_template "$INGESTER_DIR/templates/session-log.md" "$log" "TID=$tid" "DATE=$TODAY" "INGESTER_VERSION=$(ingester_version)" "RULES_VERSION=$(rules_version)" "SHEET_APPROVER=$(header_field "$sheet" Approver)" "DOSSIER_COMPLETED_BY="
 logrow() { printf '| %s | %s | %s | %s | %s |\n' "$1" "$2" "$3" "$4" "$TODAY" >> "$log"; }
 mkdir -p "$d/stakeholders"
-awk '/^## New stakeholders/ { on=1 } /^## Notes/ { on=0 } on && /^\| new \|/' "$sheet" | while IFS= read -r row; do
+# Every data row of the New stakeholders table, whatever its Proposed cell says. Matching on "| new |"
+# silently dropped rows the S0 runbook never told the reader how to fill (S1 review notes 5.2).
+rows=$(mktemp "${TMPDIR:-/tmp}/ing.XXXXXXXX"); acct=$(mktemp -d "${TMPDIR:-/tmp}/ing.XXXXXXXX")
+awk '/^## New stakeholders/ { on=1 } /^## Notes/ { on=0 } on && /^\| / && !/^\| *Proposed *\|/ && !/^\|[-| ]*$/' "$sheet" > "$rows"
+: > "$acct/accepted"; : > "$acct/handled"; : > "$acct/created"
+while IFS= read -r row; do
   v=$(cell "$row" 10); [ "$v" = Accept ] || [ "$v" = Edit ] || continue
-  name=$(cell "$row" 2); stk_lookup "$eng" "$name" > /dev/null && continue
+  name=$(cell "$row" 2); printf '%s\n' "$name" >> "$acct/accepted"
+  # Only people who spoke get a file: only they express a viewpoint the register can cite. A Mentioned or
+  # Forum row stays on the session sheet, where the reviewer sees who was named and check-integrity I19 reads it.
+  role=$(cell "$row" 4)
+  case "$role" in Mentioned|Forum)
+    printf '%s\n' "$name" >> "$acct/handled"
+    printf 's1-stakeholders: %s has Role %s and did not speak; no file written, the row stays on the session sheet\n' "$name" "$role"; continue ;;
+  esac
+  if stk_lookup "$eng" "$name" > /dev/null; then
+    printf '%s\n' "$name" >> "$acct/handled"
+    printf 's1-stakeholders: %s is already in the register; no file written\n' "$name"; continue
+  fi
   seg=$(cell "$row" 5); case "$seg" in ""|Residential|"BE&G"|Wholesale) ;; *) die "segment \"$seg\" for $name is not Residential, BE&G, Wholesale or blank" ;; esac
   id=$(next_id "$eng" STK)
-  vals; set_val ID "$id"; set_val NAME "$name"; set_val ORGANISATION "$(cell "$row" 3)"; set_val ROLE "$(cell "$row" 4)"; set_val SEGMENT "$seg"; set_val DEPARTMENT "$(cell "$row" 6)"
+  vals; set_val ID "$id"; set_val NAME "$name"; set_val ORGANISATION "$(cell "$row" 3)"; set_val ROLE "$role"; set_val SEGMENT "$seg"; set_val DEPARTMENT "$(cell "$row" 6)"
   set_val STANDING "$(cell "$row" 7)"; set_val DECIDES "$(cell "$row" 8)"; set_val TID "$tid"; set_val DATE "$TODAY"; set_val SOURCE "$(cell "$row" 9 | sed 's/^./- &/')"; set_list VARIANTS ""
   render "$INGESTER_DIR/templates/items/STK.md" "$(item_path "$eng" "$id")"; vals_done
+  printf '%s\n' "$name" >> "$acct/handled"; printf '%s\n' "$id" >> "$acct/created"
   logrow "$id" created "stakeholders/$id.md" "$name"
-done
+done < "$rows"
+# Every accepted row is written, skipped for a named reason, or a bug. Never report a count and exit clean.
+sort "$acct/accepted" > "$acct/a"; sort "$acct/handled" > "$acct/h"
+missed=$(comm -23 "$acct/a" "$acct/h" | paste -sd, - | sed 's/,/, /g')
+na=$(grep -c . "$acct/accepted" || true); nh=$(grep -c . "$acct/handled" || true); nc=$(grep -c . "$acct/created" || true)
+rm -f "$rows"; rm -rf "$acct"
+[ "$na" -eq "$nh" ] || die "$na accepted stakeholder row(s) but $nh accounted for; not handled: ${missed:-unknown}"
 awk '/^## Attendees/ { on=1 } /^## New/ { on=0 } on && /^\| / && !/Speaker tag/ && !/^\|---/' "$sheet" | while IFS= read -r row; do
   s=$(cell "$row" 2); [ "$s" = new ] && continue
   f=$(item_path "$eng" "$s"); [ -f "$f" ] || continue
@@ -31,5 +54,5 @@ awk '/^## Attendees/ { on=1 } /^## New/ { on=0 } on && /^\| / && !/Speaker tag/ 
   fm_list_add "$f" sessions "$tid"; fm_set "$f" updated "$TODAY"; logrow "$s" updated "stakeholders/$s.md" "sessions extended"
 done
 awk -v d="$TODAY" '!done && /^- Dossier completed by:/ { print; print "- Stakeholders written on: " d; done=1; next } { print }' "$log" > "$log.tmp" && mv "$log.tmp" "$log"
-printf 's1-stakeholders: %s stakeholder file(s) created; see %s\n' "$(grep -c '| created | stakeholders/' "$log")" "$log"
-eng_log "$eng" "$tid session sheet signed by $(header_field "$sheet" Approver); $(grep -c "| created | stakeholders/" "$log") stakeholder file(s) written; S1 open."
+printf 's1-stakeholders: %s accepted row(s): %s file(s) created, %s skipped for the reason named above; see %s\n' "$na" "$nc" "$(( na - nc ))" "$log"
+eng_log "$eng" "$tid session sheet signed by $(header_field "$sheet" Approver); $na accepted stakeholder row(s), $nc file(s) written; S1 open."

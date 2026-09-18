@@ -1,6 +1,6 @@
 # Dossier: {{TID}}
 
-Version 0.1, {{DATE}}.
+Version 0.2, {{DATE}}.
 
 - Transcript: {{TID}}
 - Session date: {{SESSION_DATE}}
@@ -16,7 +16,7 @@ Version 0.1, {{DATE}}.
 
 ## How to review
 
-Read every episode. Each item carries a grade. An item whose Target is an existing id changes that record: its field lines are the new values and its Gist says what each was before. Items graded Needs a human must each get a Verdict of Accept, Edit or Reject. Items graded Confident may be accepted individually, or in bulk for an episode by writing `Bulk accept: <your name>` on the line under the episode heading after reading them; the write stage treats a blank Verdict on a Confident item in a bulk-accepted episode as Accept. To edit an item, change its field lines in place and write Edit. Questions get an answer in the Gist line or the verdict `raise an OI`. Missed passages are added as new items with citations. When every verdict is filled the dossier is complete: the skill writes Completed by and Completed on and goes straight to S3. There is no separate approval step. A blank verdict outside a bulk-accepted episode is pending and blocks S3.
+Read every episode. Each item carries a grade. An item whose Target is an existing id changes that record: its field lines are the new values and its Gist says what each was before. Items graded Needs a human must each get a Verdict of Accept, Edit or Reject. Items graded Confident may be accepted individually, or in bulk for an episode by writing `Bulk accept: <your name>` on the line under the episode heading after reading them; the write stage treats a blank Verdict on a Confident item in a bulk-accepted episode as Accept. To edit an item, change its field lines in place and write Edit. A Verdict is Accept, Edit or Reject and nothing else; free text is refused by the gate, because the write stage merges only Accept and Edit. Questions get an answer in the Gist line and Verdict Accept; a Question that should become an open item has its kind changed to OI in the item heading, the fields an OI needs filled, and Verdict Edit. Hedged and contested claims need no verdict of their own: they are complete work, and R17 raises them again next session. Owner and MoSCoW arrive proposed, with the Gist saying so; check them and correct any that is wrong. Missed passages are added as new items with citations. When every verdict is filled the dossier is complete: the skill writes Completed by and Completed on and goes straight to S3. There is no separate approval step. A blank verdict outside a bulk-accepted episode is pending and blocks S3.
 
 ## {{TID}}-E01 Example episode title
 

@@ -1,6 +1,6 @@
 # Runbook: staged review
 
-Version 0.2, 14 September 2026.
+Version 0.3, 18 September 2026.
 
 ## Purpose
 
@@ -16,7 +16,7 @@ As S1, plus `- Review path: staged` on the signed session sheet.
 
 ## Outputs
 
-- Stop 1: `Tnnn.exchanges.md` and `Tnnn.episodes.md`. The reviewer confirms episode boundaries, titles, outcomes and topic matches by editing `Tnnn.episodes.md` and adding `- Confirmed by: <name>, <date>` at the top.
+- Stop 1: `Tnnn.exchanges.md` and `Tnnn.episodes.md`. The reviewer confirms episode boundaries, titles, outcomes and topic matches by editing `Tnnn.episodes.md` and adding `- Confirmed by: <name>, <date>` at the top. This is the one path on which the episodes file is written by hand, because there is no dossier to generate it from yet. After stop 3 it is regenerated with `ingester/bin/dossier2episodes`, which carries the `- Confirmed by:` line across; from then on the dossier is the source and the reviewer's confirmed boundaries live in its episode headings.
 - Stop 2: `Tnnn.dossier.md` containing only current-state claims (SYS, SYS.fact, PRC, PRC.step) and Questions. The reviewer gives verdicts on those and writes `- Stage 2 confirmed by: <name>, <date>` in the header.
 - Stop 3: the dossier completed with register rows, links, TOP and STK.edit items. Review continues as S2.
 

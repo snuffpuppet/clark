@@ -1,0 +1,30 @@
+#!/bin/sh
+# quote <engagement> <Tnnn> <utt>:<lo>[-<hi>][, <utt>:<frag>...]
+# Prints "<speaker> | <hh:mm:ss> | <text>" for a citation range, so the quote in an F2 citation is copied
+# from this output rather than retyped from the transcript. The range parsing is the same as
+# check-citations, so a quote built from here cannot fail that check for running past its range.
+# Fails when a fragment does not exist, and when the range spans two speakers (R10).
+set -e
+. "$(dirname "$0")/lib.sh"
+[ $# -eq 3 ] || die "usage: quote <engagement> <Tnnn> <utt>:<lo>[-<hi>][, ...]"
+eng=$1; tid=$2; ref=$3; d=$(eng_dir "$eng")
+tsv="$d/sessions/$tid/$tid.utterances.tsv"
+[ -f "$tsv" ] || die "no utterance table at $tsv"
+
+printf '%s' "$ref" | sed "s|^$tid/||" | awk -F'\t' -v tsv="$tsv" -v tid="$tid" '
+  BEGIN { while ((getline line < tsv) > 0) { split(line, f, "\t"); if (f[1] == "utterance") continue
+            key = f[1] ":" f[2]; text[key] = f[6]; spk[key] = f[5]; start[key] = f[3]; have[key] = 1 } }
+  function norm(s) { gsub(/[ \t]+/, " ", s); gsub(/^ | $/, "", s); return s }
+  { nr = split($0, ranges, /, */); cat = ""; first = ""; speaker = ""
+    for (i = 1; i <= nr; i++) { r = ranges[i]; gsub(/^ +| +$/, "", r)
+      split(r, p, ":"); utt = p[1] + 0; lo = p[2]; hi = p[2]
+      if (p[2] == "") { print "error: " r " is not <utt>:<frag>" > "/dev/stderr"; exit 1 }
+      if (index(p[2], "-")) { split(p[2], q, "-"); lo = q[1]; hi = q[2] }
+      for (fr = lo + 0; fr <= hi + 0; fr++) { k = utt ":" fr
+        if (!have[k]) { print "error: no such utterance " tid "/" k > "/dev/stderr"; exit 1 }
+        if (speaker == "") speaker = spk[k]
+        else if (spk[k] != speaker) { print "error: " tid "/" k " is " spk[k] ", not " speaker "; a quote never spans two speakers (R10)" > "/dev/stderr"; exit 1 }
+        if (first == "") first = k
+        cat = cat " " text[k] } }
+    st = start[first]; sub(/\..*$/, "", st)
+    printf "%s | %s | %s\n", speaker, st, norm(cat) }'

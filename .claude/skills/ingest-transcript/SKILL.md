@@ -5,7 +5,7 @@ description: Ingest a discovery transcript (WebVTT) through stages S0 to S3, sto
 
 # ingest-transcript
 
-Version 0.7.0 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `$ROOT/ingester/bin/` do every deterministic step; you do the reading.
+Version 0.8.0 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `$ROOT/ingester/bin/` do every deterministic step; you do the reading.
 
 **The runbooks under `ingester/runbooks/` are the source of truth for what each stage reads, produces, checks and reports.** This file says only how you, in a Claude Code session, operate them: where you run, what you never do, how you show progress, how you find the current stage, and how you take verdicts in the terminal. When this file and a runbook disagree, the runbook wins and this file is wrong.
 
@@ -35,7 +35,7 @@ ENG=$(pwd)
 - Write nothing under `ingester/`. Every output goes under `ENG/`.
 - Quotes are verbatim, including transcription noise and filler. Interpretation goes in the Gist. A quote never spans two speakers (R10).
 - When in doubt between Confident and Needs a human, choose Needs a human and give the reason (R16).
-- Never fill a register field you cannot support from the transcript. Write a Question instead.
+- Never fill a register field you cannot support from the transcript. Write a Question instead. Owner and MoSCoW are the exception and are always proposed, never left blank, with the Gist saying the value is a proposal: the integrity gate fails a blank one at S3, and R17 makes a wrong one a one-line correction (runbook S1 step 4).
 - Cite in the F2 form only, and run `$ROOT/ingester/bin/check-citations` on every file you write that contains citations before presenting it.
 
 ## Progress
@@ -71,7 +71,7 @@ It prints one word and act only on that word.
 | `awaiting-session-sheet` | Re-present the review table from runbook S0, Procedure step 8, and say that verdicts given here are enough because you will write them into the sheet, and that "accept all" signs it. Stop. |
 | `needs-s1` | Run `stage <engagement> TID S1` (it writes the accepted stakeholder files and prints `gate open`), then follow runbook S1, Procedure, steps 1 to 8. If the signed sheet says `- Review path: staged`, follow runbook staged-review instead: the files are the same, only the number of stops changes. |
 | `awaiting-dossier` | Follow runbook S2, Completing the dossier: if every Verdict is filled, complete it and go straight to S3; otherwise present the items still without a verdict and stop. |
-| `needs-s3` | Run `stage <engagement> TID S3` and report as runbook S3 says. If it refuses, report its reason verbatim and stop. |
+| `needs-s3` | Run `stage <engagement> TID S3` **in the background** and wait for its exit line; a large dossier takes longer than a foreground command is given. Touch nothing under the item folders while it runs. Report as runbook S3 says. If it refuses, report its reason verbatim and stop. |
 | `done` | Say the transcript has been written and point at `ENG/sessions/TID/TID.session-log.md`. Stop. |
 | `blocked: <reason>` | Report the reason verbatim. Stop. |
 

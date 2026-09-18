@@ -5,6 +5,8 @@
 # With --proposed, the dossier's accepted items and the session sheet's accepted new stakeholders are
 # merged in as virtual rows first, so links to items created in the same session resolve.
 # Prints FAIL and WARN lines, then OK when nothing failed. Exit 1 on FAIL. I10 and I17 are retired; I5 is Phase valid.
+# I20 is not in the model: it checks that an accepted STK.edit targets an existing STK id, because s3-write
+# reads that Target as a file name and dies on a missing one after writing everything else.
 . "$(dirname "$0")/lib.sh"
 [ $# -ge 1 ] || die "usage: check-integrity <engagement> [--proposed <dossier>]"
 eng=$1; d=$(eng_dir "$eng"); dossier=""; [ "${2:-}" = "--proposed" ] && dossier=$3
@@ -47,6 +49,7 @@ if [ -n "$dossier" ]; then
         n = split(fields, kv, "\001"); for (i = 1; i <= n; i++) { k = kv[i]; sub(/=.*/, "", k); v = kv[i]; sub(/^[^=]*=/, "", v); if (k == "Status") st = v }
         printf "CLAIM\t%s\tStatus\t%s\n", id, st; printf "ITEMMAP\titem %s\tid\t%s\n", item, id; next }
       if (kind == "SYS" || kind == "PRC") { id = (target == "new") ? kind "-item" item : target; if (target == "new") printf "ELEM\t%s\tID\t%s\n", id, id; printf "ITEMMAP\titem %s\tid\t%s\n", item, id; next }
+      if (kind == "STK.edit") { printf "STKEDIT\t%s\tTarget\titem %s\n", target, item; next }
       if (type != "REQ" && type != "DEC" && type != "LIM" && type != "RSK" && type != "OI") next
       id = (target == "new") ? type "-item" item : target
       printf "ITEMMAP\titem %s\tid\t%s\n", item, id
@@ -56,7 +59,7 @@ if [ -n "$dossier" ]; then
       n = split(fields, kv, "\001"); for (i = 1; i <= n; i++) { k = kv[i]; sub(/=.*/, "", k); v = kv[i]; sub(/^[^=]*=/, "", v); if (k != "Gist") printf "%s\t%s\t%s\t%s\n", type, id, k, v }
       if ($9 != "") { c = $9; gsub(/\002/, "; ", c); printf "%s\t%s\t%s\t%s\n", type, id, (type == "OI" ? "Raised by" : "Source"), c } }' >> "$facts"
   if [ -f "$sheet" ]; then
-    awk '/^## New stakeholders/ { on=1 } /^## Notes/ { on=0 } on && /^\| new \|/' "$sheet" | awk -F'|' '{ v=$(NF-1); gsub(/ /, "", v); if (v == "Accept" || v == "Edit") { n=$3; r=$5; s=$6; gsub(/^ +| +$/, "", n); gsub(/^ +| +$/, "", r); gsub(/^ +| +$/, "", s); printf "STK\tSTK-new%d\tName\t%s\nSTK\tSTK-new%d\tVariants\t\nSTK\tSTK-new%d\tRole\t%s\nSTK\tSTK-new%d\tSegment\t%s\n", NR, n, NR, NR, r, NR, s } }' >> "$facts"
+    awk '/^## New stakeholders/ { on=1 } /^## Notes/ { on=0 } on && /^\| / && !/^\| *Proposed *\|/ && !/^\|[-| ]*$/' "$sheet" | awk -F'|' '{ v=$(NF-1); gsub(/ /, "", v); if (v == "Accept" || v == "Edit") { n=$3; r=$5; s=$6; gsub(/^ +| +$/, "", n); gsub(/^ +| +$/, "", r); gsub(/^ +| +$/, "", s); printf "STK\tSTK-new%d\tName\t%s\nSTK\tSTK-new%d\tVariants\t\nSTK\tSTK-new%d\tRole\t%s\nSTK\tSTK-new%d\tSegment\t%s\n", NR, n, NR, NR, r, NR, s } }' >> "$facts"
   fi
 fi
 
@@ -85,6 +88,7 @@ awk -F'\t' -v today="$(today)" '
     if (type == "ITEMMAP") { MAP[id] = val; next }
     if (type == "PHASE") { PHASE[val] = 1; nphase++; next }
     if (type == "STK") { STK[id] = 1; if (key == "Name") STKname[id] = val; if (key == "Variants") STKvar[id] = val; if (key == "Role") STKrole[id] = val; if (key == "Segment") STKseg[id] = val; next }
+    if (type == "STKEDIT") { SE[++nse] = id; SEfrom[nse] = val; next }
     if (type == "ELEM") { if (id in ELEM) dupe[id] = 1; ELEM[id] = 1; next }
     if (type == "CLAIM") { CLAIM[id] = val; next }
     if (key == "MUTATES") { MUT[id] = val; if (!(id in T)) { T[id] = type; order[++cnt] = id; seen[id]++; MISSING[id] = 1 } OLD[id] = F[id, "Status"]; next }
@@ -98,6 +102,9 @@ awk -F'\t' -v today="$(today)" '
     V["OI", "Open"] = V["OI", "In progress"] = V["OI", "Blocked"] = V["OI", "Closed"] = 1
     TERM["REQ Verified"] = TERM["REQ Deferred"] = TERM["REQ Withdrawn"] = TERM["DEC Superseded"] = TERM["DEC Rejected"] = 1
     TERM["LIM Accepted"] = TERM["LIM Resolved"] = TERM["RSK Realised"] = TERM["RSK Retired"] = TERM["OI Closed"] = 1
+    for (i = 1; i <= nse; i++) { t = SE[i]
+      if (t == "new") fail("I20", t, SEfrom[i] " is an STK.edit with Target new; a standing edit targets an existing STK id")
+      else if (!(t in STK)) fail("I20", t, SEfrom[i] " is an STK.edit targeting " t ", which is not a stakeholder in the register") }
     for (s in STK) { if (STKseg[s] != "" && STKseg[s] != "Residential" && STKseg[s] != "BE&G" && STKseg[s] != "Wholesale") fail("I19", s, "segment \"" STKseg[s] "\" is not Residential, BE&G, Wholesale or blank") }
     for (e in dupe) fail("I1", e, "element id appears more than once")
     for (i = 1; i <= cnt; i++) { id = order[i]; t = T[id]; st = F[id, "Status"]; term = ((t " " st) in TERM)
@@ -143,7 +150,7 @@ awk -F'\t' -v today="$(today)" '
       for (j = 1; j <= 3; j++) { v = F[id, pf[j]]; if (v == "" || v ~ /T[0-9][0-9][0-9]\// || v ~ /[0-9] [A-Z][a-z]+ [0-9][0-9][0-9][0-9]/) continue
         if (!person_ok(v)) fail("I19", id, pf[j] " \"" v "\" is not a known stakeholder")
         if (pf[j] == "Owner" && mentioned(v)) fail("I19", id, "Owner \"" v "\" has Role Mentioned") }
-      if (has(id, "Consulted")) { m = split(F[id, "Consulted"], cc, /, */); for (j = 1; j <= m; j++) if (!person_ok(cc[j])) fail("I19", id, "Consulted \"" cc[j] "\" is not a known stakeholder") }
+      if (has(id, "Consulted")) { m = split(F[id, "Consulted"], cc, / *[;,] */); for (j = 1; j <= m; j++) if (!person_ok(cc[j])) fail("I19", id, "Consulted \"" cc[j] "\" is not a known stakeholder") }
     }
     if (fails) { printf "%d integrity failure(s)\n", fails; exit 1 } print "OK" }
 ' "$facts" && rc=0 || rc=$?
