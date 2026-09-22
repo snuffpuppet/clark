@@ -1,6 +1,6 @@
 # The ingester
 
-Version 0.11, 18 September 2026.
+Version 0.12, 23 September 2026.
 
 ## Purpose
 
@@ -19,14 +19,15 @@ The ingester turns a discovery transcript (WebVTT from Teams or Webex) into rows
 | `IMPLEMENTATION-PLAN.md` | The build plan, with the formats the scripts agree on. |
 | `mutation-design.md` | Design note for mutating existing items from a follow-up transcript (ingester 0.6.0, F10). |
 | `bin/` | Shell scripts, listed under Scripts. |
-| `runbooks/` | `S0.md` to `S3.md`, `staged-review.md`, `evaluate.md`. The source of truth for what each stage reads, produces, checks and reports; the skill file operates them and does not restate them. |
+| `runbooks/` | `S0.md` to `S3.md`, `staged-review.md`, `evaluate.md`, `summary.md`. The source of truth for what each stage reads, produces, checks and reports; the skill file operates them and does not restate them. |
 | `templates/` | Every engagement file in empty form. |
+| `pricing.tsv` | Model prices per million tokens, read by `bin/summary` to price an ingestion at API list prices. Edited by hand when a price changes. |
 
 An engagement lives at `engagements/<name>/` with `engagement.md`, one file per item under `requirements/`, `decisions/`, `limitations/`, `risks/` and `open-items/`, one file per element under `processes/` and `systems/` (claims as sections), one file per person under `stakeholders/`, one file per topic under `topics/`, one file per transcript under `transcripts/` beside `transcripts/unprocessed/` and `transcripts/processed/`, generated tables under `index/`, and `sessions/Tnnn/`, `evaluation/` and `logs/`. Design section 7.1 gives the full tree.
 
 ## Runtime
 
-A Claude Code session started inside the engagement folder, `engagements/<name>/`, which is how the skill knows the engagement. The skill finds the repository root with `git rev-parse --show-toplevel` and calls the scripts from there. Reads into `ingester/` fall outside the working directory, so start the session with `claude --add-dir ../../ingester` or approve the read prompt once. The skill file lives at the root under `.claude/skills/` and is found from the subfolder. Nothing is installed on the host and Docker is not needed because Claude Code is already present.
+A Claude Code session started inside the engagement folder, `engagements/<name>/`, which is how the skill knows the engagement. The skill takes the repository root as two levels above the engagement folder and calls the scripts from there; it does not use `git rev-parse --show-toplevel`, because `engagements/` is its own git repository and git would name it as the top level. Reads into `ingester/` fall outside the working directory, so start the session with `claude --add-dir ../../ingester` or approve the read prompt once. The skill file lives at the root under `.claude/skills/` and is found from the subfolder. Nothing is installed on the host and Docker is not needed because Claude Code is already present.
 
 ## Command
 
@@ -54,6 +55,7 @@ The skill finds the next unsigned gate and acts on it, or says which file is wai
 | S1 Read | `bin/s1-stakeholders` writes the accepted stakeholder rows, then the skill reads | Utterance table, signed sheet, rules, the engagement's records | `Tnnn.exchanges.md`, `Tnnn.episodes.md`, `Tnnn.dossier.md` | Dossier signed, every verdict filled |
 | S2 Review | The human | Dossier | Dossier with verdicts | As above |
 | S3 Write | `bin/s3-write` | Both signed files | Registers, record, ledger, stakeholder edits, History lines on changed items, session log; VTT moved to `processed/` | None |
+| Summary | `bin/summary`, after every S3 | The written transcript's files and the Claude Code session files | `evaluation/Tnnn-summary.md`: model, time, tokens, output, verdict outcomes, comparison with the previous transcript | None |
 | Evaluate | `bin/score`, then the human tags | Dossier and reference | `evaluation/Tnnn-run-nn.md` | None |
 
 ## Formats
@@ -72,6 +74,7 @@ These are the shapes every script and the skill agree on. `IMPLEMENTATION-PLAN.m
 - **F8 Session log.** `sessions/Tnnn/Tnnn.session-log.md`, one row per id created or changed.
 - **F9 Run log.** `logs/<UTC timestamp>-<Tnnn>-<stage>.md`, append only.
 - **F10 History line.** The last section of every register item file is `## History`, one line per change: `- <D Month YYYY> | <Tnnn item nn, or a person's name for a hand edit> | <Field>: <old> to <new>; ... | <F2 citations, or blank>`. A blank old value is written `blank`. A claim carries the same as `- history:` list entries under its section, and its new evidence joins `- evidence:`. The session log row for the id repeats the change summary.
+- **F11 Ingestion summary.** `evaluation/Tnnn-summary.md` from `templates/ingestion-summary.md`: header fields, then Transcript, Time, Tokens, Cost, Output, Accuracy, Compared with the previous transcript, Caveats, and a last section `## Metrics` of `- key: value` lines that the next transcript's summary reads for its comparison. Keys are fixed by `bin/summary`; a key missing from an older summary is shown as not recorded.
 
 Documents (README, rules, runbooks, engagement.md, session sheet, dossier) carry `Version X.Y, D Month YYYY.` near the top and are bumped on change. Item files carry `updated:` and a History section (F10) instead; git is the backup, not the record.
 
@@ -93,9 +96,10 @@ All in `bin/`, POSIX sh with awk, sed, grep, shasum and date. `ENGAGEMENTS_ROOT`
 | `s3-write` | `s3-write <engagement> <Tnnn>` | Checks every gate, writes one file per accepted new item, applies each mutation to its existing file with a History line, appends claims, extends topics, completes the transcript file, writes the session log, renders the index, moves the VTT to `processed/`. Restores everything on failure. |
 | `render-index` | `render-index <engagement>` | Regenerates the tables under `index/`, including `outstanding.md` and `changes.md`. |
 | `score` | `score <engagement> <Tnnn> <reference> [<dossier>]` | Writes `evaluation/Tnnn-run-nn.md` with the counts from design Q4. |
-| `stage` | `stage <engagement> <Tnnn> <status\|tasks\|S0\|S1\|S3\|check\|score>` | Driver. Reports the state, runs a stage, refuses a stage whose predecessor is unsigned, writes a run log. |
+| `summary` | `summary <engagement> <Tnnn> [<from> <to>]` | After S3, writes `evaluation/Tnnn-summary.md` (F11): the model, elapsed, active and waiting minutes, tokens per model call from the Claude Code session files under `~/.claude/projects/` and their cost at the list prices in `pricing.tsv`, items and verdict outcomes from the dossier, and a comparison with the latest earlier summary. Also `stage <engagement> <Tnnn> summary`. |
+| `stage` | `stage <engagement> <Tnnn> <status\|tasks\|S0\|S1\|S3\|check\|score\|summary>` | Driver. Reports the state, runs a stage, refuses a stage whose predecessor is unsigned, writes a run log. |
 | `tasks` | `tasks <engagement> <Tnnn>` | Prints the ingestion checklist for one transcript with each step marked from the files on disk, and writes `sessions/Tnnn/TASKS.md`. Also `stage <engagement> <Tnnn> tasks`. |
 
 ## Versioning
 
-`VERSION` is the ingester. `extraction-rules.md` carries its own version because it changes with every evaluation loop. Every session log and run report records both, so a row in a register can always be traced to the mechanism that produced it. Rule changes are made by hand as a versioned change to the ingester; nothing under `ingester/` is written during ingestion.
+`VERSION` is the ingester. `extraction-rules.md` carries its own version because it changes with every evaluation loop. Every session log, run report and ingestion summary records both, so a row in a register can always be traced to the mechanism that produced it. Rule changes are made by hand as a versioned change to the ingester; nothing under `ingester/` is written during ingestion.

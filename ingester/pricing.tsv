@@ -1,0 +1,11 @@
+# Model prices, US dollars per million tokens, Anthropic first-party API list prices at standard speed.
+# Read by bin/summary to price an ingestion. Edit by hand when a price changes, bump ingester/VERSION,
+# and note the change in the as_of and source columns. A model with no row is reported as not priced.
+# Cache writes are priced by TTL: 5-minute writes at 1.25x input, 1-hour writes at 2x input.
+# Fast mode is priced at fast_multiplier times every column.
+model	input	output	cache_write_5m	cache_write_1h	cache_read	fast_multiplier	as_of	source
+claude-opus-5	5.00	25.00	6.25	10.00	0.50	2	23 September 2026	claude-api skill model table (cached 24 June 2026); cache multipliers from its prompt-caching reference
+claude-opus-5-5	4.00	20.00	5.00	8.00	0.20	2	23 September 2026	claude-api skill model table (cached 24 June 2026); cache read stated as $0.20; cache write multipliers from its prompt-caching reference
+claude-fable-5-1	10.00	50.00	12.50	20.00	0.25	1	23 September 2026	claude-api skill model table; cache read stated as $0.25; no fast mode
+claude-sonnet-5	2.00	10.00	2.50	4.00	0.20	1	23 September 2026	claude-api skill model table; standard multipliers
+claude-haiku-4-5	1.00	5.00	1.25	2.00	0.10	1	23 September 2026	claude-api skill model table; standard multipliers

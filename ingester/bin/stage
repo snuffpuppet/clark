@@ -1,10 +1,10 @@
 #!/bin/sh
-# stage <engagement> <Tnnn> <status|tasks|S0|S1|S3|check|score <reference> [dossier]|log <stage> "<outcome>">
+# stage <engagement> <Tnnn> <status|tasks|S0|S1|S3|check|score <reference> [dossier]|summary [<from> <to>]|log <stage> "<outcome>">
 # The driver. status prints one word for where the transcript is. Each stage refuses to start when its
 # predecessor is not signed. Every branch except status writes a run log under logs/.
 set -e
 . "$(dirname "$0")/lib.sh"
-[ $# -ge 3 ] || die "usage: stage <engagement> <Tnnn> <status|S0|S1|S3|check|score|log>"
+[ $# -ge 3 ] || die "usage: stage <engagement> <Tnnn> <status|S0|S1|S3|check|score|summary|log>"
 eng=$1; tid=$2; cmd=$3; shift 3; d=$(eng_dir "$eng"); sdir="$d/sessions/$tid"
 sheet="$sdir/$tid.session.md"; dossier="$sdir/$tid.dossier.md"
 [ -f "$d/engagement.md" ] || die "no engagement at $d"
@@ -33,6 +33,7 @@ case $cmd in
       log_run "$eng" "$tid" check "$([ $rc -eq 0 ] && echo passed || echo failed)" "$dossier" "" > /dev/null; exit $rc ;;
   score) [ $# -ge 1 ] || die "usage: stage <eng> <Tnnn> score <reference> [dossier]"
       "$INGESTER_DIR/bin/score" "$eng" "$tid" "$@"; log_run "$eng" "$tid" score "scored against $1" "$1 ${2:-$dossier}" "evaluation/" > /dev/null ;;
+  summary) "$INGESTER_DIR/bin/summary" "$eng" "$tid" "$@" ;;
   log) [ $# -ge 2 ] || die "usage: stage <eng> <Tnnn> log <stage> \"<outcome>\""; log_run "$eng" "$tid" "$1" "$2" "${3:-}" "${4:-}" ;;
   tasks) "$INGESTER_DIR/bin/tasks" "$eng" "$tid" ;;
   *) die "unknown command $cmd" ;;

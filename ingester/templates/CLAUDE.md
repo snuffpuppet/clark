@@ -18,7 +18,7 @@ The skill is `.claude/skills/ingest-transcript/SKILL.md` at the repository root 
 - `index/`: generated tables. Never edit; run `../../ingester/bin/render-index {{ENGAGEMENT}}` to refresh.
 - `transcripts/unprocessed/` and `transcripts/processed/`: VTT files as received. Never edit, rename or delete.
 - `sessions/Tnnn/`: utterance table, session sheet, exchanges, episodes, dossier, session log, `TASKS.md`.
-- `evaluation/`: hand-marked references and run reports. `logs/`: one file per skill run.
+- `evaluation/`: hand-marked references, run reports, and one ingestion summary per transcript (`Tnnn-summary.md`: model, time, tokens and review outcomes, compared with the previous transcript; regenerate with `../../ingester/bin/stage {{ENGAGEMENT}} Tnnn summary`). `logs/`: one file per skill run.
 
 ## Rules
 

@@ -1,0 +1,210 @@
+#!/bin/sh
+# summary <engagement> <Tnnn> [<from> <to>]
+# Writes evaluation/Tnnn-summary.md after S3: the model used, time taken, tokens used, what was produced,
+# how the reviewer's verdicts fell, and a comparison with the previous transcript's summary. Time and token
+# figures come from the Claude Code session files (JSON lines under ~/.claude/projects/), which Claude Code
+# writes for every session; everything else comes from the engagement's own files.
+# The window runs from the first /ingest-transcript command for the transcript to the S3 run log; <from> and
+# <to> (UTC, as 2026-09-22T21:05) override it. CLAUDE_PROJECTS_DIR overrides where the session files are read.
+set -e
+. "$(dirname "$0")/lib.sh"
+[ $# -eq 2 ] || [ $# -eq 4 ] || die "usage: summary <engagement> <Tnnn> [<from> <to>]"
+eng=$1; tid=$2; d=$(eng_dir "$eng"); sdir="$d/sessions/$tid"
+dossier="$sdir/$tid.dossier.md"; tsv="$sdir/$tid.utterances.tsv"; sheet="$sdir/$tid.session.md"
+[ -f "$dossier" ] && [ -f "$tsv" ] || die "no dossier or utterance table for $tid"
+s3log=$(ls "$d/logs" 2>/dev/null | grep -- "-$tid-S3.md$" | tail -1)
+[ -n "$s3log" ] || die "$tid has no S3 run log; the summary is written after S3"
+iso() { printf '%s' "$1" | sed 's/^\([0-9]\{4\}\)\([0-9]\{2\}\)\([0-9]\{2\}\)T\([0-9]\{2\}\)\([0-9]\{2\}\)\([0-9]\{2\}\)Z$/\1-\2-\3T\4:\5:\6/'; }
+file=$(transcript_field "$eng" "$tid" file)
+
+# Session files: under the project folders Claude Code keeps for this repository and anything below it,
+# and only those that ran a stage command for this transcript.
+proj=${CLAUDE_PROJECTS_DIR:-$HOME/.claude/projects}
+slug=$(printf '%s' "$ROOT_DIR" | sed 's/[^A-Za-z0-9]/-/g')
+W=$(mktemp -d "${TMPDIR:-/tmp}/sum.XXXXXXXX"); trap 'rm -rf "$W"' EXIT
+: > "$W/files"
+for dir in "$proj/$slug" "$proj/$slug"-*; do
+  [ -d "$dir" ] || continue
+  for f in "$dir"/*.jsonl; do [ -f "$f" ] && grep -qF "$eng $tid" "$f" && printf '%s\n' "$f" >> "$W/files"; done
+done
+[ -s "$W/files" ] || die "no Claude Code session file under $proj mentions '$eng $tid'"
+
+to=$(iso "${s3log%%-*}"); [ $# -eq 4 ] && to=$4
+if [ $# -eq 4 ]; then from=$3
+else
+  from=$(while IFS= read -r f; do awk -v tid="$tid" -v file="$file" '
+      /"type":"user"/ && /ingest-transcript/ && (index($0, tid) || index($0, file)) && !/"type":"tool_result"/ {
+        if (match($0, /"timestamp":"[0-9-]+T[0-9:.]+Z"/)) { print substr($0, RSTART + 13, RLENGTH - 14); exit } }' "$f"; done < "$W/files" | sort | head -1)
+  [ -n "$from" ] || from=$(iso "$(ls "$d/logs" | grep -- "-$tid-S0.md$" | head -1 | sed 's/-.*//')")
+fi
+
+# One pass over the session files: events for the time figures, usage per model call for the tokens.
+awk -v FROM="$from" -v TO="$to" -v ev="$W/events" -v s3cmd="$eng $tid S3" -v prices="$INGESTER_DIR/pricing.tsv" '
+  function num(k,   r) { if (match($0, "\"" k "\":[0-9]+")) { r = substr($0, RSTART, RLENGTH); sub(/.*:/, "", r); return r + 0 } return 0 }
+  function epoch(ts,   y, m, dd, days) { y = substr(ts, 1, 4) + 0; m = substr(ts, 6, 2) + 0; dd = substr(ts, 9, 2) + 0
+    if (m <= 2) { y--; m += 12 }; days = 365 * y + int(y / 4) - int(y / 100) + int(y / 400) + int((153 * (m - 3) + 2) / 5) + dd
+    return ((days * 24 + substr(ts, 12, 2)) * 60 + substr(ts, 15, 2)) * 60 + substr(ts, 18, 2) }
+  BEGIN { lo = epoch(FROM); hi = epoch(TO) }
+  FNR == 1 { stop = 0 }
+  { if (stop || !match($0, /"timestamp":"[0-9-]+T[0-9:.]+Z"/)) next
+    ts = substr($0, RSTART + 13, RLENGTH - 14); e = epoch(ts); if (e < lo || e > hi + 600) next
+    if (e > hi && $0 ~ /"type":"user"/ && $0 !~ /"type":"tool_result"/ && $0 !~ /"isMeta":true/ && $0 !~ /<task-notification>/) { stop = 1; next }
+    if ($0 ~ /"type":"assistant"/ && index($0, s3cmd) && e <= hi) s3s = e
+    if (first == "" || ts < first) first = ts; if (ts > last) last = ts
+    human = ($0 ~ /"type":"user"/ && $0 !~ /"type":"tool_result"/ && $0 !~ /"isMeta":true/ && $0 !~ /"isSidechain":true/ && $0 !~ /<task-notification>/ && $0 !~ /<local-command-stdout>/ && $0 !~ /"isCompactSummary":true/)
+    printf "%d\t%s\n", e, (human ? "U" : "E") > ev; nf = FILENAME; sub(/.*\//, "", nf); sub(/\.jsonl$/, "", nf); if (!(nf in used)) { used[nf] = 1; ul = ul (ul == "" ? "" : ", ") nf }
+    if (human) users++
+    if ($0 ~ /"type":"assistant"/ && $0 ~ /"usage":/) {
+      id = NR; if (match($0, /"id":"msg_[A-Za-z0-9_]+"/)) id = substr($0, RSTART + 6, RLENGTH - 7)
+      IN[id] = num("input_tokens"); CW[id] = num("cache_creation_input_tokens"); CR[id] = num("cache_read_input_tokens"); OUT[id] = num("output_tokens")
+      C5[id] = num("ephemeral_5m_input_tokens"); C1[id] = num("ephemeral_1h_input_tokens"); if (C5[id] + C1[id] == 0) C5[id] = CW[id]; FAST[id] = ($0 ~ /"speed":"fast"/)
+      mo = ""; if (match($0, /"model":"[^"]+"/)) mo = substr($0, RSTART + 9, RLENGTH - 10); MO[id] = mo } }
+  END { while ((getline pl < prices) > 0) { if (pl ~ /^#/ || pl ~ /^model\t/) continue; split(pl, pf, "\t"); P_in[pf[1]] = pf[2]; P_out[pf[1]] = pf[3]; P_w5[pf[1]] = pf[4]; P_w1[pf[1]] = pf[5]; P_r[pf[1]] = pf[6]; P_fx[pf[1]] = pf[7]; P_asof = pf[8] }
+    for (i in IN) { calls++; si += IN[i]; sw += CW[i]; sr += CR[i]; so += OUT[i]; if (MO[i] != "" && MO[i] != "<synthetic>") mc[MO[i]]++
+      m = MO[i]; if (m == "" || m == "<synthetic>") continue
+      if (!(m in P_in)) { if (!(m in unp)) { unp[m] = 1; ul2 = ul2 (ul2 == "" ? "" : ", ") m }; continue }
+      fx = FAST[i] ? P_fx[m] : 1; if (FAST[i]) fastc++
+      ci += fx * IN[i] * P_in[m] / 1e6; co += fx * OUT[i] * P_out[m] / 1e6; cw += fx * (C5[i] * P_w5[m] + C1[i] * P_w1[m]) / 1e6; cr += fx * CR[i] * P_r[m] / 1e6; w5 += C5[i]; w1 += C1[i] }
+    ms = ""; for (m in mc) ms = ms (ms == "" ? "" : ", ") m " (" mc[m] " calls)"
+    printf "cost=%.2f\ncost_input=%.2f\ncost_output=%.2f\ncost_cachew=%.2f\ncost_cacher=%.2f\nunpriced=%s\nprices_asof=%s\nfastcalls=%d\nw5=%d\nw1=%d\n", ci + co + cw + cr, ci, co, cw, cr, ul2, P_asof, fastc, w5, w1
+    printf "sessions=%s\ns3start=%d\nhi=%d\nfirst=%s\nlast=%s\nusers=%d\ncalls=%d\ninput=%d\ncachew=%d\ncacher=%d\noutput=%d\nmodels=%s\n", ul, s3s, hi, first, last, users, calls, si, sw, sr, so, ms }' $(cat "$W/files") > "$W/usage"
+u() { grep "^$1=" "$W/usage" | sed "s/^$1=//"; }
+[ "$(u calls)" -gt 0 ] || die "no model calls found between $from and $to"
+
+{ cat "$W/events"; printf '%s\tE\n' "$(u hi)"; } | sort -t "$(printf '\t')" -k1,1n -k2,2r | awk -F'\t' -v s3s="$(u s3start)" -v hi="$(u hi)" '
+  $1 > hi + 0 { if ($2 == "U") next }
+  { if (NR > 1) { g = $1 - p; if (g < 0) g = 0
+      if ($2 == "U") wait += g; else if (s3s > 0 && p >= s3s && $1 <= hi) s3 += g; else if (g < 600) act += g; else idle += g } else s = $1; p = $1
+    if ($1 <= hi) end = $1 }
+  END { printf "elapsed=%d\nactive=%d\nwaiting=%d\nidle=%d\ns3=%d\n", (end - s) / 60 + 0.5, (act + s3) / 60 + 0.5, wait / 60 + 0.5, idle / 60 + 0.5, s3 / 60 + 0.5 }' > "$W/time"
+t() { grep "^$1=" "$W/time" | sed "s/^$1=//"; }
+
+# The transcript.
+awk -F'\t' 'NR > 1 { cues++; if (!($1 in U)) { U[$1] = 1; utt++ }; if (!($5 in S)) { S[$5] = 1; spk++ }; e = $4 }
+  END { split(e, h, ":"); printf "cues=%d\nutterances=%d\nspeakers=%d\nminutes=%d\n", cues, utt, spk, h[1] * 60 + h[2] + (h[3] >= 30) }' "$tsv" > "$W/tx"
+x() { grep "^$1=" "$W/tx" | sed "s/^$1=//"; }
+
+# The dossier: output and verdicts. A blank verdict on a Confident item in a bulk-accepted episode is an Accept.
+awk '
+  /^## [A-Z][0-9]+-E[0-9]+ / { ep++; bulk = 0 } /^- Bulk accept: ./ { bulk = 1 } /^## Closing/ { ep_end = 1 }
+  /^### Item / { n++; k = $5; nh = ($0 ~ /Needs a human/); if (nh) nhc++; kind[n] = k; isnh[n] = nh; inbulk[n] = bulk }
+  /^- Target: / { tg = $3; if (tg == "new") { if (kind[n] == "TOP") newtop++; else { newc++; nk[kind[n]]++ } } else if (tg == "item") topx++; else mut++ }
+  /^- Verdict:/ { v = $3; if (v == "" && !isnh[n] && inbulk[n]) v = "Accept"; if (v == "") v = "blank"; vc[v]++
+    if (v == "Edit" || v == "Reject") { if (isnh[n]) nhch++; else cch++ } }
+  /^  - [a-z]+ \| [A-Z][0-9]+\// { cites++ }
+  END { ks = ""; for (q in nk) ks = ks (ks == "" ? "" : ", ") nk[q] " " q
+    printf "items=%d\nepisodes=%d\nnh=%d\nnew=%d\nnewtop=%d\ntopx=%d\nmut=%d\nkinds=%s\naccept=%d\nedit=%d\nreject=%d\nblank=%d\nnhch=%d\ncch=%d\ncites=%d\n", n, ep, nhc, newc, newtop, topx, mut, ks, vc["Accept"], vc["Edit"], vc["Reject"], vc["blank"], nhch, cch, cites }' "$dossier" > "$W/dos"
+o() { grep "^$1=" "$W/dos" | sed "s/^$1=//"; }
+pct() { awk -v a="$1" -v b="$2" 'BEGIN { if (b > 0) printf "%.1f", 100 * a / b; else print "0" }'; }
+per() { awk -v a="$1" -v b="$2" -v m="$3" 'BEGIN { if (b > 0) printf "%d", m * a / b + 0.5; else print "0" }'; }
+thou() { awk -v n="$1" 'BEGIN { s = sprintf("%d", n); o = ""; while (length(s) > 3) { o = "," substr(s, length(s) - 2) o; s = substr(s, 1, length(s) - 3) }; print s o }'; }
+share=$(pct "$(o nh)" "$(o items)"); changed=$(( $(o edit) + $(o reject) )); chpct=$(pct "$changed" "$(o items)")
+cpi=$(awk -v a="$(u cost)" -v b="$(o items)" 'BEGIN { if (b > 0) printf "%.2f", a / b; else print "0" }')
+opi=$(per "$(u output)" "$(o items)" 1); opu=$(per "$(u output)" "$(x utterances)" 100)
+models=$(u models); sessions=$(u sessions)
+# The versions the transcript was ingested with, from its S3 run log.
+iv=$(header_field "$d/logs/$s3log" "Ingester version"); rv=$(header_field "$d/logs/$s3log" "Rules version")
+
+# Stage times from the run logs.
+stages=$(ls "$d/logs" | grep -- "-$tid-" | grep -v -- "-summary\.md$" | while IFS= read -r lf; do
+  printf -- '- %s %s: %s\n' "$(header_field "$d/logs/$lf" Stage)" "$(iso "${lf%%-*}" | sed 's/T/ /')" "$(header_field "$d/logs/$lf" Outcome | cut -c1-120)"; done)
+
+# The design's run report, when a reference has been scored.
+rr=$(ls "$d/evaluation" 2>/dev/null | grep "^$tid-run-[0-9]*\.md$" | sort | tail -1 || true)
+if [ -n "$rr" ]; then runrep="Scored against a reference in \`evaluation/$rr\`: $(grep -h -e '^- Invented per hundred' -e '^- Missed per hundred' -e '^- Confident but wrong' "$d/evaluation/$rr" | sed 's/^- //' | paste -sd ';' - | sed 's/;/; /g')."
+else runrep="No reference has been scored for $tid, so Missed and Invented counts (design Q4) are not available. Hand-mark \`evaluation/$tid-reference.md\` and run \`stage $eng $tid score\` to get them."; fi
+
+# Metrics, and the comparison with the latest earlier summary.
+cat > "$W/metrics" <<EOF
+- model: $models
+- ingester_version: $iv
+- rules_version: $rv
+- transcript_minutes: $(x minutes)
+- cues: $(x cues)
+- utterances: $(x utterances)
+- speakers: $(x speakers)
+- elapsed_minutes: $(t elapsed)
+- active_minutes: $(t active)
+- s3_minutes: $(t s3)
+- waiting_minutes: $(t waiting)
+- reviewer_messages: $(u users)
+- model_calls: $(u calls)
+- output_tokens: $(u output)
+- cache_read_tokens: $(u cacher)
+- cache_write_tokens: $(u cachew)
+- input_tokens: $(u input)
+- items: $(o items)
+- episodes: $(o episodes)
+- needs_human: $(o nh)
+- human_share_pct: $share
+- changed_items: $changed
+- changed_pct: $chpct
+- confident_changed: $(o cch)
+- citations: $(o cites)
+- output_tokens_per_item: $opi
+- output_tokens_per_100_utterances: $opu
+- cost_usd: $(u cost)
+- cost_per_item_usd: $cpi
+EOF
+prevf=$(ls "$d/evaluation" 2>/dev/null | grep '^T[0-9]*-summary\.md$' | sed 's/-summary\.md$//' | awk -v t="$tid" '$0 < t' | sort | tail -1 || true)
+if [ -n "$prevf" ]; then
+  previous="$prevf (\`evaluation/$prevf-summary.md\`)"
+  comparison=$(awk -v pt="$prevf" -v tt="$tid" '
+    FNR == 1 { fi++ } fi == 2 { on[2] = 1 } /^## Metrics/ { on[fi] = 1; next } on[fi] && /^- [a-z_0-9]+: / { k = $2; sub(/:$/, "", k); v = $0; sub(/^- [^:]*: /, "", v); if (fi == 1) P[k] = v; else { C[k] = v; ord[++n] = k } }
+    END { printf "| Metric | %s | %s | Change |\n|---|---|---|---|\n", pt, tt
+      for (i = 1; i <= n; i++) { k = ord[i]; a = P[k]; b = C[k]; ch = ""
+        if (a ~ /^[0-9.]+$/ && b ~ /^[0-9.]+$/ && a + 0 > 0 && k !~ /version/) ch = sprintf("%+.0f%%", 100 * (b - a) / a)
+        printf "| %s | %s | %s | %s |\n", k, (a == "" ? "not recorded" : a), b, ch } }' "$d/evaluation/$prevf-summary.md" "$W/metrics")
+else previous="none; this is the first summary in the engagement"; comparison="No earlier transcript in this engagement has a summary. Generate one with \`stage $eng <Tnnn> summary\` to compare."; fi
+
+caveats="- Every figure in the time and token sections covers all the work in the session files within the window, including anything done in the same session that was not this ingestion. Narrow the window with \`summary $eng $tid <from> <to>\` if the session was also used for other work.
+- Active time excludes the reviewer's reading time but includes time spent on commands that ran in the background.
+- Accuracy here is the reviewer's verdicts, not a score against a reference."
+[ -f "$sdir/$tid.dossier.draft.md" ] || caveats="$caveats
+- No drafted copy (\`$tid.dossier.draft.md\`) was kept before review, so an item edited in place reads as the reviewer left it."
+[ "$(printf '%s' "$models" | tr ',' '\n' | grep -c .)" -gt 1 ] && caveats="$caveats
+- More than one model answered within the window; the call counts per model are in the header."
+
+# Render.
+mkdir -p "$d/evaluation"; out="$d/evaluation/$tid-summary.md"
+ver=0.1; [ -f "$out" ] && ver=$(doc_version "$out" | awk -F. '{ printf "%d.%d", $1, $2 + 1 }')
+vals
+set_val TID "$tid"; set_val ENG "$eng"; set_val DATE "$(today)"; set_val FILE "$file"
+set_val SESSION_DATE "$(header_field "$sheet" 'Session date')"; set_val MODEL "$models"
+set_val INGESTER_VERSION "$iv"; set_val RULES_VERSION "$rv"; set_val SESSIONS "$sessions"
+set_val WINDOW "$(u first | cut -c1-19 | sed 's/T/ /') to $(u last | cut -c1-19 | sed 's/T/ /') UTC"; set_val PREVIOUS "$previous"
+set_val TRANSCRIPT "- Length: $(x minutes) minutes, $(thou "$(x cues)") cues, $(x utterances) utterances, $(x speakers) speakers"
+set_val TIME "- Elapsed: $(t elapsed) minutes
+- Active: $(t active) minutes, of which S3 writing in the background: $(t s3) minutes
+- Waiting on the reviewer: $(t waiting) minutes
+- Idle: $(t idle) minutes
+- Reviewer messages: $(u users)"
+set_val STAGES "$stages"
+set_val TOKENS "- Model calls: $(u calls)
+- Output: $(thou "$(u output)")
+- Cache read: $(thou "$(u cacher)")
+- Cache write: $(thou "$(u cachew)")
+- Input (uncached): $(thou "$(u input)")
+- Output per dossier item: $(thou "$opi")
+- Output per hundred utterances: $(thou "$opu")"
+set_val COST "- Total: \$$(u cost)
+- Output: \$$(u cost_output)
+- Cache read: \$$(u cost_cacher)
+- Cache write: \$$(u cost_cachew) ($(thou "$(u w5)") tokens at the 5-minute rate, $(thou "$(u w1)") at the 1-hour rate)
+- Input (uncached): \$$(u cost_input)
+- Per dossier item: \$$cpi
+- Prices as of: $(u prices_asof)$( [ -n "$(u unpriced)" ] && printf '\n- Not priced (no row in pricing.tsv): %s' "$(u unpriced)")"
+set_val OUTPUT "- Items drafted: $(o items) across $(o episodes) episodes
+- New items: $(o new) ($(o kinds)), plus $(o newtop) new topics
+- Mutations of existing ids, including stakeholder standing edits: $(o mut)
+- Topic items extending a topic created in the dossier: $(o topx)
+- Citations: $(o cites)"
+set_val ACCURACY "- Needs a human: $(o nh) of $(o items) ($share%)
+- Accepted: $(o accept); edited: $(o edit); rejected: $(o reject); blank: $(o blank)
+- Changed by the reviewer: $changed ($chpct%), of which $(o nhch) were graded Needs a human
+- Confident but changed: $(o cch)"
+set_val RUN_REPORT "$runrep"; set_val COMPARISON "$comparison"; set_val CAVEATS "$caveats"; set_val METRICS "$(cat "$W/metrics")"
+render "$INGESTER_DIR/templates/ingestion-summary.md" "$out"; vals_done
+sed -i '' "s/^Version 0\.1, /Version $ver, /" "$out"
+log_run "$eng" "$tid" summary "written: $(u calls) model calls, $(thou "$(u output)") output tokens, $(t active) active minutes" "$(tr '\n' ' ' < "$W/files")$dossier" "evaluation/$tid-summary.md" > /dev/null
+printf 'summary: %s; %s, %s active minutes, %s output tokens, $%s API list price, %s items, %s%% needing a human\n' "$out" "$models" "$(t active)" "$(thou "$(u output)")" "$(u cost)" "$(o items)" "$share"

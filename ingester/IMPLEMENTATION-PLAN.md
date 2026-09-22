@@ -1,6 +1,6 @@
 # Ingester implementation plan
 
-Version 0.5, 10 September 2026.
+Version 0.6, 23 September 2026.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: use superpowers:executing-plans to implement this plan step by step. Steps use checkbox (`- [ ]`) syntax for tracking. Commit after every numbered step. Nothing is pushed.
 
@@ -63,6 +63,8 @@ The heading gives the item number, its kind and its grade. Kinds: `PRC`, `PRC.st
 **F8 Session log** `sessions/Tnnn/Tnnn.session-log.md`. Versioned. One table `| Id | Action | File | Item | Written on |` with one row per id created or changed by S3, plus ingester and rules versions in the header.
 
 **F9 Run log** `logs/<UTC timestamp>-<Tnnn>-<stage>.md`. Written by `bin/stage` and by the skill: stage, ingester and rules versions, files read, files written, outcome. Append only.
+
+**F11 Ingestion summary** `evaluation/Tnnn-summary.md`, rendered by `bin/summary` from `templates/ingestion-summary.md` after S3 (Addendum B). Header fields Transcript, Session date, Model, Ingester version, Rules version, Claude Code sessions, Window, Compared with; sections Transcript, Time, Tokens, Output, Accuracy, Compared with the previous transcript, Caveats; and a last section `## Metrics` holding one `- key: value` line per figure, which the next transcript's summary parses for its comparison. The ingester and rules versions are those in the transcript's S3 run log, not the current ones. A rerun overwrites the file and raises its version.
 
 ---
 
@@ -524,3 +526,16 @@ Each step ends with the fixture test from step 6.5 rerun in the new shape and a 
 - Phases: the model's "this phase / next phase" still has no list of phase names. Proposed: `## Phases` in `engagement.md`, in order, current marked; `phase` on a requirement takes a value from it; an integrity rule checks it. Not built until confirmed.
 - Whether the model should carry a summary of the current-state record's process and system elements so a reader of the model alone can see them.
 - Transcript and episode ids staying at three digits.
+
+## Addendum B: ingestion summary (ingester 0.9.0)
+
+Added 23 September 2026 at Adam Moyes's direction, after T002, when the comparison with T001 had to be assembled by hand.
+
+- `bin/summary <engagement> <Tnnn> [<from> <to>]`, also `stage <engagement> <Tnnn> summary`, writes F11. POSIX sh with awk, sed, grep, sort and date, like the other scripts.
+- **Where the time and token figures come from.** Claude Code writes every session to `~/.claude/projects/<folder>/<session id>.jsonl`, one JSON object per line, where `<folder>` is the session's working directory with every character that is not a letter or digit replaced by `-`. The script reads every such folder for the repository root and below, keeps the files that contain `<engagement> <Tnnn>` (every stage command carries it), and within the window reads: each line's top-level `timestamp`; on assistant lines, `message.id`, `message.model` and `message.usage` (`input_tokens`, `cache_creation_input_tokens`, `cache_read_input_tokens`, `output_tokens`), keeping one value per message id because a streamed message is written more than once; and on user lines that are not tool results, meta lines or task notifications, a reviewer message. Nested JSON inside tool results is escaped, so a pattern on `"timestamp":"` matches only the line's own key.
+- **Window.** From the first user line that runs `/ingest-transcript` and names the transcript's file or id, to the S3 run log's timestamp, extended to the next reviewer message after it (at most ten minutes) so the report of the write is counted.
+- **Time.** Events sorted by time, a reviewer message sorting before any other event with the same second. A gap ending in a reviewer message is Waiting; a gap inside the S3 write, which starts at the assistant line that runs `<engagement> <Tnnn> S3`, is Active and also reported as the S3 minutes; any other gap under ten minutes is Active; the rest is Idle.
+- **Accuracy.** From the signed dossier: Accept, Edit, Reject and blank per item, a blank Confident item in a bulk-accepted episode counted as Accept; changed items split by grade. The Confident-but-changed count is the design's Confident but wrong. When `evaluation/Tnnn-run-nn.md` exists, its Invented, Missed and Confident but wrong lines are quoted.
+- **Comparison.** Against the latest `evaluation/T<earlier>-summary.md`, key by key from the two Metrics sections, with the percentage change for numeric keys.
+- **Cost.** `ingester/pricing.tsv` holds one row per model: input, output, 5-minute and 1-hour cache write, cache read, fast multiplier, as_of, source, in US dollars per million tokens. Each call is priced by its `message.model`, cache writes by `usage.cache_creation.ephemeral_5m_input_tokens` and `ephemeral_1h_input_tokens` (all of `cache_creation_input_tokens` at the 5-minute rate when the split is absent), fast mode when the line carries `"speed":"fast"`. Metrics `cost_usd` and `cost_per_item_usd`.
+- Not reported: the share of the plan's usage limit, which the session files do not hold.

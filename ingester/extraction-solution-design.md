@@ -1,6 +1,6 @@
 # Extracting solution records from discovery transcripts: solution design
 
-Version 1.6, 10 September 2026. Approved for implementation by Adam Moyes: 1.0 on 10 September 2026, with the 1.1 to 1.6 changes made at his direction the same day. Owner: Adam Moyes. Responds to `BRIEF.md` version 1.0 and `solution-register-model.md` version 2.18.
+Version 1.7, 23 September 2026. Approved for implementation by Adam Moyes: 1.0 on 10 September 2026, with the 1.1 to 1.6 changes made at his direction the same day and 1.7 on 23 September 2026. Owner: Adam Moyes. Responds to `BRIEF.md` version 1.0 and `solution-register-model.md` version 2.18.
 
 This document answers the four questions in the brief, defines the current-state record and the session structures around it, and then proposes the extraction method. Section 6 shows worked examples taken from `T001-SANITISED-TechnicalSyncUp.vtt` so that each rule can be checked against real speech. Section 7 describes the split between the ingester, which holds the mechanism, and the engagements, which hold everything produced for a client. Section 10 records the assumptions and the decisions made at approval. Section 11 is the change log.
 
@@ -117,6 +117,9 @@ Two derived numbers matter most: invented per hundred drafted items, which must 
 **The improvement loop.** Every Wrong, Missed, Invented or Confident-but-wrong item gets a failure-mode tag from a short controlled list (present-tense-as-requirement, hedge-as-fact, legacy-resurrected, vendor-intent-as-our-decision, consultant-restatement-as-fact, speaker-misattributed, exchange-split, episode-boundary, chatter-marked, overconfident-grade, and so on; the list grows as new modes appear). Each failure mode maps to one rule in the extraction rules file (5.3). Fixing a mode means editing that rule and attaching the failing passage as a test case under it. The rules file is versioned, every run records the rules version it used, and a run report compares the counts with the previous run on the same reference. A rule change that lowers any kind's Right count on an earlier reference is a regression and is reverted or explained. Where the disagreement turns out to be in the reference, the reference is corrected and that correction is logged too.
 
 **Earning the reduction.** The human share of each dossier is the count of Needs-a-human items over all items. It falls in two ways: the grading rule for a kind is loosened when that kind's Confident-but-wrong count has been zero across a stated number of sessions, and it is tightened the first time it is not. Both moves are versioned changes to the rules file with the evidence attached. The reviewer always reads the whole dossier; what changes is how many items need an individual verdict.
+
+
+**The ingestion summary.** Accuracy is half the measure; the other half is what an ingestion costs. After every S3, `evaluation/Tnnn-summary.md` records the model that did the reading, the elapsed time and how it split between the model working, the S3 write and waiting on the reviewer, the reviewer messages, the model calls and tokens, what the dossier produced, and how the reviewer's verdicts fell: the Needs a human share, the items edited or rejected, and the Confident items edited or rejected, which is the Confident-but-wrong count above read without a reference. It sets every figure beside the previous transcript's summary, so a change of model, ingester version or rules version shows its effect on effort, cost and review load at once. The time and token figures come from the session files Claude Code writes for every session; nothing is estimated. The summary needs no reference and is written every time; the run report, which needs one, remains the measure of Missed and Invented. It also prices the tokens at the API list prices kept in `ingester/pricing.tsv`, model by model, which on a subscription plan is an equivalent rather than a charge. The share of a plan's usage limit is not recorded, because the session files do not hold it. Runbook summary gives the procedure and the implementation plan, Addendum B, the method.
 
 This keeps the method's quality tied to evidence: the rules are the method, the references are the tests, and the run report is the score.
 
@@ -270,6 +273,7 @@ Within one transcript the method is a short pipeline: S0 to S3 in order, each st
 | S2 Review | The dossier | `T001.dossier.md` with verdicts, edits and a signed header | The human. |
 | S3 Write | Signed session sheet and signed dossier | Updated registers, current-state record, topic ledger and stakeholder register, `T001.session-log.md`, version bumps | Shell script from the ingester. Refuses to run if any gate fails. |
 | Evaluate | Dossier as drafted and the reference | `evaluation/T001-run-nn.md` with the counts in Q4 and the failure-mode tags | Shell scoring, human tagging |
+| Summary | The written transcript's files and the Claude Code session files | `evaluation/Tnnn-summary.md`: model, time, tokens, output and verdict outcomes, compared with the previous transcript (Q4) | Shell, after every S3 |
 
 In S1 the skill reads the engagement's existing records as context, not only as targets. It continues ids from the next free number, updates an existing claim rather than duplicating it, marks a conflict with an existing claim or item as Needs a human with the id, notes which open items the session closes, and says when an episode is the latest of several on a topic without a decision. It writes citations only in the Q2 form and writes "Question:" rather than fill a field it cannot support from the text.
 
@@ -430,7 +434,7 @@ clark/                            the git repository
       index/                         generated tables, never edited
       sessions/T001/                 utterance table, session sheet, exchanges,
                                      episodes, dossier, session log
-      evaluation/                    hand-marked references and run reports
+      evaluation/                    hand-marked references, run reports and ingestion summaries
       logs/                          one log per skill run
 ```
 
@@ -444,7 +448,7 @@ Ingestion is a Claude Code session started inside the engagement folder, `engage
 
 The skill assigns the next transcript id and runs S0 through the shell scripts, then stops for the session sheet. On the next invocation it finds the signed session sheet, performs S1 in full, and stops with the dossier. On the next invocation it finds the signed dossier and runs S3. If it finds an unsigned file it says so and stops. It never advances past an unsigned gate, and it never edits a signed file. If the reviewer rejects the dossier outright, the skill re-reads with the reviewer's notes as additional context and produces a new dossier version.
 
-The skill file lives at `.claude/skills/ingest-transcript/SKILL.md` in the repository root, where Claude Code discovers project skills, and it is versioned with the ingester. It finds the root with `git rev-parse --show-toplevel`, takes the engagement from the working directory, and the engagement's `engagement.md` records which ingester version it was last run with so that a mismatch is visible.
+The skill file lives at `.claude/skills/ingest-transcript/SKILL.md` in the repository root, where Claude Code discovers project skills, and it is versioned with the ingester. It takes the engagement from the working directory and the root as two levels above it (not from git, because `engagements/` is a git repository of its own), and the engagement's `engagement.md` records which ingester version it was last run with so that a mismatch is visible.
 
 Two arrangements were tested on 10 September 2026 with Claude Code 2.1.266. A session started in `engagements/puppy-gloves/` did find a root-level skill, so no symlink or `CLAUDE.md` pointer is needed, but its reads into `ingester/` fell outside the working directory and were refused in non-interactive mode, with or without a project settings entry. A session started at the repository root read both without any grant. On review (1.6) Adam chose the engagement folder as the working directory, so that the engagement is known without an argument; the session grants the read into `ingester/` with `claude --add-dir ../../ingester`, or by approving the prompt once in an interactive session.
 
@@ -497,7 +501,7 @@ Applied to `solution-register-model.md` on approval of this design, 10 September
 | `ingester/extraction-rules.md` | ingester | The rules in 5.6 with test passages and the grading conditions | Bumped on every change; recorded in every run report and session log |
 | `ingester/VERSION` | ingester | Version of the mechanism as a whole | Bumped on any change to skill, scripts, runbooks or templates |
 | `.claude/skills/ingest-transcript/SKILL.md` | root | The ingest skill, part of the ingester | With the ingester |
-| `ingester/runbooks/S0.md` to `S3.md`, `staged-review.md`, `evaluate.md` | ingester | Operator runbooks | With the ingester |
+| `ingester/runbooks/S0.md` to `S3.md`, `staged-review.md`, `evaluate.md`, `summary.md` | ingester | Operator runbooks | With the ingester |
 | `ingester/bin/` | ingester | Shell scripts for S0, citation check, integrity, S3, ledger update, scoring, the stage driver | With the ingester |
 | `ingester/templates/` | ingester | Empty session sheet, dossier, registers, current-state record, topic ledger, engagement.md | With the ingester |
 | `engagements/<name>/engagement.md` | engagement | Client, domain, glossary, ingester version last used | Bumped on every change |
@@ -510,7 +514,7 @@ Applied to `solution-register-model.md` on approval of this design, 10 September
 | `engagements/<name>/requirements/`, `decisions/`, `limitations/`, `risks/`, `open-items/` | engagement | Five registers, one file per item | Written and edited by S3 |
 | `engagements/<name>/index/*.md` | engagement | Generated index tables and the outstanding view | Regenerated after every S3 and on request; never edited |
 | `engagements/<name>/sessions/Tnnn/` | engagement | Utterance table, session sheet, exchanges, episodes, dossier versions, session log | Each file carries its own version |
-| `engagements/<name>/evaluation/` | engagement | Reference marking and run reports | Reference versioned; runs numbered |
+| `engagements/<name>/evaluation/` | engagement | Reference marking, run reports and one ingestion summary per transcript | Reference versioned; runs numbered; a summary is regenerated, never edited |
 | `engagements/<name>/logs/` | engagement | One log per skill run | Append only |
 
 The two existing files `solution-register-model.md` and `T001-SANITISED-TechnicalSyncUp.vtt` live in `ingester/` and `engagements/puppy-gloves/transcripts/unprocessed/` respectively. The project lives in the git repository `solution-register` (remote `github.com/snuffpuppet/solution-register`), with `ingester/` and `engagements/` as its two top-level folders. One repository holds both parts; the folder boundary keeps them independent.
@@ -553,3 +557,4 @@ The next step is the implementation plan covering the folder layout, the skill, 
 | 1.4 | 10 September 2026 | One file per item, claim element, stakeholder, topic and transcript, following register model 2.18; generated index tables as the meeting view. Four-digit ids except transcripts and episodes. Segment and Department on the stakeholder register (4.6). Change requests removed with the model. Layout (7.1) and file table (10.1) rewritten. |
 | 1.5 | 10 September 2026 | The ingest command takes the transcript file and an optional meeting subject; the engagement is implied when only one exists and asked for otherwise (7.2). The subject's use as a prior for episodes and topics restated in the skill. |
 | 1.6 | 10 September 2026 | The session runs inside the engagement folder, which names the engagement; the skill finds the root with git and grants the read into the ingester with `--add-dir` (7.2). |
+| 1.7 | 23 September 2026 | The ingestion summary added to Q4, the stages table (5.5) and the file table (10.1): after every S3, `evaluation/Tnnn-summary.md` records the model, time, tokens, API list-price cost, output and verdict outcomes from the Claude Code session files and the signed dossier, and compares them with the previous transcript. Made at Adam Moyes's direction after T002, when the comparison with T001 had to be put together by hand. The skill takes the root as two levels above the engagement folder instead of from git (7.2), because `engagements/` is its own repository. Ingester 0.9.0. |

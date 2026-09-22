@@ -5,7 +5,7 @@ description: Ingest a discovery transcript (WebVTT) through stages S0 to S3, sto
 
 # ingest-transcript
 
-Version 0.8.0 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `$ROOT/ingester/bin/` do every deterministic step; you do the reading.
+Version 0.9.0 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `$ROOT/ingester/bin/` do every deterministic step; you do the reading.
 
 **The runbooks under `ingester/runbooks/` are the source of truth for what each stage reads, produces, checks and reports.** This file says only how you, in a Claude Code session, operate them: where you run, what you never do, how you show progress, how you find the current stage, and how you take verdicts in the terminal. When this file and a runbook disagree, the runbook wins and this file is wrong.
 
@@ -14,11 +14,11 @@ Version 0.8.0 (with the ingester; see `ingester/VERSION`). You are the judgement
 The session is started inside an engagement folder, `engagements/<name>/`, and that folder is the engagement. Before anything else:
 
 ```
-ROOT=$(git rev-parse --show-toplevel)
 ENG=$(pwd)
+ROOT=$(cd "$ENG/../.." && pwd)
 ```
 
-`ENG` must be `$ROOT/engagements/<name>` and must contain `engagement.md`. If it is not (the session was started at the root or somewhere else), say so in one line, name the folder to start from, and stop. Never pick an engagement by guessing. Every script is called as `$ROOT/ingester/bin/<script> <name> ...`, where `<name>` is the folder's basename; the scripts resolve every path from the root themselves. The runbooks write paths relative to the engagement folder (`sessions/Tnnn/...`), which is `ENG`. Reads into `$ROOT/ingester/` are outside the working directory; the session grants them with `claude --add-dir ../../ingester` (or by approving the prompt once).
+The root is two levels above the engagement folder, never `git rev-parse --show-toplevel`: `engagements/` is its own git repository, so from inside an engagement folder git names `engagements/` as the top level and every `$ROOT/ingester/...` path misses. `ENG` must be `$ROOT/engagements/<name>`, must contain `engagement.md`, and `$ROOT/ingester/VERSION` must exist. If it is not (the session was started at the root or somewhere else), say so in one line, name the folder to start from, and stop. Never pick an engagement by guessing. Every script is called as `$ROOT/ingester/bin/<script> <name> ...`, where `<name>` is the folder's basename; the scripts resolve every path from the root themselves. The runbooks write paths relative to the engagement folder (`sessions/Tnnn/...`), which is `ENG`. Reads into `$ROOT/ingester/` are outside the working directory; the session grants them with `claude --add-dir ../../ingester` (or by approving the prompt once).
 
 ## Arguments
 
@@ -44,7 +44,7 @@ Show the reviewer where the transcript is at every step, using the Claude Code t
 
 1. Run `$ROOT/ingester/bin/stage <engagement> TID tasks`. It prints the pipeline checklist with each step marked from the files on disk.
 2. Create one task per line of its Pipeline and After the run sections, in that order, with the same wording. A `[x]` line is `completed`; the line marked `(current step)` is `in_progress`; every other line is `pending`.
-3. As you work, update the list: mark a step `in_progress` when you start it and `completed` the moment its file exists or its check passes. The steps you own are the S0 proposals, S1 Read (split it into its own sub-tasks, one per numbered step of the S1 runbook's Procedure) and, after S3, the score.
+3. As you work, update the list: mark a step `in_progress` when you start it and `completed` the moment its file exists or its check passes. The steps you own are the S0 proposals, S1 Read (split it into its own sub-tasks, one per numbered step of the S1 runbook's Procedure) and, after S3, the ingestion summary and the score.
 4. When you stop at a gate, the human step is left `in_progress` and the task list stays visible with the next command in the final message.
 
 The file `ENG/sessions/TID/TASKS.md` carries the same list for anyone reading the repository; the task list is for the person watching this session.
@@ -71,8 +71,8 @@ It prints one word and act only on that word.
 | `awaiting-session-sheet` | Re-present the review table from runbook S0, Procedure step 8, and say that verdicts given here are enough because you will write them into the sheet, and that "accept all" signs it. Stop. |
 | `needs-s1` | Run `stage <engagement> TID S1` (it writes the accepted stakeholder files and prints `gate open`), then follow runbook S1, Procedure, steps 1 to 8. If the signed sheet says `- Review path: staged`, follow runbook staged-review instead: the files are the same, only the number of stops changes. |
 | `awaiting-dossier` | Follow runbook S2, Completing the dossier: if every Verdict is filled, complete it and go straight to S3; otherwise present the items still without a verdict and stop. |
-| `needs-s3` | Run `stage <engagement> TID S3` **in the background** and wait for its exit line; a large dossier takes longer than a foreground command is given. Touch nothing under the item folders while it runs. Report as runbook S3 says. If it refuses, report its reason verbatim and stop. |
-| `done` | Say the transcript has been written and point at `ENG/sessions/TID/TID.session-log.md`. Stop. |
+| `needs-s3` | Run `stage <engagement> TID S3` **in the background** and wait for its exit line; a large dossier takes longer than a foreground command is given. Touch nothing under the item folders while it runs. Report as runbook S3 says, then in the same turn run `stage <engagement> TID summary` and present it as runbook summary says. If S3 refuses, report its reason verbatim and stop. |
+| `done` | Say the transcript has been written and point at `ENG/sessions/TID/TID.session-log.md`. If `ENG/evaluation/TID-summary.md` does not exist, run `stage <engagement> TID summary` and present it as runbook summary says. Stop. |
 | `blocked: <reason>` | Report the reason verbatim. Stop. |
 
 ## Review happens in the terminal
