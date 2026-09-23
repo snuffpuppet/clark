@@ -1,11 +1,11 @@
 ---
 name: ingest-transcript
-description: Ingest a discovery transcript (WebVTT) through stages S0 to S3, stopping at each signed gate. Usage /ingest-transcript <vtt-file|Tnnn> ["meeting subject"], run from inside an engagement folder (engagements/<name>/), which is how the engagement is known.
+description: Ingest a discovery transcript (WebVTT) through stages S0 to S4, stopping at each signed gate. Usage /ingest-transcript <vtt-file|Tnnn> ["meeting subject"], run from inside an engagement folder (engagements/<name>/), which is how the engagement is known.
 ---
 
 # ingest-transcript
 
-Version 0.9.0 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `$ROOT/ingester/bin/` do every deterministic step; you do the reading.
+Version 0.10.0 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `$ROOT/ingester/bin/` do every deterministic step; you do the reading.
 
 **The runbooks under `ingester/runbooks/` are the source of truth for what each stage reads, produces, checks and reports.** This file says only how you, in a Claude Code session, operate them: where you run, what you never do, how you show progress, how you find the current stage, and how you take verdicts in the terminal. When this file and a runbook disagree, the runbook wins and this file is wrong.
 
@@ -29,7 +29,7 @@ The root is two levels above the engagement folder, never `git rev-parse --show-
 
 ## Rules you never break
 
-- Nothing is written to an item file (requirements/, decisions/, limitations/, risks/, open-items/, processes/, systems/, topics/) except by `$ROOT/ingester/bin/s3-write`, and only after both review files are signed with no pending verdicts. Stakeholder files are written by `$ROOT/ingester/bin/s1-stakeholders` once the session sheet is signed. Silence is not approval.
+- Nothing is written to an item file (requirements/, decisions/, limitations/, risks/, open-items/, processes/, systems/, topics/) except by `$ROOT/ingester/bin/s3-write`, only after both review files are signed with no pending verdicts, and by `$ROOT/ingester/bin/s4-write`, only after the processes file is signed. Stakeholder files are written by `$ROOT/ingester/bin/s1-stakeholders` once the session sheet is signed. Silence is not approval.
 - Never edit a signed file. Never advance past an unsigned gate: say which file is waiting and stop.
 - Never edit, rename or delete a transcript file. A SHA-256 mismatch reported by any script blocks everything; report it and stop.
 - Write nothing under `ingester/`. Every output goes under `ENG/`.
@@ -44,7 +44,7 @@ Show the reviewer where the transcript is at every step, using the Claude Code t
 
 1. Run `$ROOT/ingester/bin/stage <engagement> TID tasks`. It prints the pipeline checklist with each step marked from the files on disk.
 2. Create one task per line of its Pipeline and After the run sections, in that order, with the same wording. A `[x]` line is `completed`; the line marked `(current step)` is `in_progress`; every other line is `pending`.
-3. As you work, update the list: mark a step `in_progress` when you start it and `completed` the moment its file exists or its check passes. The steps you own are the S0 proposals, S1 Read (split it into its own sub-tasks, one per numbered step of the S1 runbook's Procedure) and, after S3, the ingestion summary and the score.
+3. As you work, update the list: mark a step `in_progress` when you start it and `completed` the moment its file exists or its check passes. The steps you own are the S0 proposals, S1 Read (split it into its own sub-tasks, one per numbered step of the S1 runbook's Procedure), S4 Processes (the same, one per numbered step of the S4 runbook's Procedure) and, after S3, the ingestion summary and the score.
 4. When you stop at a gate, the human step is left `in_progress` and the task list stays visible with the next command in the final message.
 
 The file `ENG/sessions/TID/TASKS.md` carries the same list for anyone reading the repository; the task list is for the person watching this session.
@@ -71,7 +71,10 @@ It prints one word and act only on that word.
 | `awaiting-session-sheet` | Re-present the review table from runbook S0, Procedure step 8, and say that verdicts given here are enough because you will write them into the sheet, and that "accept all" signs it. Stop. |
 | `needs-s1` | Run `stage <engagement> TID S1` (it writes the accepted stakeholder files and prints `gate open`), then follow runbook S1, Procedure, steps 1 to 8. If the signed sheet says `- Review path: staged`, follow runbook staged-review instead: the files are the same, only the number of stops changes. |
 | `awaiting-dossier` | Follow runbook S2, Completing the dossier: if every Verdict is filled, complete it and go straight to S3; otherwise present the items still without a verdict and stop. |
-| `needs-s3` | Run `stage <engagement> TID S3` **in the background** and wait for its exit line; a large dossier takes longer than a foreground command is given. Touch nothing under the item folders while it runs. Report as runbook S3 says, then in the same turn run `stage <engagement> TID summary` and present it as runbook summary says. If S3 refuses, report its reason verbatim and stop. |
+| `needs-s3` | Run `stage <engagement> TID S3` **in the background** and wait for its exit line; a large dossier takes longer than a foreground command is given. Touch nothing under the item folders while it runs. Report as runbook S3 says, then in the same turn run `stage <engagement> TID summary` and present it as runbook summary says. The status is then `needs-s4`; say so and carry on with S4 on the next invocation. If S3 refuses, report its reason verbatim and stop. |
+| `needs-s4` | S3 has written the transcript and its processes are next. Follow runbook S4, Procedure, steps 1 to 11: it reads the whole transcript again for processes only. For a transcript written before ingester 0.10.0 this is the rebuild of its processes (runbook S4, Rebuilding). |
+| `awaiting-processes` | Present what runbook S4 step 11 says: each process's Flow table with trigger and outcome, then every item needing a human. A Flow verdict given in the terminal ("flow 2 accept", "accept all") is written into the file as for the dossier; an instruction to move, split or reorder steps is an Edit you make in the file before the verdict. When every Flow verdict and item verdict is filled, write Completed by and Completed on and go straight to the write. |
+| `needs-s4-write` | Run `stage <engagement> TID S4` **in the background** and wait for its exit line, exactly as for S3. Report the processes written and changed from the session log rows after `- S4 written on:`, and point at `ENG/index/processes.md` and `ENG/sessions/TID/TID.walkthrough-agenda.md`. If it refuses, report its reason verbatim and stop. |
 | `done` | Say the transcript has been written and point at `ENG/sessions/TID/TID.session-log.md`. If `ENG/evaluation/TID-summary.md` does not exist, run `stage <engagement> TID summary` and present it as runbook summary says. Stop. |
 | `blocked: <reason>` | Report the reason verbatim. Stop. |
 

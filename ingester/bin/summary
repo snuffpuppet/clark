@@ -149,12 +149,8 @@ EOF
 prevf=$(ls "$d/evaluation" 2>/dev/null | grep '^T[0-9]*-summary\.md$' | sed 's/-summary\.md$//' | awk -v t="$tid" '$0 < t' | sort | tail -1 || true)
 if [ -n "$prevf" ]; then
   previous="$prevf (\`evaluation/$prevf-summary.md\`)"
-  comparison=$(awk -v pt="$prevf" -v tt="$tid" '
-    FNR == 1 { fi++ } fi == 2 { on[2] = 1 } /^## Metrics/ { on[fi] = 1; next } on[fi] && /^- [a-z_0-9]+: / { k = $2; sub(/:$/, "", k); v = $0; sub(/^- [^:]*: /, "", v); if (fi == 1) P[k] = v; else { C[k] = v; ord[++n] = k } }
-    END { printf "| Metric | %s | %s | Change |\n|---|---|---|---|\n", pt, tt
-      for (i = 1; i <= n; i++) { k = ord[i]; a = P[k]; b = C[k]; ch = ""
-        if (a ~ /^[0-9.]+$/ && b ~ /^[0-9.]+$/ && a + 0 > 0 && k !~ /version/) ch = sprintf("%+.0f%%", 100 * (b - a) / a)
-        printf "| %s | %s | %s | %s |\n", k, (a == "" ? "not recorded" : a), b, ch } }' "$d/evaluation/$prevf-summary.md" "$W/metrics")
+  subj_p=$(header_field "$d/sessions/$prevf/$prevf.session.md" "Meeting subject" 2>/dev/null || true); subj_t=$(header_field "$sheet" "Meeting subject" 2>/dev/null || true)
+  comparison=$("$INGESTER_DIR/bin/summary-table" "$eng" "$prevf${subj_p:+ $subj_p}=$d/evaluation/$prevf-summary.md" "$tid${subj_t:+ $subj_t}=$W/metrics")
 else previous="none; this is the first summary in the engagement"; comparison="No earlier transcript in this engagement has a summary. Generate one with \`stage $eng <Tnnn> summary\` to compare."; fi
 
 caveats="- Every figure in the time and token sections covers all the work in the session files within the window, including anything done in the same session that was not this ingestion. Narrow the window with \`summary $eng $tid <from> <to>\` if the session was also used for other work.
@@ -206,5 +202,6 @@ set_val ACCURACY "- Needs a human: $(o nh) of $(o items) ($share%)
 set_val RUN_REPORT "$runrep"; set_val COMPARISON "$comparison"; set_val CAVEATS "$caveats"; set_val METRICS "$(cat "$W/metrics")"
 render "$INGESTER_DIR/templates/ingestion-summary.md" "$out"; vals_done
 sed -i '' "s/^Version 0\.1, /Version $ver, /" "$out"
-log_run "$eng" "$tid" summary "written: $(u calls) model calls, $(thou "$(u output)") output tokens, $(t active) active minutes" "$(tr '\n' ' ' < "$W/files")$dossier" "evaluation/$tid-summary.md" > /dev/null
-printf 'summary: %s; %s, %s active minutes, %s output tokens, $%s API list price, %s items, %s%% needing a human\n' "$out" "$models" "$(t active)" "$(thou "$(u output)")" "$(u cost)" "$(o items)" "$share"
+"$INGESTER_DIR/bin/summary-table" "$eng" --write > /dev/null
+log_run "$eng" "$tid" summary "written: $(u calls) model calls, $(thou "$(u output)") output tokens, $(t active) active minutes" "$(tr '\n' ' ' < "$W/files")$dossier" "evaluation/$tid-summary.md evaluation/ingestions.md" > /dev/null
+printf 'summary: %s; %s, %s active minutes, %s output tokens, $%s API list price, %s items, %s%% needing a human; comparison in evaluation/ingestions.md\n' "$out" "$models" "$(t active)" "$(thou "$(u output)")" "$(u cost)" "$(o items)" "$share"

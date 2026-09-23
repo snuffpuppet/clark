@@ -64,8 +64,8 @@ fm_set() { awk -v k="$2" -v v="$3" 'NR>1 && /^---$/ && !done { if (!seen) print 
 # fm_list_add file key value: append an item to a list key (created if missing), unless already present.
 fm_list_add() { fm_list "$1" "$2" | grep -qxF "$3" && return 0
   awk -v k="$2" -v v="$3" 'NR>1 && /^---$/ && !done { if (!seen) { print k ":"; print "  - " v } ; done=1 } !done && NR>1 && ($0 == k ":" || index($0, k ": ") == 1) { print k ":"; seen=1; inlist=1; next } inlist && /^  - / { print; next } inlist { print "  - " v; inlist=0 } { print }' "$1" > "$1.tmp" && mv "$1.tmp" "$1"; }
-# claim_sections file: section ids (f1, s2 ...) in a process or system file.
-claim_sections() { awk '/^## [fs][0-9]+ / { print $2 }' "$1"; }
+# claim_sections file: section ids (f1, s2, n1 ...) in a process or system file.
+claim_sections() { awk '/^## [fsn][0-9]+ / { print $2 }' "$1"; }
 # claim_field file section key: "- key: value" under "## <section> ...".
 claim_field() { awk -v s="$2" -v k="$3" '/^## / { on = ($2 == s) } on && index($0, "- " k ": ") == 1 { sub(/^- [^:]*: */, ""); print; exit }' "$1"; }
 # render template out: fills {{KEY}} placeholders from files in $VALDIR (one file per KEY). Missing keys become blank.
@@ -113,6 +113,22 @@ dossier_signed() { f=$1
   [ -z "$bad" ] || { echo "dossier has a verdict that is not Accept, Edit or Reject on item(s): $bad"; return 1; }
   return 0; }
 accepted_items() { "$INGESTER_DIR/bin/dossier2tsv" "$1" | awk -F'\t' '$4 == "Accept" || $4 == "Edit" || ($4 == "" && $3 == "Confident" && $7 != "")'; }
+# A processes file (F13): every section needs a Flow verdict; a Reject drops the section's items, and a bulk
+# accept covers a blank Confident item only once its section's Flow verdict is Accept or Edit.
+processes_signed() { f=$1
+  by=$(header_field "$f" 'Completed by'); on=$(header_field "$f" 'Completed on')
+  [ -n "$by" ] || { echo "processes file has no Completed by"; return 1; }
+  [ -n "$on" ] || { echo "processes file has no Completed on"; return 1; }
+  fl=$("$INGESTER_DIR/bin/dossier2tsv" -e "$f" | awk -F'\t' '$8 != "Accept" && $8 != "Edit" && $8 != "Reject" { printf "%s ", $1 }')
+  [ -z "$fl" ] || { echo "processes file has a Flow verdict that is blank or not Accept, Edit or Reject in: $fl"; return 1; }
+  pend=$("$INGESTER_DIR/bin/dossier2tsv" "$f" | awk -F'\t' '$10 != "Reject" && $4 == "" && !($3 == "Confident" && $7 != "") { printf "%s ", $1 }')
+  [ -z "$pend" ] || { echo "processes file has pending verdicts on item(s): $pend"; return 1; }
+  bad=$("$INGESTER_DIR/bin/dossier2tsv" "$f" | awk -F'\t' '$4 != "" && $4 != "Accept" && $4 != "Edit" && $4 != "Reject" { printf "%s ", $1 }')
+  [ -z "$bad" ] || { echo "processes file has a verdict that is not Accept, Edit or Reject on item(s): $bad"; return 1; }
+  return 0; }
+accepted_process_items() { "$INGESTER_DIR/bin/dossier2tsv" "$1" | awk -F'\t' '$10 != "Reject" && ($4 == "Accept" || $4 == "Edit" || ($4 == "" && $3 == "Confident" && $7 != "" && ($10 == "Accept" || $10 == "Edit")))'; }
+# review_items file: the accepted items of a dossier or a processes file, whichever it is.
+review_items() { case $1 in *.processes.md|*.processes.v[0-9]*.md) accepted_process_items "$1" ;; *) accepted_items "$1" ;; esac; }
 # phases engagement: phase names in order; current_phase engagement: the one marked (current).
 phases() { awk '/^## Phases/ { on=1; next } /^## / { on=0 } on && /^- / { sub(/^- /, ""); sub(/ \(current\)$/, ""); print }' "$(eng_dir "$1")/engagement.md"; }
 current_phase() { awk '/^## Phases/ { on=1; next } /^## / { on=0 } on && /^- .* \(current\)$/ { sub(/^- /, ""); sub(/ \(current\)$/, ""); print; exit }' "$(eng_dir "$1")/engagement.md"; }
@@ -135,6 +151,9 @@ body_append() { cur=$(body_section "$1" "$2"); body_set "$1" "$2" "$(printf '%s\
 history_add() { body_append "$1" History "- $2"; }
 # claim_set file section key value: set "- key: value" under "## <section> ...".
 claim_set() { awk -v s="$2" -v key="$3" -v v="$4" '/^## / { on = ($2 == s) } on && index($0, "- " key ": ") == 1 { print "- " key ": " v; next } { print }' "$1" > "$1.tmp" && mv "$1.tmp" "$1"; }
+# claim_put file section key value: set "- key: value" in the section, adding it before "- evidence:" when missing.
+claim_put() { if awk -v s="$2" -v key="$3" '/^## / { on = ($2 == s) } on && (index($0, "- " key ": ") == 1 || $0 == "- " key ":") { f = 1 } END { exit !f }' "$1"; then claim_set "$1" "$2" "$3" "$4"
+  else awk -v s="$2" -v key="$3" -v v="$4" '/^## / { on = ($2 == s) } on && !done && $0 == "- evidence:" { print "- " key ": " v; done = 1 } { print }' "$1" > "$1.tmp" && mv "$1.tmp" "$1"; fi; }
 # claim_list_add file section key value: append "  - value" under "- key:" in the section (key created last if missing).
 claim_list_add() { awk -v s="$2" -v key="$3" -v v="$4" '
     function close_section() { if (on && !done) { if (!seen) print "- " key ":"; print "  - " v; done = 1 } for (i = 1; i <= nb; i++) print ""; nb = 0 }

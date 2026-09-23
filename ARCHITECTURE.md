@@ -16,7 +16,7 @@ Each fact about the mechanism has one home. Other documents point at it and do n
 |---|---|
 | What the register looks like | `ingester/solution-register-model.md` |
 | Why the mechanism is shaped as it is | `ingester/extraction-solution-design.md` |
-| How an utterance becomes an item, and how it is graded (R1 to R19) | `ingester/extraction-rules.md` |
+| How an utterance becomes an item, and how it is graded (R1 to R25) | `ingester/extraction-rules.md` |
 | The file formats the scripts parse (F1 to F10) | `ingester/IMPLEMENTATION-PLAN.md`, short form in `ingester/README.md` |
 | What each stage reads, produces, checks and reports | `ingester/runbooks/` |
 | How Claude Code operates the stages in a session | `.claude/skills/ingest-transcript/SKILL.md` |

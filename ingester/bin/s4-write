@@ -1,0 +1,6 @@
+#!/bin/sh
+# s4-write <engagement> <Tnnn>
+# Stage S4 (runbook S4): writes the signed processes file sessions/Tnnn/Tnnn.processes.md (F13) into the
+# engagement after S3. The same write as s3-write, in its --processes mode, so both stages share one set of
+# gates, item writers and rollback.
+exec "$(dirname "$0")/s3-write" "$@" --processes

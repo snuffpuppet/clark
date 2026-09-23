@@ -37,7 +37,47 @@ claims_index() { type=$1; title=$2; out="$d/index/$(item_dir "$type").md"
       for s in $(claim_sections "$f"); do desc=$(awk -v s="$s" '$1 == "##" && $2 == s { $1=""; $2=""; sub(/^ +/, ""); print; exit }' "$f")
         if [ "$type" = SYS ]; then row "$id" "$(fm "$f" name)" "$(fm "$f" domain)" "$(fm "$f" operated-by)" "$id.$s" "$(claim_field "$f" "$s" kind)" "$desc" "$(claim_field "$f" "$s" status)" "$(claim_field "$f" "$s" confidence)" "$(claim_field "$f" "$s" asserted-by)" "$(claim_field "$f" "$s" episode)"
         else row "$id" "$(fm "$f" title)" "$(fm "$f" domain)" "$(fm "$f" trigger)" "$(fm "$f" performed-by)" "$(fm "$f" frequency)" "$id.$s" "$desc" "$(claim_field "$f" "$s" performed-by)" "$(claim_field "$f" "$s" system)" "$(claim_field "$f" "$s" status)" "$(claim_field "$f" "$s" confidence)" "$(claim_field "$f" "$s" episode)"; fi; done; done; } > "$out"; }
-claims_index SYS Systems; claims_index PRC Processes
+claims_index SYS Systems
+# Processes (design 4.1): one section per process, steps in flow order (a walk of follows from the steps that
+# follow nothing, ties by section number), variants shown by when, then facts, then withdrawn claims.
+flow_rows() { awk '
+  /^## [sn][0-9]+ / { c = $2; n++; ord[n] = c; t = $0; sub(/^## [^ ]+ /, "", t); desc[c] = t; next }
+  /^## / { c = ""; next }
+  c != "" && /^- [a-z-]+: / { k = $0; sub(/^- /, "", k); sub(/:.*/, "", k); v = $0; sub(/^- [a-z-]+: */, "", v); f[c, k] = v }
+  function esc(s) { gsub(/\|/, "\\|", s); return s }
+  function row(c, o) { printf "| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |\n", o, c, esc(f[c, "performed-by"]), esc(desc[c]), esc(f[c, "system"]), esc(f[c, "when"]), f[c, "follows"], f[c, "hands-to"], f[c, "status"], f[c, "confidence"], f[c, "episode"] }
+  END {
+    for (i = 1; i <= n; i++) { c = ord[i]; if (c ~ /^s/ && f[c, "status"] != "Withdrawn") { live[c] = 1; steps[++ns] = c } }
+    for (i = 1; i <= ns; i++) { c = steps[i]; m = split(f[c, "follows"], p, /; */); need[c] = 0
+      for (j = 1; j <= m; j++) if (p[j] in live) { need[c]++; succ[p[j]] = succ[p[j]] " " c } }
+    printf "| Order | Claim | Actor | Step | System | When | Follows | Hands to | Status | Confidence | Episode |\n|---|---|---|---|---|---|---|---|---|---|---|\n"
+    o = 0
+    while (o < ns) { pick = ""
+      for (i = 1; i <= ns; i++) { c = steps[i]; if (!done[c] && need[c] == 0) { pick = c; break } }
+      if (pick == "") for (i = 1; i <= ns; i++) if (!done[steps[i]]) { pick = steps[i]; break }
+      done[pick] = 1; row(pick, ++o); m = split(succ[pick], s2, " "); for (j = 1; j <= m; j++) need[s2[j]]-- }
+    nf = 0; for (i = 1; i <= n; i++) if (ord[i] ~ /^n/ && f[ord[i], "status"] != "Withdrawn") nf++
+    if (nf) { printf "\nFacts\n\n| Claim | Kind | Fact | Qualifies | Status | Confidence | Episode |\n|---|---|---|---|---|---|---|\n"
+      for (i = 1; i <= n; i++) { c = ord[i]; if (c ~ /^n/ && f[c, "status"] != "Withdrawn") printf "| %s | %s | %s | %s | %s | %s | %s |\n", c, f[c, "kind"], esc(desc[c]), f[c, "follows"], f[c, "status"], f[c, "confidence"], f[c, "episode"] } }
+    nw = 0; for (i = 1; i <= n; i++) if (f[ord[i], "status"] == "Withdrawn") nw++
+    if (nw) { printf "\nWithdrawn\n\n| Claim | Was | Replaced by |\n|---|---|---|\n"
+      for (i = 1; i <= n; i++) { c = ord[i]; if (f[c, "status"] == "Withdrawn") printf "| %s | %s | %s |\n", c, esc(desc[c]), f[c, "replaced-by"] } } }' "$1"; }
+{ header Processes
+  printf 'Each process in flow order: the steps as the people who do the work perform them, from the trigger to the outcome (design 4.1). Order is read from each step'"'"'s follows; a step that follows nothing starts the flow. Processes written before ingester 0.10.0 have no follows and are listed in section order until S4 rebuilds them.\n'
+  for f in "$d"/processes/PRC-*.md; do [ -f "$f" ] || continue; id=$(fm "$f" id)
+    printf '\n## %s %s\n\n' "$id" "$(fm "$f" title)"
+    printf -- '- Status: %s\n- Trigger: %s\n- Outcome: %s\n- Performed by: %s\n- Systems: %s\n- Upstream: %s\n- Downstream: %s\n' "$(fm "$f" status)" "$(fm "$f" trigger)" "$(fm "$f" outcome)" "$(fm "$f" performed-by)" "$(fm "$f" systems)" "$(fm "$f" upstream)" "$(fm "$f" downstream)"
+    [ -n "$(fm "$f" replaced-by)" ] && printf -- '- Replaced by: %s\n' "$(fm "$f" replaced-by)"
+    printf '\n'; flow_rows "$f"; done; } > "$d/index/processes.md"
+# Walkthrough agenda (F14): open questions on processes across the engagement, for the next session.
+{ header "Walkthrough agenda"
+  printf 'What the next sessions need to hear about each process, from the people who do the work. Open items that clarify a process claim, grouped by process; the per-session agendas list the questions in full.\n\n'
+  row Process "Open item" Title Owner "Next action" Due; sep 1 2 3 4 5 6
+  for f in "$d"/open-items/OI-*.md; do [ -f "$f" ] || continue; [ "$(fm "$f" status)" = Closed ] && continue
+    l=$(fm_list "$f" links | grep -o 'clarifies PRC-[0-9]*' | head -1 | sed 's/clarifies //'); [ -n "$l" ] || continue
+    na=$(awk '/^## Next action/ { on=1; next } /^## / { on=0 } on && NF { print; exit }' "$f")
+    printf '%s\t' "$l"; row "$l" "$(fm "$f" id)" "$(fm "$f" title)" "$(fm "$f" owner)" "$na" "$(fm "$f" due)"; done | sort | cut -f2-
+  printf '\nSession agendas: %s\n' "$(ls "$d"/sessions/*/T*.walkthrough-agenda.md 2>/dev/null | sed "s#^$d/##" | paste -sd, - | sed 's/,/, /g')"; } > "$d/index/walkthrough-agenda.md"
 
 # Outstanding view (model section 8).
 { header Outstanding

@@ -1,6 +1,6 @@
 # Extracting solution records from discovery transcripts: solution design
 
-Version 1.7, 23 September 2026. Approved for implementation by Adam Moyes: 1.0 on 10 September 2026, with the 1.1 to 1.6 changes made at his direction the same day and 1.7 on 23 September 2026. Owner: Adam Moyes. Responds to `BRIEF.md` version 1.0 and `solution-register-model.md` version 2.18.
+Version 1.9, 23 September 2026. Approved for implementation by Adam Moyes: 1.0 on 10 September 2026, with the 1.1 to 1.6 changes made at his direction the same day and 1.7 to 1.9 on 23 September 2026. Owner: Adam Moyes. Responds to `BRIEF.md` version 1.0 and `solution-register-model.md` version 2.18.
 
 This document answers the four questions in the brief, defines the current-state record and the session structures around it, and then proposes the extraction method. Section 6 shows worked examples taken from `T001-SANITISED-TechnicalSyncUp.vtt` so that each rule can be checked against real speech. Section 7 describes the split between the ingester, which holds the mechanism, and the engagements, which hold everything produced for a client. Section 10 records the assumptions and the decisions made at approval. Section 11 is the change log.
 
@@ -119,7 +119,7 @@ Two derived numbers matter most: invented per hundred drafted items, which must 
 **Earning the reduction.** The human share of each dossier is the count of Needs-a-human items over all items. It falls in two ways: the grading rule for a kind is loosened when that kind's Confident-but-wrong count has been zero across a stated number of sessions, and it is tightened the first time it is not. Both moves are versioned changes to the rules file with the evidence attached. The reviewer always reads the whole dossier; what changes is how many items need an individual verdict.
 
 
-**The ingestion summary.** Accuracy is half the measure; the other half is what an ingestion costs. After every S3, `evaluation/Tnnn-summary.md` records the model that did the reading, the elapsed time and how it split between the model working, the S3 write and waiting on the reviewer, the reviewer messages, the model calls and tokens, what the dossier produced, and how the reviewer's verdicts fell: the Needs a human share, the items edited or rejected, and the Confident items edited or rejected, which is the Confident-but-wrong count above read without a reference. It sets every figure beside the previous transcript's summary, so a change of model, ingester version or rules version shows its effect on effort, cost and review load at once. The time and token figures come from the session files Claude Code writes for every session; nothing is estimated. The summary needs no reference and is written every time; the run report, which needs one, remains the measure of Missed and Invented. It also prices the tokens at the API list prices kept in `ingester/pricing.tsv`, model by model, which on a subscription plan is an equivalent rather than a charge. The share of a plan's usage limit is not recorded, because the session files do not hold it. Runbook summary gives the procedure and the implementation plan, Addendum B, the method.
+**The ingestion summary.** Accuracy is half the measure; the other half is what an ingestion costs. After every S3, `evaluation/Tnnn-summary.md` records the model that did the reading, the elapsed time and how it split between the model working, the S3 write and waiting on the reviewer, the reviewer messages, the model calls and tokens, what the dossier produced, and how the reviewer's verdicts fell: the Needs a human share, the items edited or rejected, and the Confident items edited or rejected, which is the Confident-but-wrong count above read without a reference. It sets every figure beside the previous transcript's summary, and `evaluation/ingestions.md` holds the same figures for every transcript in the engagement with a column each, so a change of model, ingester version or rules version shows its effect on effort, cost and review load at once. The time and token figures come from the session files Claude Code writes for every session; nothing is estimated. The summary needs no reference and is written every time; the run report, which needs one, remains the measure of Missed and Invented. It also prices the tokens at the API list prices kept in `ingester/pricing.tsv`, model by model, which on a subscription plan is an equivalent rather than a charge. The share of a plan's usage limit is not recorded, because the session files do not hold it. Runbook summary gives the procedure and the implementation plan, Addendum B, the method.
 
 This keeps the method's quality tied to evidence: the rules are the method, the references are the tests, and the run report is the score.
 
@@ -133,15 +133,24 @@ One file per element under `processes/` and `systems/`, each carrying its domain
 
 | Field | Rule |
 |---|---|
-| ID | PRC plus a four-digit zero-padded number (PRC-0005). Never reused. One file per process, `processes/PRC-0005.md`, with the fields below in frontmatter and each step as a section. |
-| Title | What the process achieves, one line. |
-| Trigger | The event that starts it, as stated. |
-| Performed by | Role or team as stated. A named person only if the transcript names them as the performer. |
+A process is a flow of work: someone starts it on a trigger, people and systems act in turn, and it ends when a stated outcome exists for someone. A capability, a customer segment, a tool or a condition is not a process. Commission capture, multi-site selling and agreement capture are steps or variants inside the sale they happen in, and a segment that does the same flow differently is a variant of it. Processes are built by stage S4 (runbook S4) from the whole transcript and the existing record, never exchange by exchange, because stakeholders tell one flow in fragments across a session and retell it at different depths (`process-audit-T001-T002.md`).
+
+| Field | Rule |
+|---|---|
+| ID | PRC plus a four-digit zero-padded number (PRC-0005). Never reused. One file per process, `processes/PRC-0005.md`, with the fields below in frontmatter and each claim as a section. |
+| Title | What the process achieves, one line, in the words of the people who do it. |
+| Trigger | The event that starts it, as stated. A trigger supplied only by the interviewer is marked so and raises a Question. |
+| Outcome | What exists when the process is done, and for whom ("the customer is billed for a working service"). As stated; where nobody stated it, proposed from the last step and raised as a Question. The test of whether a step belongs to this process (R21). |
+| Performed by | The roles or teams that perform its steps, as stated. |
 | Frequency | As stated ("every order", "monthly"). Blank if not stated; blank is not a defect, it is a question for the next session. |
 | Systems | SYS ids touched. |
-| Steps | Numbered claims PRC-nnn.s1, s2, and so on. Each step has: description, performed by, system, Status, Confidence, Evidence. |
-| Status (per step, and for the whole process) | Current; Current, not needed (with the reason the SME gave); Retired (the SMEs no longer do it); Withdrawn (a later session or review showed the claim was wrong; keeps the id and says which claim replaced it). |
+| Upstream, Downstream | The processes that hand into this one and that this one hands into, as PRC ids. |
+| Steps | Claims PRC-nnn.s1, s2, and so on. A step is one actor performing one action. It has: description (actor, action, object), performed by, system, `follows` (the step or steps before it, blank for the first), `when` (the variant or condition under which it happens: a segment, a channel, a tool or a condition; blank when it always happens), `hands-to` (the process it passes to, when it ends this flow), Status, Confidence, Evidence. A change of actor is a new step. A step whose actor nobody stated has performed-by `unresolved` and raises a Question (R23). Order is held in `follows`, never in the section number, so a step learned later is inserted by one new section and one mutation of its successor's `follows`. |
+| Facts | Claims PRC-nnn.n1, n2, and so on: statements about the process that are not actions. Kind is Rule (a condition, a routing rule, an SLA), Volume, Timing (a duration or a wait) or Pain point. Each has description, kind, Status, Confidence, Evidence, and may name the step it qualifies in `follows`. |
+| Status (per claim, and for the whole process) | Current; Current, not needed (with the reason the SME gave); Retired (the SMEs no longer do it); Withdrawn (a later session or review showed the claim was wrong, or a rebuild replaced it; keeps the id, and `replaced-by` names the claim or process that replaced it). A process merged into another is Withdrawn with `replaced-by` naming the one it joined. |
 | Questions | Unresolved points, each with a citation and the OI id once raised. |
+
+Confidence on a step follows whose work it is (R24): Stated when the speaker or their own team performs the step, Second-hand when they describe another team's work, however plainly they say it.
 
 ### 4.2 System (SYS-nnn)
 
@@ -173,8 +182,8 @@ Two relationship words are added to section 5 of the register model, proposed as
 
 | From | Relationship | To |
 |---|---|---|
-| REQ | replaces | PRC-nnn.sN or SYS-nnn.fN (the requirement changes what happens today) |
-| REQ | preserves | PRC-nnn.sN or SYS-nnn.fN (the requirement keeps something that works today) |
+| REQ | replaces | PRC-nnn.sN, PRC-nnn.nN or SYS-nnn.fN (the requirement changes what happens today) |
+| REQ | preserves | PRC-nnn.sN, PRC-nnn.nN or SYS-nnn.fN (the requirement keeps something that works today) |
 
 A link may target only a claim in Current or Current, not needed. Linking to a Retired or Withdrawn claim fails integrity rule I18 (below). Open items that exist to resolve a Hedged or Contested claim, or a question on a process, carry the claim id in Links as `clarifies PRC-nnn.sN`.
 
@@ -272,6 +281,7 @@ Within one transcript the method is a short pipeline: S0 to S3 in order, each st
 | S1 Read | Utterance table, signed session sheet, stakeholder register, extraction rules, and the engagement's current-state record, registers and topic ledger | Working files: `T001.exchanges.md` (speech acts and exchanges), `T001.episodes.md`. The review file: `T001.dossier.md`, including any proposed standing extensions for known stakeholders. | The skill. It reads the whole transcript, produces the working files and the dossier, runs the citation checker and the integrity rules on its own output, fixes what it can, records what it cannot in the dossier's closing section, and stops for review. |
 | S2 Review | The dossier | `T001.dossier.md` with verdicts, edits and a signed header | The human. |
 | S3 Write | Signed session sheet and signed dossier | Updated registers, current-state record, topic ledger and stakeholder register, `T001.session-log.md`, version bumps | Shell script from the ingester. Refuses to run if any gate fails. |
+| S4 Processes | The whole utterance table, the signed session sheet, and the register as S3 left it | Working file `T001.process-evidence.md`; review file `T001.processes.md` (one section per process, a Flow table, then PRC, PRC.step, PRC.fact, Question, OI and claim mutation items); `T001.walkthrough-agenda.md` | The skill harvests every passage about each process across the whole session, breaks them into single actions, assembles the flow and raises the gaps (runbook S4); the human gives a verdict on each flow and its items; `s4-write` writes them. S1 produces no process items. |
 | Evaluate | Dossier as drafted and the reference | `evaluation/T001-run-nn.md` with the counts in Q4 and the failure-mode tags | Shell scoring, human tagging |
 | Summary | The written transcript's files and the Claude Code session files | `evaluation/Tnnn-summary.md`: model, time, tokens, output and verdict outcomes, compared with the previous transcript (Q4) | Shell, after every S3 |
 
@@ -558,3 +568,5 @@ The next step is the implementation plan covering the folder layout, the skill, 
 | 1.5 | 10 September 2026 | The ingest command takes the transcript file and an optional meeting subject; the engagement is implied when only one exists and asked for otherwise (7.2). The subject's use as a prior for episodes and topics restated in the skill. |
 | 1.6 | 10 September 2026 | The session runs inside the engagement folder, which names the engagement; the skill finds the root with git and grants the read into the ingester with `--add-dir` (7.2). |
 | 1.7 | 23 September 2026 | The ingestion summary added to Q4, the stages table (5.5) and the file table (10.1): after every S3, `evaluation/Tnnn-summary.md` records the model, time, tokens, API list-price cost, output and verdict outcomes from the Claude Code session files and the signed dossier, and compares them with the previous transcript. Made at Adam Moyes's direction after T002, when the comparison with T001 had to be put together by hand. The skill takes the root as two levels above the engagement folder instead of from git (7.2), because `engagements/` is its own repository. Ingester 0.9.0. |
+| 1.8 | 23 September 2026 | The ingestion comparison, `evaluation/ingestions.md`, added to Q4: one column per transcript, rebuilt after every ingestion, beside the per-transcript summaries. Ingester 0.9.1. |
+| 1.9 | 23 September 2026 | Processes rebuilt as flows. A process is defined by its trigger and its outcome (4.1), and gains Outcome, Upstream and Downstream. A step is one actor and one action, ordered by `follows`, with `when` for variants and `hands-to` for the next process. Statements about a process that are not actions become process facts (`PRC-nnn.nN`, Kind Rule, Volume, Timing or Pain point). Confidence on a step follows whose work it is. A new stage S4 (5.5) builds processes from the whole transcript after S3, and S1 no longer produces them, because the audit of all 17 techm-bss processes (`process-audit-T001-T002.md`) found flows told in fragments across up to nine episodes and extraction by exchange turning them into statements. Rules R20 to R25, integrity rules I21 to I24 (register model 2.21). Made at Adam Moyes's direction. Ingester 0.10.0. |

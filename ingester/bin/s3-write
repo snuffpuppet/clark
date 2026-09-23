@@ -4,23 +4,37 @@
 # item targets), appends claims as sections to their process or system file, extends topics, applies
 # stakeholder edits, completes the transcript file, writes the session log, regenerates the index tables
 # and moves the transcript to processed/. Refuses on any failed gate; restores everything on failure.
+#
+# s3-write <engagement> <Tnnn> --processes is stage S4 (runbook S4, called as s4-write): it writes the signed
+# processes file (F13) instead of the dossier, after S3, and skips the stakeholder, transcript and move steps.
 set -e
 . "$(dirname "$0")/lib.sh"
-[ $# -eq 2 ] || die "usage: s3-write <engagement> <Tnnn>"
-eng=$1; tid=$2; d=$(eng_dir "$eng"); sdir="$d/sessions/$tid"
+[ $# -eq 2 ] || { [ $# -eq 3 ] && [ "$3" = --processes ]; } || die "usage: s3-write <engagement> <Tnnn> [--processes]"
+eng=$1; tid=$2; d=$(eng_dir "$eng"); sdir="$d/sessions/$tid"; mode=S3; [ "${3:-}" = --processes ] && mode=S4
 sheet="$sdir/$tid.session.md"; dossier="$sdir/$tid.dossier.md"; log="$sdir/$tid.session-log.md"
+[ "$mode" = S4 ] && dossier="$sdir/$tid.processes.md"
 TODAY=$(today)
 
 # Gates.
 vtt=$(vtt_path "$eng" "$tid")
-case "$vtt" in */processed/*) die "$tid is already processed; nothing written" ;; esac
-[ -f "$sheet" ] || die "no session sheet"; [ -f "$dossier" ] || die "no dossier"
+[ -f "$sheet" ] || die "no session sheet"
 r=$(sheet_signed "$sheet") || die "gate: $r"
-r=$(dossier_signed "$dossier") || die "gate: $r"
-[ ! -f "$log" ] || ! grep -q "^- S3 written on:" "$log" || die "session log says $tid has been written"
-US=$(printf '\003'); items=$(mktemp "${TMPDIR:-/tmp}/ing.XXXXXXXX"); accepted_items "$dossier" | tr "\t" "\003" > "$items"
-# Elements before the claims that hang off them: a SYS.fact cannot be written until its SYS file exists.
-awk -F"$US" '{ if ($2 == "SYS" || $2 == "PRC") a[++na] = $0; else b[++nb] = $0 } END { for (i = 1; i <= na; i++) print a[i]; for (i = 1; i <= nb; i++) print b[i] }' "$items" > "$items.ord" && mv "$items.ord" "$items"
+if [ "$mode" = S3 ]; then
+  case "$vtt" in */processed/*) die "$tid is already processed; nothing written" ;; esac
+  [ -f "$dossier" ] || die "no dossier"
+  r=$(dossier_signed "$dossier") || die "gate: $r"
+  [ ! -f "$log" ] || ! grep -q "^- S3 written on:" "$log" || die "session log says $tid has been written"
+else
+  [ -f "$log" ] && grep -q "^- S3 written on:" "$log" || die "S4 needs S3 first: the session log has no S3 written on line"
+  ! grep -q "^- S4 written on:" "$log" || die "session log says the processes of $tid have been written"
+  [ -f "$dossier" ] || die "no processes file"
+  r=$(processes_signed "$dossier") || die "gate: $r"
+fi
+US=$(printf '\003'); items=$(mktemp "${TMPDIR:-/tmp}/ing.XXXXXXXX"); review_items "$dossier" | tr "\t" "\003" > "$items"
+# Elements before the claims that hang off them, and new claims before mutations: a SYS.fact cannot be written
+# until its SYS file exists, and a mutation's Replaced by may name a claim written in this run.
+awk -F"$US" '{ if ($2 == "SYS" || $2 == "PRC") a[++na] = $0; else if ($2 ~ /\./ && $5 == "new") b[++nb] = $0; else c[++nc] = $0 }
+  END { for (i = 1; i <= na; i++) print a[i]; for (i = 1; i <= nb; i++) print b[i]; for (i = 1; i <= nc; i++) print c[i] }' "$items" > "$items.ord" && mv "$items.ord" "$items"
 acc=$(mktemp "${TMPDIR:-/tmp}/ing.XXXXXXXX"); cut -d "$US" -f9 "$items" | tr '\002' '\n' | grep . | sed 's/^/  - /' > "$acc" || true
 r=$("$INGESTER_DIR/bin/check-citations" "$eng" "$tid" "$acc") || die "gate: citation check failed on accepted items: $r"
 r=$("$INGESTER_DIR/bin/check-integrity" "$eng" --proposed "$dossier") || die "gate: integrity failed on the proposed set: $r"
@@ -36,16 +50,18 @@ rollback() { [ "$ok" = 1 ] && { rm -rf "$snap"; return; }
   for f in $FOLDERS; do rm -rf "$d/$f"; [ -d "$snap/$f" ] && cp -R "$snap/$f" "$d/$f"; done
   cp "$snap"/transcripts/T[0-9]*.md "$d/transcripts/" 2>/dev/null || true; cp "$snap/engagement.md" "$d/engagement.md"
   if [ -f "$snap/session-log" ]; then cp "$snap/session-log" "$log"; else rm -f "$log"; fi
-  rm -rf "$snap"; echo "S3 failed; the engagement was restored to its state before the write" >&2; }
+  rm -rf "$snap"; echo "$mode failed; the engagement was restored to its state before the write" >&2; }
 trap rollback EXIT
 
 session_date=$(header_field "$sheet" 'Session date' | sed 's/ (.*//'); domain=$(header_field "$sheet" Domain | sed 's/ (.*//')
 sheet_appr=$(header_field "$sheet" Approver); sheet_on=$(header_field "$sheet" 'Approved on')
 dos_appr=$(header_field "$dossier" 'Completed by'); [ -n "$dos_appr" ] || dos_appr=$(header_field "$dossier" Approver)
 dos_on=$(header_field "$dossier" 'Completed on'); [ -n "$dos_on" ] || dos_on=$(header_field "$dossier" 'Approved on')
-"$INGESTER_DIR/bin/s1-stakeholders" "$eng" "$tid" > /dev/null
-sed -i '' "s/^- Dossier completed by: .*/- Dossier completed by: $dos_appr/" "$log"
+if [ "$mode" = S3 ]; then "$INGESTER_DIR/bin/s1-stakeholders" "$eng" "$tid" > /dev/null
+  sed -i '' "s/^- Dossier completed by: .*/- Dossier completed by: $dos_appr/" "$log"
+else awk -v by="$dos_appr" '!done && /^- S3 written on:/ { print; print "- Processes completed by: " by; done=1; next } { print }' "$log" > "$log.tmp" && mv "$log.tmp" "$log"; fi
 logrow() { printf '| %s | %s | %s | %s | %s |\n' "$1" "$2" "$3" "$4" "$TODAY" >> "$log"; }
+RESTART=$(wc -l < "$log" | tr -d " ")
 
 # Helpers on one dossier2tsv row.
 fld() { printf '%s' "$1" | tr '\001' '\n' | awk -F= -v k="$2" '$1 == k { sub(/^[^=]*=/, ""); print; exit }'; }
@@ -53,12 +69,14 @@ cite_lines() { printf '%s' "$1" | tr '\002' '\n' | grep . | sed 's/^/- /'; }
 upper_snake() { printf '%s' "$1" | tr 'a-z ' 'A-Z_' | sed 's/MOSCOW/MOSCOW/'; }
 kebab() { printf '%s' "$1" | tr 'A-Z ' 'a-z-'; }
 resolve_items() { s=$1; for pair in $IDMAP; do it=${pair%%=*}; id=${pair#*=}; s=$(printf '%s' "$s" | sed "s/item $it\$/$id/g; s/item $it\([^0-9]\)/$id\1/g"); done; printf '%s' "$s"; }
+# flow_refs "refs" parent: a Follows value with items resolved, and a step of the same process written as sN.
+flow_refs() { printf '%s' "$1" | tr ';' '\n' | sed 's/^ *//; s/ *$//' | grep . | while IFS= read -r r; do r=$(resolve_items "$r"); case $r in "$2".*) r=${r#"$2".} ;; esac; printf '%s\n' "$r"; done | paste -sd ';' - | sed 's/;/; /g'; }
 RES=$(mktemp -d "${TMPDIR:-/tmp}/ing.XXXXXXXX")
 reserve_id() { p=$1; n=$(next_id "$eng" "$p" | sed "s/^$p-//; s/^0*//"); [ -f "$RES/$p" ] && r=$(( $(cat "$RES/$p") + 1 )) && [ "$r" -gt "$n" ] && n=$r; printf '%s' "$n" > "$RES/$p"; printf '%s-%04d\n' "$p" "$n"; }
 
 # Pass one: ids for new items so links between them resolve.
 IDMAP=""
-while IFS="$US" read -r item kind grade verdict target episode bulk fields cites; do
+while IFS="$US" read -r item kind grade verdict target episode bulk fields cites flow; do
   type=${kind%%.*}
   case $kind in REQ|DEC|LIM|RSK|OI|SYS|PRC|TOP)
     case $target in new) id=$(reserve_id "$type") ;; "item "*) id=$(resolve_items "$target"); [ "$kind" = TOP ] || die "item $item targets $target; only a TOP item may target an item in the same dossier" ;; *) id=$target ;; esac
@@ -66,7 +84,7 @@ while IFS="$US" read -r item kind grade verdict target episode bulk fields cites
 done < "$items"
 
 # Pass two: write.
-while IFS="$US" read -r item kind grade verdict target episode bulk fields cites; do
+while IFS="$US" read -r item kind grade verdict target episode bulk fields cites flow; do
   type=${kind%%.*}; id=""; for pair in $IDMAP; do [ "${pair%%=*}" = "$item" ] && id=${pair#*=}; done
   case $kind in
     REQ|DEC|LIM|RSK|OI)
@@ -99,33 +117,51 @@ while IFS="$US" read -r item kind grade verdict target episode bulk fields cites
       path=$(item_path "$eng" "$id")
       if [ "$target" = new ]; then
         vals; set_val ID "$id"; set_val TID "$tid"; set_val EPISODE "$episode"; set_val DATE "$TODAY"; set_val DOMAIN "$domain"
-        printf '%s' "$fields" | tr '\001' '\n' | while IFS= read -r kv; do k=${kv%%=*}; v=${kv#*=}; [ "$k" = Gist ] && continue; [ "$k" = Systems ] && v=$(resolve_items "$v"); set_val "$(upper_snake "$k")" "$v"; done
+        printf '%s' "$fields" | tr '\001' '\n' | while IFS= read -r kv; do k=${kv%%=*}; v=${kv#*=}; [ "$k" = Gist ] && continue
+          case $k in Systems|Upstream|Downstream) v=$(resolve_items "$v") ;; esac; set_val "$(upper_snake "$k")" "$v"; done
         render "$INGESTER_DIR/templates/items/$type.md" "$path"; vals_done
         logrow "$id" created "$(item_dir "$type")/$id.md" "$(fld "$fields" Name)$(fld "$fields" Title)"
+      elif [ "$type" = PRC ] && [ "$mode" = S4 ]; then
+        # A process mutation (runbook S4 step 7): each field set in the frontmatter, one F10 History line.
+        [ -f "$path" ] || die "item $item targets $id, which does not exist"
+        changes=$(printf '%s' "$fields" | tr '\001' '\n' | while IFS= read -r kv; do k=${kv%%=*}; v=$(resolve_items "${kv#*=}"); [ "$k" = Gist ] && continue
+          old=$(fm "$path" "$(kebab "$k")"); [ "$old" = "$v" ] && continue; fm_set "$path" "$(kebab "$k")" "$v"; printf '%s: %s to %s; ' "$k" "${old:-blank}" "$v"; done | sed 's/; $//')
+        fm_set "$path" updated "$TODAY"
+        history_add "$path" "$TODAY | $tid item $item | ${changes:-no field changed} | $(printf '%s' "$cites" | tr '\002' '\n' | grep . | paste -sd ';' - | sed 's/;/; /g')"
+        logrow "$id" updated "$(item_dir "$type")/$id.md" "${changes:-no field changed}"
       else [ -f "$path" ] || die "item $item targets $id, which does not exist"; fm_set "$path" updated "$TODAY"; printf '\n%s, item %s: %s\n' "$tid" "$item" "$(fld "$fields" Gist)" >> "$path"; logrow "$id" noted "$(item_dir "$type")/$id.md" "element note from item $item"
       fi ;;
-    SYS.fact|PRC.step)
+    SYS.fact|PRC.step|PRC.fact)
+      [ "$mode" = S3 ] && [ "$type" = PRC ] && [ "$target" = new ] && die "item $item is a new $kind in a dossier; processes are written by S4 from a processes file (runbook S4)"
       parent=$(resolve_items "$(fld "$fields" System)$(fld "$fields" Process)"); [ "$type" = PRC ] && parent=$(resolve_items "$(fld "$fields" Process)")
       [ "$type" = SYS ] && parent=$(resolve_items "$(fld "$fields" System)")
       [ "$target" = new ] || parent=${target%.*}
       ppath=$(item_path "$eng" "$parent"); [ -f "$ppath" ] || die "item $item names $parent, which does not exist"
       if [ "$target" = new ]; then
-        pre=f; [ "$type" = PRC ] && pre=s
+        pre=f; [ "$kind" = PRC.step ] && pre=s; [ "$kind" = PRC.fact ] && pre=n
         n=$(claim_sections "$ppath" | grep "^$pre" | sed "s/^$pre//" | sort -n | tail -1); sec="$pre$(( ${n:-0} + 1 ))"
         vals; set_val SECTION "$sec"; set_val TITLE "$(fld "$fields" Title)"; set_val KIND "$(fld "$fields" Kind)"; set_val PERFORMED_BY "$(fld "$fields" 'Performed by')"
         set_val SYSTEM "$(resolve_items "$(fld "$fields" System)")"; [ "$type" = SYS ] && set_val SYSTEM ""
+        set_val FOLLOWS "$(flow_refs "$(fld "$fields" Follows)" "$parent")"; set_val WHEN "$(fld "$fields" When)"; set_val HANDS_TO "$(resolve_items "$(fld "$fields" 'Hands to')")"
         set_val STATUS "$(fld "$fields" Status)"; set_val CONFIDENCE "$(fld "$fields" Confidence)"; set_val ASSERTED_BY "$(fld "$fields" 'Asserted by')"
         set_val EPISODE "$episode"; set_val TID "$tid"; set_val SESSION_DATE "$session_date"; set_list EVIDENCE "$(printf '%s' "$cites" | tr '\002' '\n')"
         render "$INGESTER_DIR/templates/items/claim.md" "$RES/claim"; vals_done
-        # Drop the lines that do not apply to this kind (kind on steps, performed-by and system on facts).
-        if [ "$type" = SYS ]; then grep -v -e '^- performed-by: *$' -e '^- system: *$' "$RES/claim" > "$RES/claim2"; else grep -v -e '^- kind: *$' "$RES/claim" > "$RES/claim2"; fi
+        # Drop the lines that do not apply to this kind (kind on steps, performed-by and system on facts), and
+        # the flow keys when they are blank.
+        if [ "$type" = SYS ] || [ "$kind" = PRC.fact ]; then grep -v -e '^- performed-by: *$' -e '^- system: *$' "$RES/claim" > "$RES/claim2"; else grep -v -e '^- kind: *$' "$RES/claim" > "$RES/claim2"; fi
+        grep -v -e '^- follows: *$' -e '^- when: *$' -e '^- hands-to: *$' "$RES/claim2" > "$RES/claim"; mv "$RES/claim" "$RES/claim2"
+        grep -q -e '^- follows: .*item [0-9]' -e '^- hands-to: .*item [0-9]' "$RES/claim2" && die "item $item follows or hands to an item not yet written; list steps in flow order (F13)"
         awk -v ins="$RES/claim2" '/^## Questions/ && !done { while ((getline l < ins) > 0) print l; print ""; done=1 } { print } END { if (!done) while ((getline l < ins) > 0) print l }' "$ppath" > "$ppath.tmp" && mv "$ppath.tmp" "$ppath"
         fm_set "$ppath" updated "$TODAY"; cid="$parent.$sec"; IDMAP="$IDMAP $item=$cid"; logrow "$cid" created "$(item_dir "$type")/$parent.md" "$(fld "$fields" Title)"
       else
-        # A claim mutation: status and confidence set, the block's citations added to evidence, a history entry (F10).
+        # A claim mutation: the fields in the block set, the block's citations added to evidence, a history entry (F10).
         sec=${target##*.}; changes=""
-        for k in Status Confidence; do v=$(fld "$fields" "$k"); [ -n "$v" ] || continue; old=$(claim_field "$ppath" "$sec" "$(kebab "$k")"); [ "$old" = "$v" ] && continue
-          claim_set "$ppath" "$sec" "$(kebab "$k")" "$v"; changes="$changes$(kebab "$k"): ${old:-blank} to $v; "; done
+        for k in Status Confidence Kind 'Performed by' System Follows When 'Hands to' 'Replaced by'; do v=$(fld "$fields" "$k"); [ -n "$v" ] || continue
+          case $k in Follows) v=$(flow_refs "$v" "$parent") ;; *) v=$(resolve_items "$v") ;; esac
+          printf '%s' "$v" | grep -q "item [0-9]" && die "item $item: $k names $v, which is not written in this run"
+          old=$(claim_field "$ppath" "$sec" "$(kebab "$k")"); [ "$old" = "$v" ] && continue
+          claim_put "$ppath" "$sec" "$(kebab "$k")" "$v"
+          changes="$changes$(kebab "$k"): ${old:-blank} to $v; "; done
         changes=$(printf '%s' "$changes" | sed 's/; $//')
         printf '%s' "$cites" | tr '\002' '\n' | grep . | while IFS= read -r c; do claim_list_add "$ppath" "$sec" evidence "$c"; done
         claim_list_add "$ppath" "$sec" history "$TODAY | $tid item $item | ${changes:-no field changed} | session $tid, $session_date"
@@ -150,7 +186,7 @@ done < "$items"
 
 # Topics: open items and closing records created in each episode.
 if [ -f "$RES/topics" ]; then
-  while IFS="$US" read -r item kind grade verdict target episode bulk fields cites; do
+  while IFS="$US" read -r item kind grade verdict target episode bulk fields cites flow; do
     case $kind in OI|REQ|DEC) ;; *) continue ;; esac; [ "$target" = new ] || continue
     id=""; for pair in $IDMAP; do [ "${pair%%=*}" = "$item" ] && id=${pair#*=}; done
     top=$(awk -F'\t' -v e="$episode" '$1 == e { print $2; exit }' "$RES/topics"); [ -n "$top" ] || continue
@@ -160,6 +196,19 @@ if [ -f "$RES/topics" ]; then
   [ -f "$RES/closures" ] && while IFS="$TAB" read -r episode oid res; do
     top=$(awk -F'\t' -v e="$episode" '$1 == e { print $2; exit }' "$RES/topics"); [ -n "$top" ] || continue
     case $res in REQ-*|DEC-*|LIM-*|RSK-*|OI-*) fm_list_add "$(item_path "$eng" "$top")" closed-by "$res" ;; esac; done < "$RES/closures"
+fi
+
+if [ "$mode" = S4 ]; then
+  # Stage S4: processes only. The transcript, stakeholders and engagement were written at S3.
+  n=$(awk -v f="$RESTART" 'NR > f' "$log" | grep -c '^| [A-Z]' || true)
+  awk -v dt="$TODAY" '!done && /^- Processes completed by:/ { print; print "- S4 written on: " dt; done=1; next } { print }' "$log" > "$log.tmp" && mv "$log.tmp" "$log"
+  agenda="$sdir/$tid.walkthrough-agenda.md"; [ -f "$agenda" ] && resolve_items "$(cat "$agenda")" > "$agenda.tmp" && printf '\n' >> "$agenda.tmp" && mv "$agenda.tmp" "$agenda"
+  "$INGESTER_DIR/bin/render-index" "$eng" > /dev/null
+  rm -rf "$RES"; rm -f "$items"; ok=1
+  log_run "$eng" "$tid" S4 "written" "$sheet $dossier" "processes systems open-items index $log" > /dev/null
+  eng_log "$eng" "$tid S4 written: $n row(s) in the session log; processes file signed by $dos_appr."
+  printf 'S4: wrote %s id(s); see %s\n' "$n" "$log"
+  exit 0
 fi
 
 # Transcript file, engagement.md.

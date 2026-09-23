@@ -1,6 +1,6 @@
 # Ingester implementation plan
 
-Version 0.6, 23 September 2026.
+Version 0.7, 23 September 2026.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: use superpowers:executing-plans to implement this plan step by step. Steps use checkbox (`- [ ]`) syntax for tracking. Commit after every numbered step. Nothing is pushed.
 
@@ -65,6 +65,8 @@ The heading gives the item number, its kind and its grade. Kinds: `PRC`, `PRC.st
 **F9 Run log** `logs/<UTC timestamp>-<Tnnn>-<stage>.md`. Written by `bin/stage` and by the skill: stage, ingester and rules versions, files read, files written, outcome. Append only.
 
 **F11 Ingestion summary** `evaluation/Tnnn-summary.md`, rendered by `bin/summary` from `templates/ingestion-summary.md` after S3 (Addendum B). Header fields Transcript, Session date, Model, Ingester version, Rules version, Claude Code sessions, Window, Compared with; sections Transcript, Time, Tokens, Output, Accuracy, Compared with the previous transcript, Caveats; and a last section `## Metrics` holding one `- key: value` line per figure, which the next transcript's summary parses for its comparison. The ingester and rules versions are those in the transcript's S3 run log, not the current ones. A rerun overwrites the file and raises its version.
+
+**F12 Ingestion comparison** `evaluation/ingestions.md`, one per engagement, rebuilt by `bin/summary-table --write` after every summary: one row per metric key, one column per transcript labelled with its id and meeting subject, and a last column for the change between the two most recent transcripts.
 
 ---
 
@@ -536,6 +538,18 @@ Added 23 September 2026 at Adam Moyes's direction, after T002, when the comparis
 - **Window.** From the first user line that runs `/ingest-transcript` and names the transcript's file or id, to the S3 run log's timestamp, extended to the next reviewer message after it (at most ten minutes) so the report of the write is counted.
 - **Time.** Events sorted by time, a reviewer message sorting before any other event with the same second. A gap ending in a reviewer message is Waiting; a gap inside the S3 write, which starts at the assistant line that runs `<engagement> <Tnnn> S3`, is Active and also reported as the S3 minutes; any other gap under ten minutes is Active; the rest is Idle.
 - **Accuracy.** From the signed dossier: Accept, Edit, Reject and blank per item, a blank Confident item in a bulk-accepted episode counted as Accept; changed items split by grade. The Confident-but-changed count is the design's Confident but wrong. When `evaluation/Tnnn-run-nn.md` exists, its Invented, Missed and Confident but wrong lines are quoted.
-- **Comparison.** Against the latest `evaluation/T<earlier>-summary.md`, key by key from the two Metrics sections, with the percentage change for numeric keys.
+- **Comparison.** `bin/summary-table` reads the Metrics section of each summary it is given, labels each key for a reader, formats counts with thousands separators, percentages with `%` and dollars with `$`, and adds the percentage change between the last two columns. `bin/summary` calls it twice: with the previous summary and this one for the summary's own comparison section, and with `--write` for `evaluation/ingestions.md` (F12), every summary in the engagement as a column.
 - **Cost.** `ingester/pricing.tsv` holds one row per model: input, output, 5-minute and 1-hour cache write, cache read, fast multiplier, as_of, source, in US dollars per million tokens. Each call is priced by its `message.model`, cache writes by `usage.cache_creation.ephemeral_5m_input_tokens` and `ephemeral_1h_input_tokens` (all of `cache_creation_input_tokens` at the 5-minute rate when the split is absent), fast mode when the line carries `"speed":"fast"`. Metrics `cost_usd` and `cost_per_item_usd`.
 - Not reported: the share of the plan's usage limit, which the session files do not hold.
+
+## Addendum C: stage S4, processes as flows (ingester 0.10.0)
+
+Added 23 September 2026 at Adam Moyes's direction, after the audit of all 17 techm-bss processes (`process-audit-T001-T002.md`) found that extraction by exchange turned flows into statements. Design 1.9 section 4.1, rules R20 to R25, register model 2.21 I21 to I24, runbook S4.
+
+- **Formats.** F6 gains `## nN` process facts and the step keys `follows`, `when`, `hands-to`, and `replaced-by` on any Withdrawn claim; process frontmatter gains `outcome`, `upstream`, `downstream`, `replaced-by`. F13 is the processes file and F14 the walkthrough agenda. README carries the short form.
+- **Parsing.** `dossier2tsv` treats a `## Tnnn-Pnn` heading as it treats an episode heading, so Bulk accept works per process, and in `-e` mode prints the Flow verdict as an eighth column. `processes_signed` and `accepted_process_items` in `lib.sh` gate and filter a processes file: a blank Flow verdict is pending, a Reject drops every item in its section, and a blank verdict on a Confident item counts only under a bulk accept with the Flow verdict Accept or Edit.
+- **Writing.** `s3-write` takes `--processes` and then reads `Tnnn.processes.md` instead of the dossier, requires the S3 line in the session log, skips the stakeholder, transcript and move steps, writes `- S4 written on:` and renders the walkthrough agenda. `s4-write <engagement> <Tnnn>` is that call. New claims are written before claim mutations, so a `replaced-by` naming an item resolves. A claim mutation may set status, confidence, follows, when, hands-to, replaced-by, performed-by, system and kind; a process mutation sets any frontmatter field with an F10 History line.
+- **Integrity.** I21 to I24 read process frontmatter and claim keys from disk and the accepted items of `--proposed`, which accepts a processes file as well as a dossier.
+- **Index.** `render-index` writes the Processes table in flow order (a walk of `follows` from the steps that follow nothing, variants shown with their `when`), process facts after the steps, and `index/walkthrough-agenda.md`.
+- **Stage.** `stage` status after S3 is `needs-s4` until `Tnnn.processes.md` exists, then `awaiting-processes`, then `done` once the session log has `- S4 written on:`. `stage <eng> <Tnnn> S4` runs `s4-write`.
+- **Score.** `score --flow <reference>` compares a processes file with a flow reference in the same shape: step recall by overlapping citations, order agreement over pairs of matched steps, compound steps (a draft step matching two or more reference steps) and misfiled steps (matched to a reference step in a different process).

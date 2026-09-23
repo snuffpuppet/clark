@@ -1,10 +1,10 @@
 #!/bin/sh
-# stage <engagement> <Tnnn> <status|tasks|S0|S1|S3|check|score <reference> [dossier]|summary [<from> <to>]|log <stage> "<outcome>">
+# stage <engagement> <Tnnn> <status|tasks|S0|S1|S3|S4|check|score <reference> [dossier]|summary [<from> <to>]|log <stage> "<outcome>">
 # The driver. status prints one word for where the transcript is. Each stage refuses to start when its
 # predecessor is not signed. Every branch except status writes a run log under logs/.
 set -e
 . "$(dirname "$0")/lib.sh"
-[ $# -ge 3 ] || die "usage: stage <engagement> <Tnnn> <status|S0|S1|S3|check|score|summary|log>"
+[ $# -ge 3 ] || die "usage: stage <engagement> <Tnnn> <status|S0|S1|S3|S4|check|score|summary|log>"
 eng=$1; tid=$2; cmd=$3; shift 3; d=$(eng_dir "$eng"); sdir="$d/sessions/$tid"
 sheet="$sdir/$tid.session.md"; dossier="$sdir/$tid.dossier.md"
 [ -f "$d/engagement.md" ] || die "no engagement at $d"
@@ -12,7 +12,13 @@ sheet="$sdir/$tid.session.md"; dossier="$sdir/$tid.dossier.md"
 status() {
   [ -f "$(item_path "$eng" "$tid")" ] || { echo needs-register; return; }
   vtt=$(vtt_path "$eng" "$tid" 2>&1) || { echo "blocked: $vtt"; return; }
-  case "$vtt" in */processed/*) echo done; return ;; esac
+  case "$vtt" in */processed/*)
+    # After S3: the processes stage (runbook S4).
+    log="$sdir/$tid.session-log.md"; procs="$sdir/$tid.processes.md"
+    [ -f "$log" ] && grep -q '^- S4 written on:' "$log" && { echo done; return; }
+    [ -f "$procs" ] || { echo needs-s4; return; }
+    processes_signed "$procs" > /dev/null || { echo awaiting-processes; return; }
+    echo needs-s4-write; return ;; esac
   [ -f "$sdir/$tid.utterances.tsv" ] && [ -f "$sheet" ] || { echo needs-s0; return; }
   sheet_signed "$sheet" > /dev/null || { echo awaiting-session-sheet; return; }
   [ -f "$dossier" ] || { echo needs-s1; return; }
@@ -28,7 +34,12 @@ case $cmd in
       else r=$(sheet_signed "$sheet" 2>&1 || true); die "S1 refused: state is $s${r:+ ($r)}"; fi ;;
   S3) s=$(status); [ "$s" = needs-s3 ] || { r=""; [ -f "$dossier" ] && r=$(dossier_signed "$dossier" || true); die "S3 refused: state is $s${r:+ ($r)}"; }
       "$INGESTER_DIR/bin/s3-write" "$eng" "$tid" ;;
-  check) rc=0; [ -f "$dossier" ] && { "$INGESTER_DIR/bin/check-citations" "$eng" "$tid" "$dossier" || rc=1; }
+  S4) s=$(status); case $s in needs-s4-write) "$INGESTER_DIR/bin/s4-write" "$eng" "$tid" ;;
+      needs-s4) echo "S4 is read by the skill (runbook S4); no processes file yet" ;;
+      *) r=""; [ -f "$sdir/$tid.processes.md" ] && r=$(processes_signed "$sdir/$tid.processes.md" || true); die "S4 refused: state is $s${r:+ ($r)}" ;; esac ;;
+  check) rc=0; procs="$sdir/$tid.processes.md"
+      if [ -f "$procs" ] && [ "$(status)" != done ] && [ "$(status)" != needs-s3 ] && [ "$(status)" != awaiting-dossier ]; then dossier=$procs; fi
+      [ -f "$dossier" ] && { "$INGESTER_DIR/bin/check-citations" "$eng" "$tid" "$dossier" || rc=1; }
       if [ -f "$dossier" ]; then "$INGESTER_DIR/bin/check-integrity" "$eng" --proposed "$dossier" || rc=1; else "$INGESTER_DIR/bin/check-integrity" "$eng" || rc=1; fi
       log_run "$eng" "$tid" check "$([ $rc -eq 0 ] && echo passed || echo failed)" "$dossier" "" > /dev/null; exit $rc ;;
   score) [ $# -ge 1 ] || die "usage: stage <eng> <Tnnn> score <reference> [dossier]"

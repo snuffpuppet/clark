@@ -1,6 +1,6 @@
 # Solution register model
 
-Version 2.20, 10 September 2026. Version 2.20 makes Due a warning rather than a requirement on open items and risks, at Adam's direction, so that a session can be written before review dates are set. Owner: Adam Moyes. Version 2.19 names phases: the engagement lists them in order with the current one marked, a requirement's Phase takes one of those names, and I5 becomes Phase valid. Version 2.17 removed the Scope field, the scope taxonomy and integrity rule I5. Version 2.18 removes the change request type (to return in a later version when needed), makes ids four digits, adds Segment and Department to the stakeholder register, and replaces the register tables with one file per item plus generated index tables (section 7). Both at Adam's direction on review, 10 September 2026.
+Version 2.21, 23 September 2026. Version 2.21 lets a link target a process fact (PRC-nnn.nN) as well as a step, and adds integrity rules I21 to I24 on process flows, following design 1.9 and the process audit of 23 September 2026. Version 2.20, 10 September 2026, Version 2.20 makes Due a warning rather than a requirement on open items and risks, at Adam's direction, so that a session can be written before review dates are set. Owner: Adam Moyes. Version 2.19 names phases: the engagement lists them in order with the current one marked, a requirement's Phase takes one of those names, and I5 becomes Phase valid. Version 2.17 removed the Scope field, the scope taxonomy and integrity rule I5. Version 2.18 removes the change request type (to return in a later version when needed), makes ids four digits, adds Segment and Department to the stakeholder register, and replaces the register tables with one file per item plus generated index tables (section 7). Both at Adam's direction on review, 10 September 2026.
 
 This file describes how we track the artifacts of solution architecture on a project where we are the design authority and a vendor builds the platform. It is tool-agnostic. It says what the item types are, how they relate, how each one moves, and what a healthy register looks like. It does not say how to build or populate the registers in any particular tool; that belongs in a separate runner document.
 
@@ -132,7 +132,7 @@ Links are written as `<relationship> <ID>`, several per item separated by semico
 | LIM | dispositioned by | DEC (a later disposition keeps the earlier one as "previously dispositioned by") |
 | RSK | realised as | OI |
 | OI | resolves into | any |
-| REQ | replaces | A current-state claim, PRC-nnn.sN or SYS-nnn.fN (the requirement changes what happens today) |
+| REQ | replaces | A current-state claim, PRC-nnn.sN, PRC-nnn.nN or SYS-nnn.fN (the requirement changes what happens today) |
 | REQ | preserves | A current-state claim (the requirement keeps something that works today) |
 | OI | clarifies | A current-state claim that is Hedged or Contested, or a question on a process |
 
@@ -197,8 +197,12 @@ Run against a proposed set of registers before writing them, and on request duri
 | I17 | Removed in 2.18 (was Deferred change request). |
 | I18 Current-state links | Every `replaces`, `preserves` and `clarifies` target exists in the current-state record, and no `replaces` or `preserves` target is Retired or Withdrawn. |
 | I19 Known stakeholder | Every person named in Owner, Raised by, Approved by and Consulted resolves to a row in the engagement's stakeholder register, or is "Vendor: <name>", "Joint" or a Forum row. A row with Role Mentioned cannot be Owner. |
+| I21 Flow links | Every `follows` on a process step names a step in the same process, never itself and never a process fact. Every `hands-to` names an existing process. |
+| I22 Process fact kind | Every process fact has Kind Rule, Volume, Timing or Pain point. |
+| I23 Process outcome | Every process in Current has an Outcome. A failure for a process proposed in a process file (design 4.1), a warning for one already written. |
+| I24 Withdrawn replaced | Every process or claim in Withdrawn has a `replaced-by` naming a process or claim that exists. |
 
-I1 to I9, I11 to I14, I18 and I19 are failures. I15 and I16 are warnings.
+I1 to I9, I11 to I14, I18, I19, I21, I22 and I24 are failures. I15 and I16 are warnings. I23 is a failure on a proposed process and a warning on a written one.
 
 ## 10. Maintenance routine
 

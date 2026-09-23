@@ -1,8 +1,8 @@
 # Extraction rules
 
-Version 1.3, 18 September 2026.
+Version 1.4, 23 September 2026.
 
-These rules are the method. The skill reads them before S1 and applies them to every exchange. Each rule carries the failure modes that map to it (design Q4) and a table of test passages. When a run report tags a failure against a rule, the fix is made here: the statement is edited and the failing passage is added as a test passage under the rule, with the run that found it. A rule change that lowers any kind's Right count on an earlier reference is a regression and is reverted or explained in the change log. Every test passage citation passes `ingester/bin/check-citations`.
+These rules are the method. The skill reads them before S1 and applies them to every exchange. Each rule carries the failure modes that map to it (design Q4) and a table of test passages. When a run report tags a failure against a rule, the fix is made here: the statement is edited and the failing passage is added as a test passage under the rule, with the run that found it. A rule change that lowers any kind's Right count on an earlier reference is a regression and is reverted or explained in the change log. Every test passage citation passes `ingester/bin/check-citations` against its own engagement: passages added in 1.0 are from `puppy-gloves` T001, and passages added in 1.4 are from `techm-bss` T001 and T002.
 
 ## Roles and standing
 
@@ -34,7 +34,7 @@ Statements are verbatim from design 5.6. Failure-mode tags are the controlled li
 
 ### R1 Present tense is a claim
 
-A statement in the present tense about what happens today, by any speaker, is a Process step or a System fact, never a requirement.
+A statement in the present tense about what happens today, by any speaker, is a Process step or a System fact, never a requirement. Which it is, and which process it belongs to, is decided at S4 from the whole session (R20 to R25): at S1 a present-tense statement about how work is done is carried as a candidate for S4, and only a statement about what a system does, holds or cannot do is a System fact. A system doing its turn inside a flow ("an application will be created in CMS") is a step with the system as actor, and is recorded as a System fact as well only when it is also stated as a capability.
 
 **Failure modes:** present-tense-as-requirement
 
@@ -146,7 +146,7 @@ None yet.
 
 ### R11 One item per assertion
 
-An exchange that carries a fact and a deferral yields two items with overlapping citations. A single assertion is never split into two items.
+An exchange that carries a fact and a deferral yields two items with overlapping citations. A single assertion is never split into two items. The exception is a narrated sequence: an assertion that tells several actions in turn yields one step per action under R20.
 
 **Failure modes:** none yet
 
@@ -268,6 +268,86 @@ A DEC candidate is Accepted from the transcript only when an internal party whos
 
 None yet.
 
+### R20 A sequence is steps
+
+Rules R20 to R25 are applied at S4 (runbook S4) over the whole session, never exchange by exchange. A passage that tells several actions in turn ("once we get a quote ... we'll then send that ... we'll then go back and ... sent for approval") yields one PRC.step per action, each with its own actor and system, and each `follows` the one before. The citation of a step keeps the continuation clause that carries the next action ("then the following morning ..."); trimming it loses the next step. A later retelling of an action already recorded is the same step: its citations join that step's evidence, and a retelling that adds detail between two steps adds a step between them.
+
+**Failure modes:** step-collapsed, retelling-duplicated
+
+**Test passages:**
+
+| Transcript | Citation | Expected | Added in | Note |
+|---|---|---|---|---|
+| T001 | answered \| T001/6727:0-3, 6734:0, 6739:0 \| Ryan Morley \| 00:52:41 \| "Once we get a quote from our vendor, that'll then come back and typically we'll then send that to the commercial team to then give us a sell price. ... If we're using Quozal, we'll have said input the price, and... Sent for approval, sent to the customer." | Five steps in non-standard pricing: vendor returns quote; consultant sends it to commercial; commercial returns a sell price; consultant keys it into Quosal; consultant sends for approval, handing to the Quosal sale. Drafted by 0.9.1 as one step, with 6739 dropped. | 1.4 | Audit, PRC-0006 |
+| T001 | answered \| T001/9045:0-3 \| Ryan Morley \| 01:11:17 \| "Then the following morning, when in the morning, the team leaders will then go run a Power BI report and that'll capture all the orders placed the day before, we then take that dump into Excel or whatever." | Two steps performed by team leaders (run the report; dump it into Excel) following the order submission. Drafted by 0.9.1 with the citation cut at 9045:0, so neither step was recorded. | 1.4 | Audit, PRC-0007 |
+
+### R21 A process runs from its trigger to its outcome
+
+A process is identified by who starts it, its trigger and its outcome (design 4.1). A statement belongs to a process only when it moves that trigger towards that outcome. A capability, a segment, a tool or a condition is not a process: commission capture, multi-site selling and agreement capture are steps or variants of the sale they happen in, and a segment or tool that does the same flow differently is a variant recorded with `when`. A statement that belongs to no process in the record starts a new one, or is raised as a Question; it is never placed in the nearest process. Before proposing a process, match it against the existing processes by trigger and outcome, not by the interviewer's heading.
+
+A handoff to another function is a process boundary: where the work passes to a team in another part of the business (sales hands a signed quote to service delivery, which answers to operations) and that team works on to an outcome of its own, the two halves are two processes, linked by `hands-to`, Downstream and Upstream, even when one speaker tells both halves in one breath. Where the evidence does not show who owns the second half or what it ends in, keep one process and raise a Question on the boundary; a later session that shows it splits the process under S4 step 2 (a new process, the moved claims Withdrawn with `replaced-by`), so nothing is lost by waiting.
+
+**Failure modes:** step-misfiled
+
+**Test passages:**
+
+| Transcript | Citation | Expected | Added in | Note |
+|---|---|---|---|---|
+| T001 | answered \| T001/7039:0-3 \| Tim Greening \| 00:55:05 \| "if we did a price rise would create 10 new plans and update our plan group and make white cells display that." | Steps in a mass-market price change process, not in non-standard pricing approval. Drafted by 0.9.1 as PRC-0006.s3. | 1.4 | Audit, PRC-0006 |
+| T001 | answered \| T001/7992:3 \| Ryan Morley \| 01:02:54 \| "Then they send it to service delivery via e-mail." | The boundary between two processes: the business quote through Quosal ends by handing to service delivery, and business order delivery starts here. Drafted by 0.9.1 as one process, PRC-0002, with the delivery steps inside it. | 1.4 | Audit, PRC-0002; boundary set by Adam Moyes |
+
+### R22 Statements about a process are facts
+
+A statement about a process that is not an action is a PRC.fact with Kind Rule (a condition, a routing rule, an SLA), Volume, Timing (a duration or a wait) or Pain point, and names in `follows` the step it qualifies when there is one. It is never a step. A pain point that threatens delivery also yields a RSK candidate as today.
+
+**Failure modes:** statement-as-step
+
+**Test passages:**
+
+| Transcript | Citation | Expected | Added in | Note |
+|---|---|---|---|---|
+| T001 | answered \| T001/4485:0-3 \| Ryan Morley \| 00:35:21 \| "For internal approval, we have an internal three-hour SLA for somebody in my team to approve that quote" | PRC.fact, Kind Rule, on the approval step of the Quosal sale. Drafted by 0.9.1 as PRC-0002.s7. | 1.4 | Audit, PRC-0002 |
+| T001 | answered \| T001/6845:0-4 \| Antony Murphy \| 00:53:36 \| "So doing a mass market price change is probably the most annoying thing to do in this joint. So regularly have issues, regularly have processes that just break because it's getting so big." | PRC.fact, Kind Pain point, on the mass-market price change process. Drafted by 0.9.1 as a step in non-standard pricing, PRC-0006.s2. | 1.4 | Audit, PRC-0006 |
+
+### R23 Every step has an actor
+
+"We", "they", "someone in my team" and a passive verb are resolved to a role or team from the passage, the episode and the session sheet. When they cannot be resolved, performed-by is `unresolved` and a Question asks who does it. An actor is never supplied by inference beyond the transcript. A system that does its turn is the actor of that step.
+
+**Failure modes:** actor-unresolved
+
+**Test passages:**
+
+| Transcript | Citation | Expected | Added in | Note |
+|---|---|---|---|---|
+| T001 | hedged \| T001/5629:0-3, 5632:0 \| Chris Van Horn \| 00:44:12 \| "So that's, we then have to export the data out of CMS through BI to find that commission override information to. Validate the sale to live chat." | Step with performed-by unresolved ("we"), Hedged from 5629:0, plus a Question on who validates live chat sales. Drafted by 0.9.1 with an invented performer, "Residential sales operations". | 1.4 | Audit, PRC-0003 |
+
+### R24 Standing follows whose work it is
+
+A step is Stated when the speaker, or the team the speaker belongs to, performs it. When the speaker describes another team's work, however plainly, the step is Second-hand and graded Needs a human: standing unclear. The walkthrough agenda lists every Second-hand step under the role that performs it, so the next session can hear it from them.
+
+**Failure modes:** standing-by-speaker
+
+**Test passages:**
+
+| Transcript | Citation | Expected | Added in | Note |
+|---|---|---|---|---|
+| T001 | answered \| T001/10740:3, 10750:0-1, 10762:0-1 \| Ryan Morley \| 01:25:33 \| "then they would typically call up or send through a cancellation form. Then the Customs Service person will then have to sort of calculate, typically calculate what the cancellation charge will be. generate an invoice, tell the customer to pay it, cancel the service." | Five steps of mid-contract cancellation, one by the customer and four by customer service, all Second-hand, because a Business Sales team leader describes what customers and customer service do. Drafted by 0.9.1 as one Stated step. | 1.4 | Audit, PRC-0009 |
+
+### R25 Gaps and contradictions are questions
+
+After a flow is assembled, walk it from trigger to outcome. Each of these is a Question aimed at the role that performs the step, and a line on the walkthrough agenda: two steps with no stated handoff between them; no step that reaches the outcome; an unresolved actor (R23); an item on an interviewer's checklist that nobody answered; a flow told only by an architect or consultant and never confirmed by someone who does it (R13). Two tellings in the same session that disagree are Contested on both sides with a Question (R4), even when they are far apart in the transcript.
+
+**Failure modes:** flow-gap-unraised
+
+**Test passages:**
+
+| Transcript | Citation | Expected | Added in | Note |
+|---|---|---|---|---|
+| T001 | answered \| T001/12148:0-2 \| Farid Kakar \| 01:37:36 \| "We send the CIS before the customer signed up" | Contested, against the next passage, with a Question on when the CIS is sent. Drafted by 0.9.1 as a Stated fact (SYS-0013.f3) beside a Stated step saying the opposite (PRC-0010.s2). | 1.4 | Audit, PRC-0010 |
+| T001 | answered \| T001/12268:0-2 \| Ryan Morley \| 01:38:35 \| "if it's through wide sales, they agree to the terms and conditions. We then send them a copy of the CIS, the critical information summary." | Contested, against the passage above. | 1.4 | Audit, PRC-0010 |
+| T002 | answered \| T002/7412:0-3 \| John McCarthy \| 01:00:39 \| "So the leads captured by Aussie Broadband Wholesale will then drop into Symbio's HubSpot instance and enable those leads to be pushed through the funnel by the Symbio sales team." | Contested against T002/8821:0-3 ("farmed out by the head of sales operations to the various partner managers"), with a Question on which route ABB Wholesale leads take. Drafted by 0.9.1 as two Stated steps, PRC-0014.s3 and s4. | 1.4 | Audit, PRC-0014 |
+| T002 | answered \| T002/5682:0-3 \| Jacque Greet \| 00:46:13 \| "well, actually the other thing that we do when a lead comes in, we check to see whether it's already in the system and has an owner. If it has an owner, then we forward that lead on to the same owner." | A correction that inserts a step before the wash spoken first: this step comes first in the flow, and the wash `follows` it. Drafted by 0.9.1 in spoken order. | 1.4 | Audit, PRC-0013 |
+
 ## Grading conditions
 
 An item is **Confident** only when every condition holds (design Q3, R16):
@@ -311,11 +391,21 @@ The controlled list for run reports. Each maps to one rule.
 | exchange-split | R14 |
 | episode-boundary | R15 |
 | overconfident-grade | R16 |
+| step-collapsed | R20 |
+| retelling-duplicated | R20 |
+| step-misfiled | R21 |
+| statement-as-step | R22 |
+| step-as-system-fact | R1 |
+| flow-out-of-order | R20 |
+| actor-unresolved | R23 |
+| standing-by-speaker | R24 |
+| flow-gap-unraised | R25 |
 
 ## Change log
 
 | Version | Date | Change |
 |---|---|---|
+| 1.4 | 23 September 2026 | Processes built as flows at S4 from the whole session: R20 a sequence is steps, R21 a process runs from its trigger to its outcome, R22 statements about a process are facts, R23 every step has an actor, R24 standing follows whose work it is, R25 gaps and contradictions are questions. R1 narrowed so that S4 decides step or fact; R11 gains the narrated-sequence exception. Nine failure-mode tags added. R21 treats a handoff to another function as a process boundary, at Adam Moyes's direction on the first flow reference (the Quosal quote and business order delivery are two processes). Test passages from the audit of all 17 techm-bss processes (`process-audit-T001-T002.md`), which found flows told across up to nine episodes and recorded as compound steps, statements and system facts. |
 | 1.3 | 18 September 2026 | Owner and MoSCoW are proposed at S1 rather than left blank for the reviewer, because the integrity gate fails a blank one at S3 while the grading conditions called it Confident (grading condition 5, R17). Hedged and Contested claims and Questions stated as complete work cleared by the outstanding set, not as items awaiting a verdict (R17). From the first end-to-end run, T001 techm-bss, 17 September 2026. |
 | 1.1 | 10 September 2026 | Scope dropped from the grading conditions (register model 2.17). |
 | 1.0 | 10 September 2026 | First version: R1 to R19 from design 1.2 section 5.6, grading conditions from Q3, test passages seeded from design section 6 with two ranges corrected (see design-review-notes.md). |

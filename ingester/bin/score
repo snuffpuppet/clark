@@ -4,6 +4,7 @@
 # evaluation/Tnnn-run-nn.md from the run-report template. Prints the counts table.
 set -e
 . "$(dirname "$0")/lib.sh"
+[ "${3:-}" = --flow ] && { e=$1; t=$2; shift 3; exec "$(dirname "$0")/score-flow" "$e" "$t" "$@"; }
 [ $# -ge 3 ] || die "usage: score <engagement> <Tnnn> <reference> [dossier]"
 eng=$1; tid=$2; ref=$3; d=$(eng_dir "$eng"); dos=${4:-$d/sessions/$tid/$tid.dossier.md}
 [ -f "$ref" ] || die "no reference at $ref"; [ -f "$dos" ] || die "no dossier at $dos"

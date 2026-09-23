@@ -33,7 +33,15 @@ for type in REQ DEC LIM RSK OI; do dir="$d/$(item_dir "$type")"
 done >> "$facts"
 for f in "$d"/systems/SYS-*.md "$d"/processes/PRC-*.md; do [ -f "$f" ] || continue
   id=$(fm "$f" id); printf 'ELEM\t%s\tID\t%s\n' "$id" "$id"
-  for s in $(claim_sections "$f"); do printf 'CLAIM\t%s.%s\tStatus\t%s\n' "$id" "$s" "$(claim_field "$f" "$s" status)"; done
+  case $id in PRC-*) printf 'PEL\t%s\tStatus\t%s\nPEL\t%s\tOutcome\t%s\nPEL\t%s\tReplaced by\t%s\n' "$id" "$(fm "$f" status)" "$id" "$(fm "$f" outcome)" "$id" "$(fm "$f" replaced-by)" ;; esac
+  # One pass per file: every claim's status and flow keys (I18, I21 to I24).
+  awk -v el="$id" '
+    function out(k, v) { printf "CL\t%s\t%s\t%s\n", cid, k, v }
+    /^## [fsn][0-9]+ / { cid = el "." $2; printf "CLAIM\t%s\tStatus\t\n", cid; out("Parent", el); out("Pre", substr($2, 1, 1)); on = 1; next }
+    /^## / { on = 0; next }
+    on && /^- [a-z-]+: / { k = $0; sub(/^- /, "", k); sub(/:.*/, "", k); v = $0; sub(/^- [a-z-]+: */, "", v)
+      if (k == "status") { printf "CLAIM\t%s\tStatus\t%s\n", cid, v; out("Status", v) }
+      else if (k == "follows") out("Follows", v); else if (k == "hands-to") out("Hands to", v); else if (k == "kind") out("Kind", v); else if (k == "replaced-by") out("Replaced by", v) }' "$f"
 done >> "$facts"
 phases "$eng" | awk '{ printf "PHASE\t%s\tvalue\t%s\n", $0, $0 }' >> "$facts"
 for f in "$d"/stakeholders/STK-*.md; do [ -f "$f" ] || continue
@@ -43,12 +51,23 @@ done >> "$facts"
 if [ -n "$dossier" ]; then
   [ -f "$dossier" ] || die "no such dossier $dossier"
   tid=$(header_field "$dossier" Transcript); sheet="$(dirname "$dossier")/$tid.session.md"
-  accepted_items "$dossier" | awk -F'\t' '
+  review_items "$dossier" | awk -F'\t' '
+    function kv_get(fields, want,   n, i, k, v) { n = split(fields, kv, "\001"); for (i = 1; i <= n; i++) { k = kv[i]; sub(/=.*/, "", k); v = kv[i]; sub(/^[^=]*=/, "", v); if (k == want) return v } return "" }
     { kind = $2; target = $5; item = $1; fields = $8; type = kind; sub(/\..*/, "", type)
-      if (kind == "SYS.fact" || kind == "PRC.step") { id = (target == "new") ? "CLAIM-item" item : target; st = ""
-        n = split(fields, kv, "\001"); for (i = 1; i <= n; i++) { k = kv[i]; sub(/=.*/, "", k); v = kv[i]; sub(/^[^=]*=/, "", v); if (k == "Status") st = v }
-        printf "CLAIM\t%s\tStatus\t%s\n", id, st; printf "ITEMMAP\titem %s\tid\t%s\n", item, id; next }
-      if (kind == "SYS" || kind == "PRC") { id = (target == "new") ? kind "-item" item : target; if (target == "new") printf "ELEM\t%s\tID\t%s\n", id, id; printf "ITEMMAP\titem %s\tid\t%s\n", item, id; next }
+      if (kind == "SYS.fact" || kind == "PRC.step" || kind == "PRC.fact") { id = (target == "new") ? "CLAIM-item" item : target; st = kv_get(fields, "Status")
+        if (target == "new" || st != "") printf "CLAIM\t%s\tStatus\t%s\n", id, st
+        printf "ITEMMAP\titem %s\tid\t%s\n", item, id
+        # Flow keys for I21 to I24; a new claim also declares its parent and whether it is a step or a fact.
+        if (target == "new") { printf "CL\t%s\tParent\t%s\n", id, (kind == "SYS.fact" ? kv_get(fields, "System") : kv_get(fields, "Process"))
+          printf "CL\t%s\tPre\t%s\n", id, (kind == "PRC.step" ? "s" : (kind == "PRC.fact" ? "n" : "f")) }
+        printf "CL\t%s\tItem\t%s\n", id, item + 0; printf "CL\t%s\tProposed\tyes\n", id
+        split("Status|Follows|Hands to|Kind|Replaced by", keys, "|")
+        for (j = 1; j <= 5; j++) { v = kv_get(fields, keys[j]); if (v != "") printf "CL\t%s\t%s\t%s\n", id, keys[j], v }
+        next }
+      if (kind == "SYS" || kind == "PRC") { id = (target == "new") ? kind "-item" item : target; if (target == "new") printf "ELEM\t%s\tID\t%s\n", id, id; printf "ITEMMAP\titem %s\tid\t%s\n", item, id
+        if (kind == "PRC") { printf "PEL\t%s\tProposed\tyes\n", id; split("Status|Outcome|Replaced by", keys, "|")
+          for (j = 1; j <= 3; j++) { v = kv_get(fields, keys[j]); if (v != "" || target == "new") printf "PEL\t%s\t%s\t%s\n", id, keys[j], v } }
+        next }
       if (kind == "STK.edit") { printf "STKEDIT\t%s\tTarget\titem %s\n", target, item; next }
       if (type != "REQ" && type != "DEC" && type != "LIM" && type != "RSK" && type != "OI") next
       id = (target == "new") ? type "-item" item : target
@@ -58,7 +77,9 @@ if [ -n "$dossier" ]; then
       printf "%s\t%s\tProposed\tyes\n", type, id
       n = split(fields, kv, "\001"); for (i = 1; i <= n; i++) { k = kv[i]; sub(/=.*/, "", k); v = kv[i]; sub(/^[^=]*=/, "", v); if (k != "Gist") printf "%s\t%s\t%s\t%s\n", type, id, k, v }
       if ($9 != "") { c = $9; gsub(/\002/, "; ", c); printf "%s\t%s\t%s\t%s\n", type, id, (type == "OI" ? "Raised by" : "Source"), c } }' >> "$facts"
-  if [ -f "$sheet" ]; then
+  # A processes file comes after S3, when the sheet's new stakeholders are already files; adding them again would duplicate them.
+  case $dossier in *.processes.md|*.processes.v[0-9]*.md) sheet="" ;; esac
+  if [ -n "$sheet" ] && [ -f "$sheet" ]; then
     awk '/^## New stakeholders/ { on=1 } /^## Notes/ { on=0 } on && /^\| / && !/^\| *Proposed *\|/ && !/^\|[-| ]*$/' "$sheet" | awk -F'|' '{ v=$(NF-1); gsub(/ /, "", v); if (v == "Accept" || v == "Edit") { n=$3; r=$5; s=$6; gsub(/^ +| +$/, "", n); gsub(/^ +| +$/, "", r); gsub(/^ +| +$/, "", s); printf "STK\tSTK-new%d\tName\t%s\nSTK\tSTK-new%d\tVariants\t\nSTK\tSTK-new%d\tRole\t%s\nSTK\tSTK-new%d\tSegment\t%s\n", NR, n, NR, NR, r, NR, s } }' >> "$facts"
   fi
 fi
@@ -80,6 +101,8 @@ awk -F'\t' -v today="$(today)" '
     return 0 }
   function mentioned(nm,   s, n) { n = lc(nm); for (s in STK) if (lc(STKname[s]) == n && STKrole[s] == "Mentioned") return 1; return 0 }
   function resolve(tok) { return ((("item " tok) in MAP) ? MAP["item " tok] : tok) }
+  function rid(s,   t) { t = s; gsub(/^ +| +$/, "", t); if (match(t, /^item [0-9]+$/)) return ((t in MAP) ? MAP[t] : t); return t }
+  function ref(s, par,   t) { t = rid(s); if (t ~ /^[sn][0-9]+$/) t = par "." t; return t }
   function linked_oi_has_owner(id,   n, i, t, o) { n = split(F[id, "Links"], parts, /;/)
     for (i = 1; i <= n; i++) { t = parts[i]; if (match(t, /OI-[0-9a-z]+/)) { o = substr(t, RSTART, RLENGTH); if (has(o, "Owner")) return 1 }
       if (match(t, /item [0-9]+/)) { o = resolve(substr(t, RSTART + 5, RLENGTH - 5)); if (has(o, "Owner")) return 1 } }
@@ -91,6 +114,8 @@ awk -F'\t' -v today="$(today)" '
     if (type == "STKEDIT") { SE[++nse] = id; SEfrom[nse] = val; next }
     if (type == "ELEM") { if (id in ELEM) dupe[id] = 1; ELEM[id] = 1; next }
     if (type == "CLAIM") { CLAIM[id] = val; next }
+    if (type == "CL") { CLP[id] = 1; CL[id, key] = val; next }
+    if (type == "PEL") { PELS[id] = 1; PEL[id, key] = val; next }
     if (key == "MUTATES") { MUT[id] = val; if (!(id in T)) { T[id] = type; order[++cnt] = id; seen[id]++; MISSING[id] = 1 } OLD[id] = F[id, "Status"]; next }
     if (!(id in T)) { T[id] = type; order[++cnt] = id; seen[id]++ } else if (T[id] != type || key == "ID") seen[id]++
     F[id, key] = val }
@@ -152,6 +177,24 @@ awk -F'\t' -v today="$(today)" '
         if (pf[j] == "Owner" && mentioned(v)) fail("I19", id, "Owner \"" v "\" has Role Mentioned") }
       if (has(id, "Consulted")) { m = split(F[id, "Consulted"], cc, / *[;,] */); for (j = 1; j <= m; j++) if (!person_ok(cc[j])) fail("I19", id, "Consulted \"" cc[j] "\" is not a known stakeholder") }
     }
+    # I21 to I24: process flows (design 4.1, register model 2.21). A reference is an item number, a full claim
+    # id, a bare sN of the same process, or a PRC id; items resolve through the item map.
+    for (c in CLP) { par = rid(CL[c, "Parent"]); pre = CL[c, "Pre"]
+      if (pre == "n" && CL[c, "Kind"] !~ /^(Rule|Volume|Timing|Pain point)$/) fail("I22", c, "process fact kind \"" CL[c, "Kind"] "\" is not Rule, Volume, Timing or Pain point")
+      if (pre != "f" && CL[c, "Follows"] != "") { n = split(CL[c, "Follows"], ff, /; */)
+        for (j = 1; j <= n; j++) { t = ref(ff[j], par); if (t == "") continue
+          if (!(t in CLAIM)) { fail("I21", c, "follows " ff[j] ", which is not a claim in the record or this file"); continue }
+          if (t == c) fail("I21", c, "follows itself")
+          else if (rid(CL[t, "Parent"]) != par) fail("I21", c, "follows " t ", which is in another process")
+          else if (CL[t, "Pre"] != "s") fail("I21", c, "follows " t ", which is not a step")
+          else if (CL[c, "Proposed"] == "yes" && CL[t, "Proposed"] == "yes" && CL[t, "Item"] + 0 > CL[c, "Item"] + 0) fail("I21", c, "follows a later item (" ff[j] "); list steps in flow order") } }
+      if (CL[c, "Hands to"] != "") { n = split(CL[c, "Hands to"], hh, /; */)
+        for (j = 1; j <= n; j++) { t = rid(hh[j]); gsub(/^ +| +$/, "", t); if (t !~ /^PRC-/ || !(t in ELEM)) fail("I21", c, "hands to " hh[j] ", which is not a process") } }
+      if (CL[c, "Status"] == "Withdrawn") { if (CL[c, "Replaced by"] == "") fail("I24", c, "Withdrawn with no replaced-by")
+        else { n = split(CL[c, "Replaced by"], rr, /; */); for (j = 1; j <= n; j++) { t = ref(rr[j], par); if (!(t in CLAIM) && !(t in ELEM)) fail("I24", c, "replaced by " rr[j] ", which does not exist") } } } }
+    for (p in PELS) { st = PEL[p, "Status"]
+      if (st == "Current" && PEL[p, "Outcome"] == "") { if (PEL[p, "Proposed"] == "yes") fail("I23", p, "a Current process needs an Outcome"); else warn("I23", p, "process has no Outcome") }
+      if (st == "Withdrawn") { t = rid(PEL[p, "Replaced by"]); if (t == "") fail("I24", p, "Withdrawn with no replaced-by"); else if (!(t in ELEM)) fail("I24", p, "replaced by " PEL[p, "Replaced by"] ", which does not exist") } }
     if (fails) { printf "%d integrity failure(s)\n", fails; exit 1 } print "OK" }
 ' "$facts" && rc=0 || rc=$?
 rm -f "$facts"; exit $rc

@@ -28,11 +28,12 @@ Or, as the skill: straight after S3 reports it has written, in the same turn.
 1. Run the command. It refuses when the transcript has no S3 run log or no session file mentions it.
 2. Read `evaluation/Tnnn-summary.md`. Check that the window starts at the first ingest command and ends at S3, that the model is the one that ran the session, and that the reviewer message count matches the number of replies the reviewer gave.
 3. When the session was also used for other work inside the window, rerun with `<from>` and `<to>` narrowed to the ingestion and say so.
-4. Present, in the terminal: the model, the elapsed, active and waiting minutes, the model calls, output tokens and list-price cost, the items, the Needs a human share, the items the reviewer changed, the Confident items changed, and the comparison table's rows that moved by more than a tenth. Point at the file for the rest.
+4. Present, in the terminal: the model, the elapsed, active and waiting minutes, the model calls, output tokens and list-price cost, the items, the Needs a human share, the items the reviewer changed, the Confident items changed, and the comparison table's rows that moved by more than a tenth. Point at the file for the rest. Name `evaluation/ingestions.md` as the running comparison.
 
 ## Outputs
 
 - `evaluation/Tnnn-summary.md` from `ingester/templates/ingestion-summary.md` (format F11). A rerun overwrites it and raises its version.
+- `evaluation/ingestions.md` (format F12), rebuilt by `bin/summary-table` from every summary in the engagement: one column per transcript, one row per metric, and the change between the last two. This is the running comparison across the engagement; each transcript's own summary holds the detail.
 - A run log under `logs/` with stage `summary`.
 
 ## What the figures mean
