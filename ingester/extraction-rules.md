@@ -1,8 +1,8 @@
 # Extraction rules
 
-Version 1.6, 23 September 2026.
+Version 1.7, 23 September 2026.
 
-These rules are the method. The skill reads them before S1 and applies them to every exchange. Each rule carries the failure modes that map to it (design Q4) and a table of test passages. When a run report tags a failure against a rule, the fix is made here: the statement is edited and the failing passage is added as a test passage under the rule, with the run that found it. A rule change that lowers any kind's Right count on an earlier reference is a regression and is reverted or explained in the change log. Every test passage citation passes `ingester/bin/check-citations` against its own engagement: passages added in 1.0 are from `puppy-gloves` T001, and passages added in 1.4 are from `techm-bss` T001 and T002, and passages added in 1.6 from `techm-bss` T003.
+These rules are the method. The skill reads them before S1 and applies them to every exchange. Each rule carries the failure modes that map to it (design Q4) and a table of test passages. When a run report tags a failure against a rule, the fix is made here: the statement is edited and the failing passage is added as a test passage under the rule, with the run that found it. A rule change that lowers any kind's Right count on an earlier reference is a regression and is reverted or explained in the change log. Every test passage citation passes `ingester/bin/check-citations` against its own engagement: passages added in 1.0 are from `puppy-gloves` T001, and passages added in 1.4 are from `techm-bss` T001 and T002, and passages added in 1.6 from `techm-bss` T003, and passages added in 1.7 from `techm-bss` T004.
 
 ## Roles and standing
 
@@ -48,9 +48,9 @@ A statement in the present tense about what happens today, by any speaker, is a 
 
 ### R2 Commitment makes a requirement
 
-A REQ candidate needs commitment language about the solution ("we need the solution to", "must", "has to", "there would be an expectation that") from an internal architect or SME who is a source of requirements (Roles and standing, Sources of requirements and decisions), or a vendor or consultant statement that an internal party accepts in the same exchange. A vendor's "we need to support" is design intent and becomes a DEC candidate in Proposed, raised by the vendor, or an OI if nothing was chosen.
+A REQ candidate needs commitment language about the solution ("we need the solution to", "must", "has to", "there would be an expectation that") from an internal architect or SME who is a source of requirements (Roles and standing, Sources of requirements and decisions), or a vendor or consultant statement that an internal party accepts in the same exchange. A vendor's "we need to support" is design intent and becomes a DEC candidate in Proposed, raised by the vendor, or an OI if nothing was chosen. Every REQ drafted in Draft links, in the same dossier, an open item that tracks its agreement (`approval tracked by item nn`), with an Owner who runs the agreement: one open item may cover all the requirements a session drafts. Integrity rule I3 refuses a Draft requirement without one, and it only sees an item once it has a verdict, so the link is made at S1, never after review.
 
-**Failure modes:** non-source-requirement
+**Failure modes:** non-source-requirement, req-without-approval-oi
 
 **Test passages:**
 
@@ -59,6 +59,7 @@ A REQ candidate needs commitment language about the solution ("we need the solut
 | T001 | proposed \| T001/165:2-4, 166:0-3, 168:0 \| Elena Marchetti \| 00:09:25 \| "If we're going to bring the services onto the new platform, there would be an expectation that we'd be able to modify this. or if not, have some process bringing them into a state in which they can be modified ... We need a, we need a process, right?" | REQ in Draft from an Internal architect. Grade Needs a human: field needs a decision; kind uncertain. | 1.0 | Design example 5, range corrected |
 | T003 (techm-bss) | proposed \| T003/6665:0-4 \| Abhishek Sinha \| 00:56:13 \| "At least the basic functionalities of AI that are supported and are part of the licensing should be included in the solution. However, there are customizations and more details, and there's a costing implication or development implications that can be taken out separately or maybe suggested separately." | No REQ: an Internal architect in a business session is not a source of requirements (engagement.md). At most an OI or a Question for the business. | 1.6 | T003 run 01, item 60 rejected |
 | T003 (techm-bss) | proposed \| T003/5674:0-3 \| Shekhar Anil Tankhiwale \| 00:49:19 \| "Would it be right for me to say ABB knows every customer and contact once, understands who they represent, and consistently gives the right person the right access to right account, site, and service across every channel? Would that be the right future state, right statement to describe future state?" | No DEC: the vendor is not a source of decisions in a business session. An OI putting the statement to the business. | 1.6 | T003 run 01, item 52 rejected |
+| T004 (techm-bss) | proposed \| T004/9832:2-5 \| Jason Bednar \| 01:24:21 \| "So what I would like to see is basically in the enterprise space in particular is something very similar to how it operates today with source, right? So I want to see something that comes from that point of sale that flows into a system that basically looks at it at that order." | REQ in Draft from a BE&G SME, with Links carrying `approval tracked by item nn` to an open item in the same dossier. Drafted with no such open item for any of the seven T004 requirements, so I3 failed once verdicts were given and the open item was added after review. | 1.7 | T004 run 01, reference item 144 missed |
 
 ### R3 Hedges never become facts
 
@@ -140,15 +141,17 @@ None yet.
 
 ### R10 Quotes are verbatim
 
-The quote keeps transcription errors and filler. Interpretation goes in the gist. A quote never spans two speakers. A name the transcription has garbled so that nobody in the session can say what it refers to is quoted as spoken but never attached to a guessed system or element: the claim waits for a Question to identify it.
+The quote keeps transcription errors and filler. Interpretation goes in the gist. A quote never spans two speakers. A name the transcription has garbled so that nobody in the session can say what it refers to is quoted as spoken but never attached to a guessed system or element: the claim waits for a Question to identify it. A garbled form of a term the register already knows ("white sales" for Wide Sales, "MBN" for NBN, "Opticom" for Opticomm) is quoted as spoken, and the Gist names the term it stands for; a conflict with an existing claim is never raised on the garbled wording alone.
 
-**Failure modes:** speaker-misattributed, unknown-term-kept
+**Failure modes:** speaker-misattributed, unknown-term-kept, transcription-noise-unglossed
 
 **Test passages:**
 
 | Transcript | Citation | Expected | Added in | Note |
 |---|---|---|---|---|
 | T003 (techm-bss) | answered \| T003/5136:1-4, 5143:0-1 \| Nikki Kovacevic \| 00:44:51 \| "Digitally, no, we can't do that because everything does sit separate without like outside of CMS. So our digital channels are within a platform which we call Text Inc. and that sits outside of CMS. There is no way to track anything obviously of that. like the customer information, they have to input their full name, address and date of birth." | A Question on what "Text Inc" is. Drafted as a claim placed on SYS-0008 Live chat, which the reviewer dropped because nobody knows what Text Inc is. | 1.6 | T003 run 01, item 48 rejected |
+| T004 (techm-bss) | answered \| T004/4632:0-1 \| Haylee Oates \| 00:42:53 \| "No, so technically white sales is CMS. It is a just looks prettier than what it was. It is still a module of CMS. However, the applications, once they're submitted," | SYS fact on Wide Sales, a module running in CMS as its sales interface, with the Gist saying "white sales" is Wide Sales. Drafted without the gloss and raised as a conflict with SYS-0001.f3. | 1.7 | T004 run 01, item 53 edited |
+| T004 (techm-bss) | answered \| T004/7058:4-5 \| Haylee Oates \| 01:03:15 \| "Most of the ordering process is all done via APIs to the third party, so mobiles to Opticom to MBN." | SYS fact on CMS ordering by API, with the Gist saying "MBN" is NBN and "Opticom" is Opticomm. Drafted without the gloss. | 1.7 | T004 run 01, item 79 edited |
 
 ### R11 One item per assertion
 
@@ -408,11 +411,14 @@ The controlled list for run reports. Each maps to one rule.
 | flow-gap-unraised | R25 |
 | non-source-requirement | R2 |
 | unknown-term-kept | R10 |
+| transcription-noise-unglossed | R10 |
+| req-without-approval-oi | R2 |
 
 ## Change log
 
 | Version | Date | Change |
 |---|---|---|
+| 1.7 | 23 September 2026 | From T004 run 01 (techm-bss): tags transcription-noise-unglossed (R10) and req-without-approval-oi (R2) added. R10 now requires a garbled form of a known term to be glossed in the Gist and never raised as a conflict on the garbled wording; R2 now requires every Draft requirement to link an open item in the same dossier that tracks its agreement, so integrity rule I3 passes before review. Test passages from T004 items 53 and 79, edited at review, and reference item 144, added after review. Tags given by Adam Moyes. |
 | 1.6 | 23 September 2026 | From T003 run 01 (techm-bss): tags non-source-requirement (R2) and unknown-term-kept (R10) added; R10 now keeps an unidentifiable name out of any claim until a Question identifies it; test passages from T003 items 48, 52 and 60, all rejected at review. Tags given by Adam Moyes. |
 | 1.5 | 23 September 2026 | Sources of requirements and decisions by kind of session: an engagement may say who is a source of requirements and decisions (techm-bss: only business stakeholders in business sessions, the Architecture team also for technical, integration and non-functional requirements in architecture sessions), overriding the role table, R2, R12 and R19; non-sources raise open items. Given by Adam Moyes at T003 S2, after the T003 dossier drafted a requirement from an architect and proposed Program owners for decisions. |
 | 1.4 | 23 September 2026 | Processes built as flows at S4 from the whole session: R20 a sequence is steps, R21 a process runs from its trigger to its outcome, R22 statements about a process are facts, R23 every step has an actor, R24 standing follows whose work it is, R25 gaps and contradictions are questions. R1 narrowed so that S4 decides step or fact; R11 gains the narrated-sequence exception. Nine failure-mode tags added. R21 treats a handoff to another function as a process boundary, at Adam Moyes's direction on the first flow reference (the Quosal quote and business order delivery are two processes). Test passages from the audit of all 17 techm-bss processes (`process-audit-T001-T002.md`), which found flows told across up to nine episodes and recorded as compound steps, statements and system facts. |
