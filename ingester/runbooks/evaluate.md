@@ -1,6 +1,6 @@
 # Runbook: evaluate
 
-Version 0.1, 10 September 2026.
+Version 0.2, 23 September 2026.
 
 ## Purpose
 
@@ -23,7 +23,7 @@ ingester/bin/stage <engagement> Tnnn score evaluation/Tnnn-reference.md sessions
 
 ## Automatic checks
 
-Episodes match when their spans overlap by more than half. Items match when kinds agree and cited utterance sets overlap. Every citation in both files is checked with `check-citations`.
+Episodes match when their spans overlap by more than half. Items match when kinds agree and cited utterance sets overlap. When the reference is a reviewed dossier, an item it Rejected is left out of the reference (so the drafted item scores as Invented) and an item it Edited scores as Wrong. Every citation in both files is checked with `check-citations`.
 
 ## What the reviewer does
 

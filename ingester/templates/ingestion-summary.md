@@ -35,9 +35,21 @@ Counted once per model call, by message id, from the assistant lines in the sess
 
 ## Cost
 
-What the same tokens would cost at Anthropic's first-party API list prices, from `ingester/pricing.tsv`. Each model call is priced by its own model, cache writes by their TTL (5-minute or 1-hour, as the session file records them) and fast-mode calls at the fast multiplier. On a Claude subscription plan this is an equivalent, not a charge; the share of the plan's usage limit is not in the session files, and `/usage` in the session shows it.
+What the same tokens would cost at Anthropic's first-party API list prices, from `ingester/pricing.tsv`. Each model call is priced by its own model, cache writes by their TTL (5-minute or 1-hour, as the session file records them) and fast-mode calls at the fast multiplier. On a Claude subscription plan this is an equivalent, not a charge; the share of the plan's limits is under Plan usage.
 
 {{COST}}
+
+## Plan usage
+
+The share of the Claude plan's five-hour session limit and weekly limit the window used, summed across every five-hour window it spanned, so an ingestion run over several sessions is counted whole. Read from the samples the status line records whenever the figures change (runbook summary, What the figures mean).
+
+{{USAGE}}
+
+## S4 processes
+
+S4 runs after S3, often in a later session, so it is measured on its own window and kept out of the figures above: from the first `/ingest-transcript` command after S3 to the S4 write.
+
+{{S4}}
 
 ## Output
 

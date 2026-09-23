@@ -15,6 +15,7 @@ dossier="$sdir/$tid.dossier.md"; tsv="$sdir/$tid.utterances.tsv"; sheet="$sdir/$
 s3log=$(ls "$d/logs" 2>/dev/null | grep -- "-$tid-S3.md$" | tail -1)
 [ -n "$s3log" ] || die "$tid has no S3 run log; the summary is written after S3"
 iso() { printf '%s' "$1" | sed 's/^\([0-9]\{4\}\)\([0-9]\{2\}\)\([0-9]\{2\}\)T\([0-9]\{2\}\)\([0-9]\{2\}\)\([0-9]\{2\}\)Z$/\1-\2-\3T\4:\5:\6/'; }
+thou() { awk -v n="$1" 'BEGIN { s = sprintf("%d", n); o = ""; while (length(s) > 3) { o = "," substr(s, length(s) - 2) o; s = substr(s, 1, length(s) - 3) }; print s o }'; }
 file=$(transcript_field "$eng" "$tid" file)
 
 # Session files: under the project folders Claude Code keeps for this repository and anything below it,
@@ -38,8 +39,12 @@ else
   [ -n "$from" ] || from=$(iso "$(ls "$d/logs" | grep -- "-$tid-S0.md$" | head -1 | sed 's/-.*//')")
 fi
 
+# measure <from> <to> <background command> <dir>: the time, token, cost and plan usage figures for one window,
+# written to <dir>/usage, <dir>/time and <dir>/plan. Run once for S0 to S3 and, once S4 is written, again for S4.
+measure() {
+from=$1; to=$2; bgcmd=$3; M=$4; mkdir -p "$M"; : > "$M/events"
 # One pass over the session files: events for the time figures, usage per model call for the tokens.
-awk -v FROM="$from" -v TO="$to" -v ev="$W/events" -v s3cmd="$eng $tid S3" -v prices="$INGESTER_DIR/pricing.tsv" '
+awk -v FROM="$from" -v TO="$to" -v ev="$M/events" -v s3cmd="$bgcmd" -v prices="$INGESTER_DIR/pricing.tsv" '
   function num(k,   r) { if (match($0, "\"" k "\":[0-9]+")) { r = substr($0, RSTART, RLENGTH); sub(/.*:/, "", r); return r + 0 } return 0 }
   function epoch(ts,   y, m, dd, days) { y = substr(ts, 1, 4) + 0; m = substr(ts, 6, 2) + 0; dd = substr(ts, 9, 2) + 0
     if (m <= 2) { y--; m += 12 }; days = 365 * y + int(y / 4) - int(y / 100) + int(y / 400) + int((153 * (m - 3) + 2) / 5) + dd
@@ -67,17 +72,102 @@ awk -v FROM="$from" -v TO="$to" -v ev="$W/events" -v s3cmd="$eng $tid S3" -v pri
       ci += fx * IN[i] * P_in[m] / 1e6; co += fx * OUT[i] * P_out[m] / 1e6; cw += fx * (C5[i] * P_w5[m] + C1[i] * P_w1[m]) / 1e6; cr += fx * CR[i] * P_r[m] / 1e6; w5 += C5[i]; w1 += C1[i] }
     ms = ""; for (m in mc) ms = ms (ms == "" ? "" : ", ") m " (" mc[m] " calls)"
     printf "cost=%.2f\ncost_input=%.2f\ncost_output=%.2f\ncost_cachew=%.2f\ncost_cacher=%.2f\nunpriced=%s\nprices_asof=%s\nfastcalls=%d\nw5=%d\nw1=%d\n", ci + co + cw + cr, ci, co, cw, cr, ul2, P_asof, fastc, w5, w1
-    printf "sessions=%s\ns3start=%d\nhi=%d\nfirst=%s\nlast=%s\nusers=%d\ncalls=%d\ninput=%d\ncachew=%d\ncacher=%d\noutput=%d\nmodels=%s\n", ul, s3s, hi, first, last, users, calls, si, sw, sr, so, ms }' $(cat "$W/files") > "$W/usage"
-u() { grep "^$1=" "$W/usage" | sed "s/^$1=//"; }
+    printf "sessions=%s\ns3start=%d\nhi=%d\nfirst=%s\nlast=%s\nusers=%d\ncalls=%d\ninput=%d\ncachew=%d\ncacher=%d\noutput=%d\nmodels=%s\n", ul, s3s, hi, first, last, users, calls, si, sw, sr, so, ms }' $(cat "$W/files") > "$M/usage"
+u() { grep "^$1=" "$M/usage" | sed "s/^$1=//"; }
+
+# Plan usage: the share of the five-hour session limit and the weekly limit the window used, from the samples
+# the status line appends to CLARK_USAGE_LOG (default ~/.claude/usage-samples.tsv) whenever the figures change:
+# time, five-hour used %, five-hour resets at, weekly used %, weekly resets at, session id, all times UTC.
+# Every Claude Code session writes to the same file, so a window spread across several sessions is covered.
+# Within each limit window (keyed by its reset time) the use is the highest sample inside the ingestion window
+# less the last sample before it; a limit window that opened inside the ingestion window starts from zero.
+ulog=${CLARK_USAGE_LOG:-$HOME/.claude/usage-samples.tsv}
+if [ -f "$ulog" ]; then
+  sids=$(sed 's#.*/##; s#\.jsonl$##' "$W/files" | tr '\n' ' ')
+  awk -F'\t' -v FROM="$from" -v TO="$to" -v SIDS=" $sids" '
+    function epoch(ts,   y, m, dd, days) { y = substr(ts, 1, 4) + 0; m = substr(ts, 6, 2) + 0; dd = substr(ts, 9, 2) + 0
+      if (m <= 2) { y--; m += 12 }; days = 365 * y + int(y / 4) - int(y / 100) + int(y / 400) + int((153 * (m - 3) + 2) / 5) + dd
+      return ((days * 24 + substr(ts, 12, 2)) * 60 + substr(ts, 15, 2)) * 60 + substr(ts, 18, 2) }
+    function take(p, r, t, L,   k) { if (p == "" || r == "") return; k = L SUBSEP r
+      if (t < lo) { base[k] = p; return } if (t > hi) return
+      if (!(k in seen)) { seen[k] = 1; firstin[k] = p; win[L] = win[L] (win[L] == "" ? "" : ";") r }; if (!(k in top) || p + 0 > top[k] + 0) top[k] = p }
+    function used(L, span,   n, rs, i, k, b, s, tot) { n = split(win[L], rs, ";"); tot = 0
+      for (i = 1; i <= n; i++) { k = L SUBSEP rs[i]
+        if (k in base) b = base[k]; else if (epoch(rs[i]) - span >= lo) b = 0; else { b = firstin[k]; approx[L] = 1 }
+        s = top[k] - b; if (s < 0) s = 0; tot += s }
+      nw[L] = n; return tot }
+    BEGIN { lo = epoch(FROM); hi = epoch(TO) }
+    $1 ~ /^[0-9][0-9][0-9][0-9]-/ && ($6 == "" || index(SIDS, " " $6 " ")) { t = epoch($1); if (firsts == "" || $1 < firsts) firsts = $1; if (t >= lo && t <= hi) inwin++
+      take($2, $3, t, "h5"); take($4, $5, t, "d7") }
+    END { h = used("h5", 18000); w = used("d7", 604800)
+      if (inwin) printf "usage5=%g\nwindows5=%d\nusage7=%g\nwindows7=%d\napprox5=%d\napprox7=%d\n", h, nw["h5"], w, nw["d7"], approx["h5"] + 0, approx["d7"] + 0
+      printf "samples_from=%s\nsamples_in=%d\n", firsts, inwin }' "$ulog" > "$M/plan"
+else : > "$M/plan"; fi
+pu() { grep "^$1=" "$M/plan" | sed "s/^$1=//"; }
+if [ -n "$(pu usage5)" ]; then
+  usage_text="- Five-hour session limit: $(pu usage5)% used, across $(pu windows5) five-hour window(s)$( [ "$(pu approx5)" = 1 ] && printf ', at least (a window was already open when recording began)')
+- Weekly limit: $(pu usage7)% used$( [ "$(pu approx7)" = 1 ] && printf ', at least (the week was already open when recording began)')
+- Samples inside the window: $(pu samples_in), from \`$ulog\`"
+elif [ -n "$(pu samples_from)" ]; then
+  usage_text="Not recorded: no status line sample falls inside the window. Samples in \`$ulog\` begin $(pu samples_from | sed 's/T/ /; s/Z$/ UTC/')."
+else
+  usage_text="Not recorded: there is no \`$ulog\`. The status line writes it (runbook summary, What the figures mean); until it does, \`/usage\` in the session shows the share."
+fi
 [ "$(u calls)" -gt 0 ] || die "no model calls found between $from and $to"
 
-{ cat "$W/events"; printf '%s\tE\n' "$(u hi)"; } | sort -t "$(printf '\t')" -k1,1n -k2,2r | awk -F'\t' -v s3s="$(u s3start)" -v hi="$(u hi)" '
+{ cat "$M/events"; printf '%s\tE\n' "$(u hi)"; } | sort -t "$(printf '\t')" -k1,1n -k2,2r | awk -F'\t' -v s3s="$(u s3start)" -v hi="$(u hi)" '
   $1 > hi + 0 { if ($2 == "U") next }
   { if (NR > 1) { g = $1 - p; if (g < 0) g = 0
       if ($2 == "U") wait += g; else if (s3s > 0 && p >= s3s && $1 <= hi) s3 += g; else if (g < 600) act += g; else idle += g } else s = $1; p = $1
     if ($1 <= hi) end = $1 }
-  END { printf "elapsed=%d\nactive=%d\nwaiting=%d\nidle=%d\ns3=%d\n", (end - s) / 60 + 0.5, (act + s3) / 60 + 0.5, wait / 60 + 0.5, idle / 60 + 0.5, s3 / 60 + 0.5 }' > "$W/time"
-t() { grep "^$1=" "$W/time" | sed "s/^$1=//"; }
+  END { printf "elapsed=%d\nactive=%d\nwaiting=%d\nidle=%d\ns3=%d\n", (end - s) / 60 + 0.5, (act + s3) / 60 + 0.5, wait / 60 + 0.5, idle / 60 + 0.5, s3 / 60 + 0.5 }' > "$M/time"
+t() { grep "^$1=" "$M/time" | sed "s/^$1=//"; }
+printf "%s" "$usage_text" > "$M/usage_text"
+}
+measure "$from" "$to" "$eng $tid S3" "$W/main"
+main_from=$from; main_to=$to
+
+# S4, measured on its own once it has been written: from the first /ingest-transcript command for this
+# transcript after S3 to the last S4 run log, which s4-write leaves. A failure here never stops the summary.
+slog="$sdir/$tid.session-log.md"; procs="$sdir/$tid.processes.md"
+s4log=$(ls "$d/logs" 2>/dev/null | grep -- "-$tid-S4.md$" | tail -1 || true); s4state=none
+if [ -n "$s4log" ] && [ -f "$slog" ] && grep -q '^- S4 written on:' "$slog"; then
+  s4to=$(iso "${s4log%%-*}")
+  s4from=$(while IFS= read -r f; do awk -v tid="$tid" -v after="$main_to" '
+      /"type":"user"/ && /ingest-transcript/ && index($0, tid) && !/"type":"tool_result"/ {
+        if (match($0, /"timestamp":"[0-9-]+T[0-9:.]+Z"/)) { ts = substr($0, RSTART + 13, RLENGTH - 14); if (substr(ts, 1, 19) > substr(after, 1, 19)) { print ts; exit } } }' "$f"; done < "$W/files" | sort | head -1)
+  [ -n "$s4from" ] || s4from=$main_to
+  if ( measure "$s4from" "$s4to" "$eng $tid S4" "$W/s4" ) > "$W/s4.err" 2>&1; then s4state=measured; else s4state=failed; fi
+fi
+M=$W/main; from=$main_from; to=$main_to; usage_text=$(cat "$W/main/usage_text")
+s4v() { grep "^$2=" "$W/s4/$1" 2>/dev/null | sed "s/^$2=//"; }
+if [ "$s4state" = measured ]; then
+  awk '/^### Item / { n++; nh = ($0 ~ /Needs a human/); if (nh) nhc++; isnh[n] = nh }
+    /^- Flow verdict:/ { f++; if ($4 == "Edit" || $4 == "Reject") fch++ }
+    /^- Verdict:/ { if ($3 == "Edit" || $3 == "Reject") ch++ }
+    END { printf "items=%d\nnh=%d\nchanged=%d\nflows=%d\nflows_changed=%d\n", n, nhc, ch, f, fch }' "$procs" 2>/dev/null > "$W/s4/procs" || : > "$W/s4/procs"
+  s4cpi=$(awk -v a="$(s4v usage cost)" -v b="$(s4v procs items)" 'BEGIN { if (b > 0) printf "%.2f", a / b; else print "0" }')
+  s4_text="Measured on its own, from the first \`/ingest-transcript\` command after S3 ($(printf '%s' "$s4from" | cut -c1-19 | sed 's/T/ /') UTC) to the S4 write ($(printf '%s' "$s4to" | sed 's/T/ /') UTC). These figures are not included in the sections above.
+
+- Elapsed: $(s4v time elapsed) minutes; active: $(s4v time active) minutes, of which the S4 write in the background: $(s4v time s3) minutes; waiting on the reviewer: $(s4v time waiting) minutes
+- Model calls: $(s4v usage calls); output tokens: $(thou "$(s4v usage output)"); cache read: $(thou "$(s4v usage cacher)")
+- Cost at API list price: \$$(s4v usage cost), \$$s4cpi per processes item
+- Plan usage: $(cat "$W/s4/usage_text" | tr '\n' ' ' | sed 's/^- //; s/ - /; /g; s/ *$//')
+- Processes file: $(s4v procs flows) flows, $(s4v procs items) items, $(s4v procs nh) needing a human; the reviewer changed $(s4v procs changed) items and $(s4v procs flows_changed) flows"
+  s4_metrics="- s4_elapsed_minutes: $(s4v time elapsed)
+- s4_active_minutes: $(s4v time active)
+- s4_waiting_minutes: $(s4v time waiting)
+- s4_model_calls: $(s4v usage calls)
+- s4_output_tokens: $(s4v usage output)
+- s4_cost_usd: $(s4v usage cost)
+- s4_session_usage_pct: $(s4v plan usage5)
+- s4_weekly_usage_pct: $(s4v plan usage7)
+- s4_flows: $(s4v procs flows)
+- s4_items: $(s4v procs items)
+- s4_needs_human: $(s4v procs nh)
+- s4_changed_items: $(s4v procs changed)"
+elif [ "$s4state" = failed ]; then s4_text="S4 has been written but could not be measured: $(tail -1 "$W/s4.err")"; s4_metrics=""
+else s4_text="S4 has not been written yet. Rerun \`stage $eng $tid summary\` after the S4 write to add its figures here, measured on their own."; s4_metrics=""; fi
 
 # The transcript.
 awk -F'\t' 'NR > 1 { cues++; if (!($1 in U)) { U[$1] = 1; utt++ }; if (!($5 in S)) { S[$5] = 1; spk++ }; e = $4 }
@@ -97,7 +187,6 @@ awk '
 o() { grep "^$1=" "$W/dos" | sed "s/^$1=//"; }
 pct() { awk -v a="$1" -v b="$2" 'BEGIN { if (b > 0) printf "%.1f", 100 * a / b; else print "0" }'; }
 per() { awk -v a="$1" -v b="$2" -v m="$3" 'BEGIN { if (b > 0) printf "%d", m * a / b + 0.5; else print "0" }'; }
-thou() { awk -v n="$1" 'BEGIN { s = sprintf("%d", n); o = ""; while (length(s) > 3) { o = "," substr(s, length(s) - 2) o; s = substr(s, 1, length(s) - 3) }; print s o }'; }
 share=$(pct "$(o nh)" "$(o items)"); changed=$(( $(o edit) + $(o reject) )); chpct=$(pct "$changed" "$(o items)")
 cpi=$(awk -v a="$(u cost)" -v b="$(o items)" 'BEGIN { if (b > 0) printf "%.2f", a / b; else print "0" }')
 opi=$(per "$(u output)" "$(o items)" 1); opu=$(per "$(u output)" "$(x utterances)" 100)
@@ -145,6 +234,10 @@ cat > "$W/metrics" <<EOF
 - output_tokens_per_100_utterances: $opu
 - cost_usd: $(u cost)
 - cost_per_item_usd: $cpi
+- session_usage_pct: $(pu usage5)
+- session_windows: $(pu windows5)
+- weekly_usage_pct: $(pu usage7)
+$s4_metrics
 EOF
 prevf=$(ls "$d/evaluation" 2>/dev/null | grep '^T[0-9]*-summary\.md$' | sed 's/-summary\.md$//' | awk -v t="$tid" '$0 < t' | sort | tail -1 || true)
 if [ -n "$prevf" ]; then
@@ -155,7 +248,8 @@ else previous="none; this is the first summary in the engagement"; comparison="N
 
 caveats="- Every figure in the time and token sections covers all the work in the session files within the window, including anything done in the same session that was not this ingestion. Narrow the window with \`summary $eng $tid <from> <to>\` if the session was also used for other work.
 - Active time excludes the reviewer's reading time but includes time spent on commands that ran in the background.
-- Accuracy here is the reviewer's verdicts, not a score against a reference."
+- Accuracy here is the reviewer's verdicts, not a score against a reference.
+- Plan usage counts everything that drew on the same account inside the window, including other Claude Code sessions and claude.ai, because the limits are per account."
 [ -f "$sdir/$tid.dossier.draft.md" ] || caveats="$caveats
 - No drafted copy (\`$tid.dossier.draft.md\`) was kept before review, so an item edited in place reads as the reviewer left it."
 [ "$(printf '%s' "$models" | tr ',' '\n' | grep -c .)" -gt 1 ] && caveats="$caveats
@@ -199,7 +293,7 @@ set_val ACCURACY "- Needs a human: $(o nh) of $(o items) ($share%)
 - Accepted: $(o accept); edited: $(o edit); rejected: $(o reject); blank: $(o blank)
 - Changed by the reviewer: $changed ($chpct%), of which $(o nhch) were graded Needs a human
 - Confident but changed: $(o cch)"
-set_val RUN_REPORT "$runrep"; set_val COMPARISON "$comparison"; set_val CAVEATS "$caveats"; set_val METRICS "$(cat "$W/metrics")"
+set_val USAGE "$usage_text"; set_val S4 "$s4_text"; set_val RUN_REPORT "$runrep"; set_val COMPARISON "$comparison"; set_val CAVEATS "$caveats"; set_val METRICS "$(cat "$W/metrics")"
 render "$INGESTER_DIR/templates/ingestion-summary.md" "$out"; vals_done
 sed -i '' "s/^Version 0\.1, /Version $ver, /" "$out"
 "$INGESTER_DIR/bin/summary-table" "$eng" --write > /dev/null

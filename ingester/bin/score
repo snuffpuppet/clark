@@ -27,7 +27,8 @@ awk -F'\t' -v refname="$ref" -v dosname="$dos" -v fails="$F" -v prevf="$P" -v ti
   function fld(fields, k,   n, i, kv) { n = split(fields, kv, "\001"); for (i = 1; i <= n; i++) { if (index(kv[i], k "=") == 1) return substr(kv[i], length(k) + 2) } return "" }
   function kindclass(k) { return (k == "Question" || k == "OI") ? "OI/Question" : k }
   function span_utts(sp,   a, b) { if (match(sp, /^[0-9]+/)) a = substr(sp, RSTART, RLENGTH) + 0; if (match(sp, /to [0-9]+/)) b = substr(sp, RSTART + 3, RLENGTH - 3) + 0; return a " " b }
-  FILENAME == ARGV[1] { nr++; rk[nr] = $2; ru[nr] = utts($9); rst[nr] = fld($8, "Status"); rit[nr] = $1; rep[nr] = $6; next }
+  # A reviewed dossier as the reference: a Rejected item is not in it, and an Edited item means the draft was wrong.
+  FILENAME == ARGV[1] { if ($4 == "Reject") next; nr++; rk[nr] = $2; ru[nr] = utts($9); rst[nr] = fld($8, "Status"); rit[nr] = $1; rep[nr] = $6; rv[nr] = $4; next }
   FILENAME == ARGV[2] { nd++; dk[nd] = $2; du[nd] = utts($9); dg[nd] = $3; dv[nd] = $4; dst[nd] = fld($8, "Status"); dit[nd] = $1; dep[nd] = $6; dc[nd] = $9; next }
   FILENAME == ARGV[3] { ner++; ers[ner] = span_utts($3); next }
   FILENAME == ARGV[4] { ned++; eds[ned] = span_utts($3); edo[ned] = $6; edid[ned] = $1; next }
@@ -39,9 +40,9 @@ awk -F'\t' -v refname="$ref" -v dosname="$dos" -v fails="$F" -v prevf="$P" -v ti
       match_i = 0
       for (r = 1; r <= nr; r++) if (!used[r] && kindclass(rk[r]) == kindclass(dk[i]) && (overlap(du[i], ru[r]) || (du[i] == "" && ru[r] == "" && dep[i] == rep[r]))) { match_i = r; used[r] = 1; break }
       if (bad || !match_i) { inv[kindclass(dk[i])]++; tag[++nt] = "Item " dit[i] " | " dk[i] " | Invented |  |  | " (bad ? "citation failed" : "no match in the reference") }
-      else if (dv[i] == "Accept" || dv[i] == "") right[kindclass(dk[i])]++
-      else { wrong[kindclass(dk[i])]++; tag[++nt] = "Item " dit[i] " | " dk[i] " | Wrong |  |  | matched reference item " rit[match_i] ", verdict " dv[i] }
-      if (dg[i] == "Confident" && dv[i] != "Accept" && dv[i] != "") { cbw++; tag[++nt] = "Item " dit[i] " | " dk[i] " | Confident but wrong |  |  | overconfident-grade" }
+      else if ((dv[i] == "Accept" || dv[i] == "") && rv[match_i] != "Edit") right[kindclass(dk[i])]++
+      else { wrong[kindclass(dk[i])]++; tag[++nt] = "Item " dit[i] " | " dk[i] " | Wrong |  |  | matched reference item " rit[match_i] ", verdict " (dv[i] != "" ? dv[i] : rv[match_i]) }
+      if (dg[i] == "Confident" && ((dv[i] != "Accept" && dv[i] != "") || (match_i && rv[match_i] == "Edit") || (!match_i && !bad))) { cbw++; tag[++nt] = "Item " dit[i] " | " dk[i] " | Confident but wrong |  |  | overconfident-grade" }
       if (match_i && (rst[match_i] == "Retired" || rst[match_i] == "Current, not needed") && (dk[i] == "REQ" || dst[i] == "Current")) { res++; tag[++nt] = "Item " dit[i] " | " dk[i] " | Resurrection |  |  | reference item " rit[match_i] " is " rst[match_i] }
     }
     for (r = 1; r <= nr; r++) { kinds[kindclass(rk[r])] = 1; if (!used[r]) { missed[kindclass(rk[r])]++; tag[++nt] = "Reference item " rit[r] " | " rk[r] " | Missed |  |  | no draft item on utterances" ru[r] } }
