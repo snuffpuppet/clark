@@ -83,11 +83,22 @@ set_list() { printf '%s\n' "$2" | grep . | sed 's/^/  - /' > "$VALDIR/$1" || tru
 vals_done() { rm -rf "$VALDIR"; unset VALDIR; }
 # transcript helpers
 transcript_field() { f=$(item_path "$1" "$2"); [ -f "$f" ] || return 1; fm "$f" "$3"; }
-vtt_path() { d=$(eng_dir "$1"); f=$(transcript_field "$1" "$2" file) || die "$2 is not registered in transcripts/"
-  s=$(transcript_field "$1" "$2" sha256)
-  for p in "$d/transcripts/unprocessed/$f" "$d/transcripts/processed/$f"; do
-    if [ -f "$p" ]; then [ "$(sha256 "$p")" = "$s" ] || die "SHA-256 of $p does not match transcripts/$2.md"; printf '%s\n' "$p"; return 0; fi; done
-  die "transcript file $f not found under transcripts/"; }
+# transcript_parts engagement tid: one line per part, "<sha256> <file>", in recording order. A transcript
+# registered from one file has one part, read from file and sha256; several files are listed under parts.
+transcript_parts() { f=$(item_path "$1" "$2"); [ -f "$f" ] || die "$2 is not registered in transcripts/"
+  p=$(fm_list "$f" parts); if [ -n "$p" ]; then printf '%s\n' "$p"; else printf '%s %s\n' "$(fm "$f" sha256)" "$(fm "$f" file)"; fi; }
+# transcript_paths engagement tid: the path of every part, one per line, each checked against its SHA-256.
+# Refuses when the parts are split between unprocessed/ and processed/.
+transcript_paths() { d=$(eng_dir "$1"); where=""; pl=$(transcript_parts "$1" "$2") || exit 1
+  printf '%s\n' "$pl" | { while IFS= read -r line; do s=${line%% *}; f=${line#* }; found=""
+    for w in unprocessed processed; do p="$d/transcripts/$w/$f"
+      if [ -f "$p" ]; then [ "$(sha256 "$p")" = "$s" ] || die "SHA-256 of $p does not match transcripts/$2.md"
+        [ -z "$where" ] || [ "$where" = "$w" ] || die "the parts of $2 are split between unprocessed/ and processed/"
+        where=$w; found=$p; break; fi; done
+    [ -n "$found" ] || die "transcript file $f not found under transcripts/"
+    printf '%s\n' "$found"; done; }; }
+# vtt_path engagement tid: the first part's path, which says whether the transcript is unprocessed or processed.
+vtt_path() { vp=$(transcript_paths "$1" "$2") || exit 1; printf '%s\n' "$vp" | head -1; }
 # stk_lookup engagement "name": prints the STK id whose name or variant matches, case-insensitive.
 stk_lookup() { lc=$(printf '%s' "$2" | tr 'A-Z' 'a-z'); for f in "$(eng_dir "$1")"/stakeholders/STK-*.md; do [ -f "$f" ] || continue
   n=$(fm "$f" name | tr 'A-Z' 'a-z'); if [ "$n" = "$lc" ] || fm_list "$f" variants | tr 'A-Z' 'a-z' | grep -qx "$lc"; then fm "$f" id; return 0; fi; done; return 1; }

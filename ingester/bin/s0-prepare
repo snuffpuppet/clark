@@ -11,27 +11,71 @@ sdir="$d/sessions/$tid"; mkdir -p "$sdir"
 tsv="$sdir/$tid.utterances.tsv"; sheet="$sdir/$tid.session.md"
 [ -f "$sheet" ] && die "$sheet already exists; S0 is not rerun over a session sheet. Remove it by hand to start again."
 
-# 1. Utterance table.
-{ printf 'utterance\tfragment\tstart\tend\tspeaker\ttext\n'
-  awk '
-    { sub(/\r$/, "") }
-    /^[0-9a-fA-F-]+\/[0-9]+-[0-9]+$/ { split($0, a, "/"); split(a[2], b, "-"); utt = b[1] + 0; frag = b[2] + 0; haveid = 1; next }
-    /^[0-9:.]+ --> [0-9:.]+/ { if (!haveid) { print "cue at " $1 " has no <id>/<utterance>-<fragment> line before it; not a Teams or Webex VTT" > "/dev/stderr"; exit 2 } start = $1; end = $3; haveid = 0; next }
-    /^<v / { s = $0; sub(/^<v /, "", s); spk = s; sub(/>.*/, "", spk); sub(/^[^>]*>/, "", s); text = s; intext = 1
-             if (s ~ /<\/v>$/) { emit(); intext = 0 }; next }
-    intext { text = text " " $0; if ($0 ~ /<\/v>$/) { emit(); intext = 0 } }
-    function emit() { sub(/<\/v>$/, "", text); gsub(/\t/, " ", text); gsub(/  +/, " ", text)
-                      gsub(/^ +| +$/, "", text); printf "%d\t%d\t%s\t%s\t%s\t%s\n", utt, frag, start, end, spk, text }
-  ' "$vtt" | sort -t "$TAB" -k1,1n -k2,2n
-} > "$tsv"
+# 1. Utterance table. Each part is flattened on its own, Teams or Webex VTT, or the Webex text export
+# ("m:ss : Speaker : text", one line per utterance, fragment 1, ending where the next line starts).
+# Parts after the first continue the utterance numbers and the clock of the part before: the clock runs
+# on from the previous part's last end, so a recording gap takes no time in the table.
+parse_part() { pt=$(mktemp "${TMPDIR:-/tmp}/s0.XXXXXXXX"); awk '
+  { sub(/\r$/, "") } NR == 1 { sub(/^\357\273\277/, "") }
+  !fmt && /^[ \t]*$/ { next }
+  !fmt { if ($0 ~ /^WEBVTT/ || $0 ~ /^[0-9a-fA-F-]+\/[0-9]+-[0-9]+$/) fmt = "vtt"
+         else if ($0 ~ /^[0-9]+:[0-9][0-9](:[0-9][0-9])? : /) fmt = "txt"
+         else { print "line " NR " is neither WebVTT nor the Webex text export (m:ss : Speaker : text)" > "/dev/stderr"; exit 2 } }
+  fmt == "vtt" && /^[0-9a-fA-F-]+\/[0-9]+-[0-9]+$/ { split($0, a, "/"); split(a[2], b, "-"); utt = b[1] + 0; frag = b[2] + 0; haveid = 1; next }
+  fmt == "vtt" && /^[0-9:.]+ --> [0-9:.]+/ { if (!haveid) { print "cue at " $1 " has no <id>/<utterance>-<fragment> line before it; not a Teams or Webex VTT" > "/dev/stderr"; exit 2 } start = $1; end = $3; haveid = 0; next }
+  fmt == "vtt" && /^<v / { s = $0; sub(/^<v /, "", s); spk = s; sub(/>.*/, "", spk); sub(/^[^>]*>/, "", s); text = s; intext = 1
+           if (s ~ /<\/v>$/) { emit(); intext = 0 }; next }
+  fmt == "vtt" && intext { text = text " " $0; if ($0 ~ /<\/v>$/) { emit(); intext = 0 } }
+  fmt == "txt" && /^[ \t]*$/ { next }
+  fmt == "txt" && /^[0-9]+:[0-9][0-9](:[0-9][0-9])? : / {
+           i = index($0, " : "); t = substr($0, 1, i - 1); rest = substr($0, i + 3); j = index(rest, " : ")
+           if (!j) { print "line " NR " has a time but no \" : \" after the speaker" > "/dev/stderr"; exit 2 }
+           n++; ts[n] = clock(t); sp[n] = substr(rest, 1, j - 1); tx[n] = substr(rest, j + 3); next }
+  fmt == "txt" { if (!n) { print "line " NR " comes before the first timed line" > "/dev/stderr"; exit 2 } tx[n] = tx[n] " " $0 }
+  function clock(t,   a, k, s) { k = split(t, a, ":"); s = (k == 3) ? a[1] * 3600 + a[2] * 60 + a[3] : a[1] * 60 + a[2]
+                                 return sprintf("%02d:%02d:%02d.000", int(s / 3600), int(s % 3600 / 60), s % 60) }
+  function tidy(x) { gsub(/\t/, " ", x); gsub(/  +/, " ", x); gsub(/^ +| +$/, "", x); return x }
+  function emit() { sub(/<\/v>$/, "", text); printf "%d\t%d\t%s\t%s\t%s\t%s\n", utt, frag, start, end, spk, tidy(text) }
+  END { if (fmt == "txt") for (k = 1; k <= n; k++) printf "%d\t1\t%s\t%s\t%s\t%s\n", k, ts[k], ts[(k < n) ? k + 1 : k], tidy(sp[k]), tidy(tx[k]) }
+  ' "$1" > "$pt" || { rm -f "$pt"; return 1; }; sort -t "$TAB" -k1,1n -k2,2n "$pt"; rm -f "$pt"; }
+# shift_rows <utterance offset> <seconds offset>: adds both to every row; no offset leaves the row unchanged.
+shift_rows() { awk -F'\t' -v OFS='\t' -v uo="$1" -v so="$2" '
+  function secs(t,   a) { split(t, a, ":"); return a[1] * 3600 + a[2] * 60 + a[3] }
+  function fmt(s) { return sprintf("%02d:%02d:%06.3f", int(s / 3600), int(s % 3600 / 60), s - int(s / 60) * 60) }
+  { if (uo + so > 0) { $1 += uo; $3 = fmt(secs($3) + so); $4 = fmt(secs($4) + so) } print }'; }
+parts=$(transcript_paths "$eng" "$tid") || exit 1
+nparts=$(printf '%s\n' "$parts" | wc -l | tr -d ' ')
+body="$sdir/$tid.utterances.body"; partlines="$sdir/$tid.parts"; : > "$body"; : > "$partlines"; k=0; uoff=0; soff=0
+printf '%s\n' "$parts" | while IFS= read -r p; do k=$((k + 1))
+  rows=$(parse_part "$p") || die "$(basename "$p"): not parsed; nothing written"
+  [ -n "$rows" ] || die "no cues parsed from $p"
+  printf '%s\n' "$rows" | shift_rows "$uoff" "$soff" > "$body.part"; cat "$body.part" >> "$body"
+  awk -F'\t' -v k="$k" -v f="$(basename "$p")" -v s="$(sha256 "$p")" -v so="$soff" 'NR == 1 { u1 = $1; t1 = $3 } { u2 = $1; t2 = $4 }
+    END { sub(/\..*/, "", t1); sub(/\..*/, "", t2); printf "%d\t%s\t%s\t%d\t%d\t%s\t%s\t%s\n", k, f, s, u1, u2, t1, t2, so }' "$body.part" >> "$partlines"
+  uoff=$(tail -1 "$body.part" | cut -f1)
+  soff=$(awk -F'\t' '{ split($4, a, ":"); s = a[1] * 3600 + a[2] * 60 + a[3]; if (s > m) m = s } END { printf "%.3f", m }' "$body")
+  rm -f "$body.part"; done || { rm -f "$body" "$body.part" "$partlines"; exit 1; }
+{ printf 'utterance\tfragment\tstart\tend\tspeaker\ttext\n'; cat "$body"; } > "$tsv"; rm -f "$body"
 rows=$(( $(wc -l < "$tsv") - 1 ))
-[ "$rows" -gt 0 ] || die "no cues parsed from $vtt"
+[ "$rows" -gt 0 ] || { rm -f "$tsv" "$partlines"; die "no cues parsed from $tid"; }
 
 # 2. Session sheet from the template.
 file=$(transcript_field "$eng" "$tid" file); sum=$(transcript_field "$eng" "$tid" sha256)
 subject=$(transcript_field "$eng" "$tid" meeting-subject)
 fill_template "$INGESTER_DIR/templates/session.md" "$sheet" "TID=$tid" "DATE=$(today)" "FILE=$file" "SHA256=$sum" \
   "SUBJECT=$subject" "SESSION_DATE=" "INGESTER_VERSION=$(ingester_version)"
+# Parts and the recording gap between each pair of them, after the SHA-256 line.
+if [ "$nparts" -gt 1 ]; then
+  sed -i '' "s/^- File: .*/- File: $nparts parts, listed under Parts/; s/^- SHA-256: .*/- SHA-256: one per part, under Parts/" "$sheet"
+  awk -F'\t' -v n="$nparts" 'function hms(s) { return sprintf("%02d:%02d:%02d", int(s / 3600), int(s % 3600 / 60), int(s % 60)) }
+    NR == 1 { printf "- Parts: %d, in recording order. Utterance numbers and the clock run on from one part to the next.\n", n }
+    { printf "  - Part %d: `%s` (SHA-256 %s), utterances %d to %d, %s to %s%s.\n", $1, $2, $3, $4, $5, $6, $7, ($8 > 0 ? "; its own clock plus " hms($8) : "")
+      if (NR > 1) gap = gap sprintf("- Recording gap: between utterance %d (%s) and utterance %d. The recording stopped and started again. Its length is not recorded and the clock does not count it. What was said in the gap is not in the transcript, so part %d may open part way through a discussion.\n", pu, pt, $4, $1)
+      pu = $5; pt = $7 }
+    END { printf "%s", gap }' "$partlines" > "$sheet.parts"
+  awk -v pf="$sheet.parts" '{ print } /^- SHA-256:/ { while ((getline l < pf) > 0) print l }' "$sheet" > "$sheet.tmp" && mv "$sheet.tmp" "$sheet"
+  rm -f "$sheet.parts"; fi
+rm -f "$partlines"
 
 # 3. Attendees: each speaker tag matched against stakeholders/*.md by name or variant, case-insensitive.
 attendees=$(sed 1d "$tsv" | cut -f5 | sort | uniq -c | sed 's/^ *//' | awk '{ n=$1; $1=""; sub(/^ /, ""); print $0 "\t" n }' |

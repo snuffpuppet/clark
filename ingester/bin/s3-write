@@ -50,6 +50,7 @@ rollback() { [ "$ok" = 1 ] && { rm -rf "$snap"; return; }
   for f in $FOLDERS; do rm -rf "$d/$f"; [ -d "$snap/$f" ] && cp -R "$snap/$f" "$d/$f"; done
   cp "$snap"/transcripts/T[0-9]*.md "$d/transcripts/" 2>/dev/null || true; cp "$snap/engagement.md" "$d/engagement.md"
   if [ -f "$snap/session-log" ]; then cp "$snap/session-log" "$log"; else rm -f "$log"; fi
+  [ -f "$snap/moved" ] && while IFS= read -r m; do mv "$d/transcripts/processed/$m" "$d/transcripts/unprocessed/"; done < "$snap/moved"
   rm -rf "$snap"; echo "$mode failed; the engagement was restored to its state before the write" >&2; }
 trap rollback EXIT
 
@@ -223,9 +224,11 @@ awk -v dt="$TODAY" '!done && /^- Stakeholders written on:/ { print; print "- S3 
 "$INGESTER_DIR/bin/render-index" "$eng" > /dev/null
 rm -rf "$RES"; rm -f "$items"
 
-# Move the transcript last.
-mkdir -p "$d/transcripts/processed"; mv "$vtt" "$d/transcripts/processed/"
-[ "$(sha256 "$d/transcripts/processed/$(basename "$vtt")")" = "$(transcript_field "$eng" "$tid" sha256)" ] || die "SHA-256 mismatch after move"
+# Move the transcript last, every part of it; a part moved before a failure is moved back by the rollback.
+paths=$(transcript_paths "$eng" "$tid")
+mkdir -p "$d/transcripts/processed"
+printf '%s\n' "$paths" | while IFS= read -r p; do mv "$p" "$d/transcripts/processed/"; basename "$p" >> "$snap/moved"; done
+transcript_paths "$eng" "$tid" > /dev/null || die "SHA-256 mismatch after move"
 ok=1
 log_run "$eng" "$tid" S3 "written" "$sheet $dossier" "$FOLDERS transcripts/$tid.md engagement.md $log" > /dev/null
 eng_log "$eng" "$tid S3 written: $(table_rows "$log" | grep -c "| created ") id(s) created, $(table_rows "$log" | grep -c "| updated ") updated; dossier signed by $dos_appr; transcript moved to processed/."

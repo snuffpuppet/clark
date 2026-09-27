@@ -2,6 +2,7 @@
 id: {{ID}}
 file: {{FILE}}
 sha256: {{SHA256}}
+{{PARTS}}
 session-date: {{SESSION_DATE}}
 title: {{TITLE}}
 meeting-subject: {{SUBJECT}}

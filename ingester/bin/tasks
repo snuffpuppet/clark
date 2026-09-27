@@ -48,7 +48,7 @@ phases_named=todo; [ "$(phases "$eng" | grep -c .)" -gt 0 ] && [ "$(phases "$eng
   todo "Tag failure modes in the run report and fold them into \`ingester/extraction-rules.md\` as the next rules version"
   printf '\nNext command: '
   case $st in
-    needs-register) printf '`ingester/bin/register-transcript %s <vtt>`\n' "$eng" ;;
+    needs-register) printf '`ingester/bin/register-transcript %s <file> [<file> ...] [--subject "..."]`\n' "$eng" ;;
     needs-s0) printf '`/ingest-transcript %s %s` (runs S0)\n' "$tid" "$eng" ;;
     awaiting-session-sheet) printf 'sign `sessions/%s/%s.session.md`, then `/ingest-transcript %s %s`\n' "$tid" "$tid" "$tid" "$eng" ;;
     needs-s1) printf '`/ingest-transcript %s %s` (runs S1)\n' "$tid" "$eng" ;;

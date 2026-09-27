@@ -5,6 +5,7 @@ This folder holds everything produced for one client. Start Claude Code here to 
 ```
 claude --add-dir ../../ingester
 /ingest-transcript <path-to-vtt> ["meeting subject"]      first time for a transcript
+/ingest-transcript <part-1> <part-2> ["meeting subject"]  a meeting recorded in parts
 /ingest-transcript Tnnn                                    every later time
 ```
 
@@ -16,7 +17,7 @@ The skill is `.claude/skills/ingest-transcript/SKILL.md` at the repository root 
 - `LOG.md`: running log of what happened to this engagement, one line per event, appended by the scripts and by hand.
 - One file per item: `requirements/`, `decisions/`, `limitations/`, `risks/`, `open-items/`, `processes/`, `systems/`, `stakeholders/`, `topics/`, `transcripts/Tnnn.md`. Written by the write stage after a signed dossier; edit by hand only with a line under the file's History section in the F10 form, `- <date> | <your name> | <Field>: <old> to <new> |`.
 - `index/`: generated tables. Never edit; run `../../ingester/bin/render-index {{ENGAGEMENT}}` to refresh.
-- `transcripts/unprocessed/` and `transcripts/processed/`: VTT files as received. Never edit, rename or delete.
+- `transcripts/unprocessed/` and `transcripts/processed/`: transcript files (VTT or Webex text, one or more parts each) as received. Never edit, rename or delete.
 - `sessions/Tnnn/`: utterance table, session sheet, exchanges, episodes, dossier, session log, `TASKS.md`.
 - `evaluation/`: hand-marked references, run reports, and one ingestion summary per transcript (`Tnnn-summary.md`: model, time, tokens and review outcomes, compared with the previous transcript; regenerate with `../../ingester/bin/stage {{ENGAGEMENT}} Tnnn summary`), and `ingestions.md`, the same figures with a column per transcript, rebuilt after every ingestion. `logs/`: one file per skill run.
 

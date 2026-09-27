@@ -1,20 +1,47 @@
 #!/bin/sh
-# register-transcript <engagement> <vtt-path> ["meeting subject"]
-# Copies the file unchanged into transcripts/unprocessed/ unless already there, writes transcripts/Tnnn.md
-# with the file name and SHA-256, and prints the id.
+# register-transcript <engagement> <file> [<file> ...] [--subject "meeting subject"]
+# register-transcript <engagement> <file> ["meeting subject"]
+# Copies each file unchanged into transcripts/unprocessed/ unless already there, writes transcripts/Tnnn.md
+# with the file name and SHA-256, and prints the id. Several files are the parts of one recording, given in
+# the order they were recorded; each is listed under parts, and file and sha256 name the first.
 set -e
 . "$(dirname "$0")/lib.sh"
-[ $# -ge 2 ] || die "usage: register-transcript <engagement> <vtt-path> [\"meeting subject\"]"
-eng=$1; src=$2; subject=${3:-}; d=$(eng_dir "$eng")
+usage="usage: register-transcript <engagement> <file> [<file> ...] [--subject \"meeting subject\"]"
+[ $# -ge 2 ] || die "$usage"
+eng=$1; shift; d=$(eng_dir "$eng"); subject=""
 [ -f "$d/engagement.md" ] || die "no engagement at $d"
-[ -f "$src" ] || die "no such file $src"
-name=$(basename "$src"); sum=$(sha256 "$src"); dest="$d/transcripts/unprocessed/$name"
-if [ -f "$dest" ]; then [ "$(sha256 "$dest")" = "$sum" ] || die "$dest exists with a different SHA-256; nothing changed"
-elif [ -f "$d/transcripts/processed/$name" ]; then die "$name is already processed; nothing changed"
-else mkdir -p "$d/transcripts/unprocessed"; cp "$src" "$dest"; [ "$(sha256 "$dest")" = "$sum" ] || die "copy failed its SHA-256 check"; fi
-for f in "$d"/transcripts/T[0-9]*.md; do [ -f "$f" ] && [ "$(fm "$f" sha256)" = "$sum" ] && die "this file is already registered as $(fm "$f" id)"; done
+# The old form: one file and a subject that is not a file.
+if [ $# -eq 2 ] && [ "$2" != --subject ] && [ ! -f "$2" ]; then
+  case $2 in *.vtt|*.txt|*/*) die "no such file $2" ;; esac
+  subject=$2; set -- "$1"; fi
+list=$(mktemp "${TMPDIR:-/tmp}/reg.XXXXXXXX"); trap 'rm -f "$list"' EXIT
+while [ $# -gt 0 ]; do
+  case $1 in
+    --subject) [ $# -ge 2 ] || die "$usage"; subject=$2; shift 2 ;;
+    *) [ -f "$1" ] || die "no such file $1"; printf '%s\n' "$1" >> "$list"; shift ;; esac; done
+[ -s "$list" ] || die "$usage"
+# Check every part before copying any.
+parts=""; n=0
+while IFS= read -r src; do
+  name=$(basename "$src"); sum=$(sha256 "$src"); dest="$d/transcripts/unprocessed/$name"
+  if [ -f "$dest" ]; then [ "$(sha256 "$dest")" = "$sum" ] || die "$dest exists with a different SHA-256; nothing changed"
+  elif [ -f "$d/transcripts/processed/$name" ]; then die "$name is already processed; nothing changed"; fi
+  for f in "$d"/transcripts/T[0-9]*.md; do [ -f "$f" ] || continue
+    if [ "$(fm "$f" sha256)" = "$sum" ] || fm_list "$f" parts | grep -q "^$sum "; then die "$name is already registered as $(fm "$f" id)"; fi; done
+  if printf "%s" "$parts" | grep -q "^$sum "; then die "$name is given twice"; fi
+  parts="$parts$sum $name
+"; n=$((n + 1))
+  if [ $n -eq 1 ]; then first=$name; firstsum=$sum; fi
+done < "$list"
+while IFS= read -r src; do
+  name=$(basename "$src"); dest="$d/transcripts/unprocessed/$name"
+  [ -f "$dest" ] && continue
+  mkdir -p "$d/transcripts/unprocessed"; cp "$src" "$dest"; [ "$(sha256 "$dest")" = "$(sha256 "$src")" ] || die "copy of $name failed its SHA-256 check"
+done < "$list"
 tid=$(next_id "$eng" T)
-vals; set_val ID "$tid"; set_val FILE "$name"; set_val SHA256 "$sum"; set_val SUBJECT "$subject"; set_val INGESTER_VERSION "$(ingester_version)"; set_val RULES_VERSION "$(rules_version)"; set_val DATE "$(today)"
+vals; set_val ID "$tid"; set_val FILE "$first"; set_val SHA256 "$firstsum"; set_val SUBJECT "$subject"; set_val INGESTER_VERSION "$(ingester_version)"; set_val RULES_VERSION "$(rules_version)"; set_val DATE "$(today)"
+if [ $n -gt 1 ]; then printf "parts:\n" > "$VALDIR/PARTS"; printf "%s" "$parts" | sed "s/^/  - /" >> "$VALDIR/PARTS"; fi
 render "$INGESTER_DIR/templates/items/T.md" "$(item_path "$eng" "$tid")"; vals_done
-eng_log "$eng" "$tid registered from $name${subject:+ (subject: $subject)}."
+if [ $n -gt 1 ]; then from="$n parts: $(printf '%s' "$parts" | sed 's/^[^ ]* //' | awk '{ printf "%s%s", (NR > 1 ? ", " : ""), $0 }')"; else from=$first; fi
+eng_log "$eng" "$tid registered from $from${subject:+ (subject: $subject)}."
 printf '%s\n' "$tid"

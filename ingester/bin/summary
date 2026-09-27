@@ -16,7 +16,7 @@ s3log=$(ls "$d/logs" 2>/dev/null | grep -- "-$tid-S3.md$" | tail -1)
 [ -n "$s3log" ] || die "$tid has no S3 run log; the summary is written after S3"
 iso() { printf '%s' "$1" | sed 's/^\([0-9]\{4\}\)\([0-9]\{2\}\)\([0-9]\{2\}\)T\([0-9]\{2\}\)\([0-9]\{2\}\)\([0-9]\{2\}\)Z$/\1-\2-\3T\4:\5:\6/'; }
 thou() { awk -v n="$1" 'BEGIN { s = sprintf("%d", n); o = ""; while (length(s) > 3) { o = "," substr(s, length(s) - 2) o; s = substr(s, 1, length(s) - 3) }; print s o }'; }
-file=$(transcript_field "$eng" "$tid" file)
+file=$(transcript_field "$eng" "$tid" file); files=$(transcript_parts "$eng" "$tid" | sed 's/^[^ ]* //' | awk '{ printf "%s%s", (NR > 1 ? ", " : ""), $0 }')
 
 # Session files: under the project folders Claude Code keeps for this repository and anything below it,
 # and only those that ran a stage command for this transcript.
@@ -259,7 +259,7 @@ caveats="- Every figure in the time and token sections covers all the work in th
 mkdir -p "$d/evaluation"; out="$d/evaluation/$tid-summary.md"
 ver=0.1; [ -f "$out" ] && ver=$(doc_version "$out" | awk -F. '{ printf "%d.%d", $1, $2 + 1 }')
 vals
-set_val TID "$tid"; set_val ENG "$eng"; set_val DATE "$(today)"; set_val FILE "$file"
+set_val TID "$tid"; set_val ENG "$eng"; set_val DATE "$(today)"; set_val FILE "$files"
 set_val SESSION_DATE "$(header_field "$sheet" 'Session date')"; set_val MODEL "$models"
 set_val INGESTER_VERSION "$iv"; set_val RULES_VERSION "$rv"; set_val SESSIONS "$sessions"
 set_val WINDOW "$(u first | cut -c1-19 | sed 's/T/ /') to $(u last | cut -c1-19 | sed 's/T/ /') UTC"; set_val PREVIOUS "$previous"

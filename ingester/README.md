@@ -1,10 +1,10 @@
 # The ingester
 
-Version 0.14, 23 September 2026.
+Version 0.15, 28 September 2026.
 
 ## Purpose
 
-The ingester turns a discovery transcript (WebVTT from Teams or Webex) into rows in the six solution registers, claims in a current-state record, entries in a topic ledger and rows in a stakeholder register, with a human signing two review files before anything is written. All judgement is done by Claude Code running the `ingest-transcript` skill. Shell scripts do only deterministic work: flattening the VTT, checking citations, running integrity rules, writing approved items, bumping versions and scoring a run against a reference.
+The ingester turns a discovery transcript (WebVTT from Teams or Webex, or the Webex text export) into rows in the six solution registers, claims in a current-state record, entries in a topic ledger and rows in a stakeholder register, with a human signing two review files before anything is written. All judgement is done by Claude Code running the `ingest-transcript` skill. Shell scripts do only deterministic work: flattening the VTT, checking citations, running integrity rules, writing approved items, bumping versions and scoring a run against a reference.
 
 ## Layout
 
@@ -36,9 +36,10 @@ First invocation for a transcript:
 
 ```
 /ingest-transcript <path-to-vtt> ["meeting subject"]
+/ingest-transcript <part-1> <part-2> ... ["meeting subject"]      one meeting recorded in parts
 ```
 
-The file is copied unchanged into `engagements/<engagement>/transcripts/unprocessed/`, its name and SHA-256 recorded in `transcripts.md` against a new id, and S0 runs. Later invocations name the id:
+The file is copied unchanged into `engagements/<engagement>/transcripts/unprocessed/`, its name and SHA-256 recorded in `transcripts.md` against a new id, and S0 runs. A meeting recorded in parts (the recording stopped and started again) is one transcript: give the parts in recording order and each is copied and listed under `parts:` with its own SHA-256. Later invocations name the id:
 
 ```
 /ingest-transcript T001
@@ -64,7 +65,7 @@ The skill finds the next unsigned gate and acts on it, or says which file is wai
 
 These are the shapes every script and the skill agree on. `IMPLEMENTATION-PLAN.md` section "Formats fixed by this plan" is the authority; this is the short form.
 
-- **F1 Utterance table.** TSV, header `utterance fragment start end speaker text`, one row per cue, whitespace collapsed, sorted by utterance then fragment numerically.
+- **F1 Utterance table.** TSV, header `utterance fragment start end speaker text`, one row per cue, whitespace collapsed, sorted by utterance then fragment numerically. Times are `hh:mm:ss.mmm`. From the Webex text export (`m:ss : Speaker : text`, one line per utterance) each line is one utterance with fragment 1, and it ends where the next line starts. For a transcript in parts, each later part continues the utterance numbers and runs its clock on from the last end of the part before, so a recording gap takes no time; the session sheet names each part's utterance range and each gap.
 - **F2 Citation.** `<label> | Tnnn/<utt>:<frag>[-<frag>][, ...] | <speaker> | <hh:mm:ss> | "<quote>"`. Labels: asked, answered, proposed, restated, accepted, challenged, deferred, hedged, aside. Timestamp is the start of the first cited fragment cut to seconds. Quote is verbatim; `...` skips words inside the range. In a table cell `|` is written `\|` and citations are separated by `; `.
 
   The label is not the speech act name the exchanges file uses. `ask`/`asked`, `assert`/**`answered`**, `propose`/`proposed`, `restate`/`restated`, `accept`/`accepted`, `challenge`/`challenged`, `defer`/`deferred`, `hedge`/`hedged`, `aside`/`aside`. `assert` becoming `answered` is the one that catches people. Build the quote with `bin/quote` rather than retyping it: it parses the range the way `check-citations` does, so the quote cannot run past the range it cites.
@@ -90,15 +91,15 @@ All in `bin/`, POSIX sh with awk, sed, grep, shasum and date. `ENGAGEMENTS_ROOT`
 | Script | Usage | What it does |
 |---|---|---|
 | `new-engagement` | `new-engagement <name>` | Creates an engagement folder from the templates. |
-| `register-transcript` | `register-transcript <engagement> <vtt> ["subject"]` | Copies the file into `unprocessed/` unless already there, writes `transcripts/Tnnn.md` with name and SHA-256, prints the id. |
-| `s0-prepare` | `s0-prepare <engagement> <Tnnn>` | Verifies the SHA, writes the utterance table and the session sheet with speakers matched against the stakeholder register. |
+| `register-transcript` | `register-transcript <engagement> <file> ["subject"]` or `register-transcript <engagement> <file> [<file> ...] [--subject "subject"]` | Copies each file into `unprocessed/` unless already there, writes `transcripts/Tnnn.md` with name and SHA-256 (several files: the first as `file`, all under `parts:` in recording order), prints the id. Refuses a file already registered, alone or as a part. |
+| `s0-prepare` | `s0-prepare <engagement> <Tnnn>` | Verifies the SHA of every part, reads each as WebVTT or the Webex text export, writes the utterance table and the session sheet with speakers matched against the stakeholder register, and for a transcript in parts a Parts list and a Recording gap line per break. |
 | `s1-stakeholders` | `s1-stakeholders <engagement> <Tnnn>` | Runs when the signed session sheet opens the S1 gate. Writes one `stakeholders/STK-nnnn.md` per accepted row, extends `sessions` on attendees, starts the session log. Once per transcript. |
 | `check-citations` | `check-citations <engagement> <Tnnn> <file>` | Checks every F2 citation in a file against the utterance table. Exit 1 on any failure. |
 | `check-integrity` | `check-integrity <engagement> [--proposed <dossier or processes file>]` | Runs the model's integrity rules over the item files, optionally merged with the accepted items of a dossier or a processes file: new items as new rows, mutations overlaid on the rows they target. Refuses a mutation of a missing id, a reopened open item or a changed Accepted decision. I21 to I24 check process flows: `follows` and `hands-to` resolve, fact kinds, an Outcome on every Current process, and a `replaced-by` on everything Withdrawn. |
 | `dossier2tsv` | `dossier2tsv [-e] <file>` | Flattens F4 item blocks to one TSV row per item, or with `-e` one row per episode. Reads a processes file (F13) the same way, with the section's Flow verdict as the last column. |
 | `dossier2episodes` | `dossier2episodes <dossier> [<out>]` | Writes `Tnnn.episodes.md` from the dossier's episode headings and item numbers, so the two cannot disagree. Preserves a `- Confirmed by:` line. |
 | `quote` | `quote <engagement> <Tnnn> <utt>:<lo>[-<hi>][, ...]` | Prints `speaker \| timestamp \| text` for a citation range, to copy the quote from rather than retype it. Refuses a range spanning two speakers (R10). |
-| `s3-write` | `s3-write <engagement> <Tnnn> [--processes]` | Checks every gate, writes one file per accepted new item, applies each mutation to its existing file with a History line, appends claims, extends topics, completes the transcript file, writes the session log, renders the index, moves the VTT to `processed/`. Restores everything on failure. |
+| `s3-write` | `s3-write <engagement> <Tnnn> [--processes]` | Checks every gate, writes one file per accepted new item, applies each mutation to its existing file with a History line, appends claims, extends topics, completes the transcript file, writes the session log, renders the index, moves every part of the transcript to `processed/` (moved back if the write fails). Restores everything on failure. |
 | `s4-write` | `s4-write <engagement> <Tnnn>` | Stage S4's write, after S3: checks the processes file's gates (F13), writes new processes, steps and facts, applies claim and process mutations with history, writes open items, resolves item numbers in the walkthrough agenda, renders the index. The same code as `s3-write --processes`. Restores everything on failure. |
 | `render-index` | `render-index <engagement>` | Regenerates the tables under `index/`, including `outstanding.md`, `changes.md`, `processes.md` in flow order and `walkthrough-agenda.md`. |
 | `score` | `score <engagement> <Tnnn> <reference> [<dossier>]` | Writes `evaluation/Tnnn-run-nn.md` with the counts from design Q4. |

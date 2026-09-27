@@ -1,11 +1,11 @@
 ---
 name: ingest-transcript
-description: Ingest a discovery transcript (WebVTT) through stages S0 to S4, stopping at each signed gate. Usage /ingest-transcript <vtt-file|Tnnn> ["meeting subject"], run from inside an engagement folder (engagements/<name>/), which is how the engagement is known.
+description: Ingest a discovery transcript (WebVTT or the Webex text export, in one file or several parts) through stages S0 to S4, stopping at each signed gate. Usage /ingest-transcript <file ...|Tnnn> ["meeting subject"], run from inside an engagement folder (engagements/<name>/), which is how the engagement is known.
 ---
 
 # ingest-transcript
 
-Version 0.10.1 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `$ROOT/ingester/bin/` do every deterministic step; you do the reading.
+Version 0.11.0 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `$ROOT/ingester/bin/` do every deterministic step; you do the reading.
 
 **The runbooks under `ingester/runbooks/` are the source of truth for what each stage reads, produces, checks and reports.** This file says only how you, in a Claude Code session, operate them: where you run, what you never do, how you show progress, how you find the current stage, and how you take verdicts in the terminal. When this file and a runbook disagree, the runbook wins and this file is wrong.
 
@@ -22,9 +22,10 @@ The root is two levels above the engagement folder, never `git rev-parse --show-
 
 ## Arguments
 
-`$ARGUMENTS` is `<first> ["meeting subject"]`.
+`$ARGUMENTS` is `<first> [<more parts>] ["meeting subject"]`.
 
-- `<first>` is either a path to a `.vtt` file (first invocation for a transcript) or a transcript id `Tnnn` (every later invocation).
+- `<first>` is either a path to a transcript file, `.vtt` or the Webex `.txt` export (first invocation for a transcript), or a transcript id `Tnnn` (every later invocation).
+- A meeting recorded in parts is one transcript: every part is given, in recording order. When the reviewer names the parts in words ("both unprocessed files, part 1 and 2"), resolve them to paths, state the order you read from the file names, and confirm it before registering. What they say about a gap goes under Notes on the session sheet on their word (runbook S0).
 - The optional meeting subject is a quoted phrase, for example "entity upgrade for multi-gig orders" or the title of the calendar invitation. It is recorded on the transcript file and the session sheet and read as a prior at S1 (runbook S1). It is never a filter (design 5.3).
 
 ## Rules you never break
@@ -55,6 +56,7 @@ First, when `<first>` is a file path, run:
 
 ```
 $ROOT/ingester/bin/register-transcript <engagement> <path> ["meeting subject"]
+$ROOT/ingester/bin/register-transcript <engagement> <part-1> <part-2> ... [--subject "meeting subject"]
 ```
 
 It prints the new `TID`. Then, and on every invocation, run:
