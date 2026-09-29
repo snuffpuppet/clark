@@ -102,6 +102,10 @@ vtt_path() { vp=$(transcript_paths "$1" "$2") || exit 1; printf '%s\n' "$vp" | h
 # stk_lookup engagement "name": prints the STK id whose name or variant matches, case-insensitive.
 stk_lookup() { lc=$(printf '%s' "$2" | tr 'A-Z' 'a-z'); for f in "$(eng_dir "$1")"/stakeholders/STK-*.md; do [ -f "$f" ] || continue
   n=$(fm "$f" name | tr 'A-Z' 'a-z'); if [ "$n" = "$lc" ] || fm_list "$f" variants | tr 'A-Z' 'a-z' | grep -qx "$lc"; then fm "$f" id; return 0; fi; done; return 1; }
+# segment_ok "value": true when a stakeholder Segment is blank or a ", "-separated set of Residential, BE&G and
+# Wholesale, each once and in that order, so the same span always reads the same in the index.
+segment_ok() { printf '%s\n' "$1" | awk '$0 == "" { exit 0 } { r["Residential"] = 1; r["BE&G"] = 2; r["Wholesale"] = 3
+  n = split($0, p, /, /); last = 0; for (i = 1; i <= n; i++) { if (!(p[i] in r) || r[p[i]] <= last) exit 1; last = r[p[i]] } exit 0 }'; }
 
 # ---- Gates (F5) ----
 header_field() { grep -m1 "^- $2:" "$1" | sed "s/^- $2: *//"; }
@@ -155,7 +159,7 @@ body_set() { printf '%s\n' "$3" > "$1.sec"
     function emit() { print "## " h; print ""; while ((getline l < sec) > 0) print l; close(sec); print ""; done = 1 }
     /^## / { if (on) on = 0; if ($0 == "## " h) { emit(); on = 1; next } }
     on { next } { print }
-    END { if (!done) emit() }' "$1" | awk 'NR == 1 || !(prev == "" && $0 == "") { print } { prev = $0 }' | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' > "$1.tmp" && mv "$1.tmp" "$1"; rm -f "$1.sec"; }
+    END { if (!done) { print ""; emit() } }' "$1" | awk 'NR == 1 || !(prev == "" && $0 == "") { print } { prev = $0 }' | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' > "$1.tmp" && mv "$1.tmp" "$1"; rm -f "$1.sec"; }
 # body_append file "Heading" "line": append a line to the section (created if missing) before the next heading.
 body_append() { cur=$(body_section "$1" "$2"); body_set "$1" "$2" "$(printf '%s\n%s' "$cur" "$3" | awk 'NF || p { p = 1; print }')"; }
 # history_add file "line": one F10 line under "## History", which is always the last section.

@@ -195,6 +195,7 @@ while IFS="$US" read -r item kind grade verdict target episode bulk fields cites
       printf '%s\t%s\n' "$episode" "$id" >> "$RES/topics" ;;
     STK.edit)
       path=$(item_path "$eng" "$target"); [ -f "$path" ] || die "item $item targets $target, which does not exist"
+      segment_ok "$(fld "$fields" Segment)" || die "item $item: segment \"$(fld "$fields" Segment)\" is not blank or a set of Residential, BE&G, Wholesale in that order, separated by \", \""
       for k in Role Segment Department Standing Decides Organisation; do v=$(fld "$fields" "$k"); [ -n "$v" ] && fm_set "$path" "$(kebab "$k")" "$v"; done
       for v in $(fld "$fields" Variants | tr ',' '\n' | sed 's/^ *//; s/ /_/g'); do fm_list_add "$path" variants "$(printf '%s' "$v" | tr '_' ' ')"; done
       fm_set "$path" updated "$TODAY"; [ -n "$cites" ] && printf '%s\n' "$(cite_lines "$cites")" >> "$path"

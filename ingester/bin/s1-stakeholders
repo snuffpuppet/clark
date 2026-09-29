@@ -33,7 +33,7 @@ while IFS= read -r row; do
     printf '%s\n' "$name" >> "$acct/handled"
     printf 's1-stakeholders: %s is already in the register; no file written\n' "$name"; continue
   fi
-  seg=$(cell "$row" 5); case "$seg" in ""|Residential|"BE&G"|Wholesale) ;; *) die "segment \"$seg\" for $name is not Residential, BE&G, Wholesale or blank" ;; esac
+  seg=$(cell "$row" 5); segment_ok "$seg" || die "segment \"$seg\" for $name is not blank or a set of Residential, BE&G, Wholesale in that order, separated by \", \""
   id=$(next_id "$eng" STK)
   vals; set_val ID "$id"; set_val NAME "$name"; set_val ORGANISATION "$(cell "$row" 3)"; set_val ROLE "$role"; set_val SEGMENT "$seg"; set_val DEPARTMENT "$(cell "$row" 6)"
   set_val STANDING "$(cell "$row" 7)"; set_val DECIDES "$(cell "$row" 8)"; set_val TID "$tid"; set_val DATE "$TODAY"; set_val SOURCE "$(cell "$row" 9 | sed 's/^./- &/')"; set_list VARIANTS ""

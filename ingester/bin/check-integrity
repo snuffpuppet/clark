@@ -138,7 +138,11 @@ awk -F'\t' -v today="$(today)" '
     for (i = 1; i <= nse; i++) { t = SE[i]
       if (t == "new") fail("I20", t, SEfrom[i] " is an STK.edit with Target new; a standing edit targets an existing STK id")
       else if (!(t in STK)) fail("I20", t, SEfrom[i] " is an STK.edit targeting " t ", which is not a stakeholder in the register") }
-    for (s in STK) { if (STKseg[s] != "" && STKseg[s] != "Residential" && STKseg[s] != "BE&G" && STKseg[s] != "Wholesale") fail("I19", s, "segment \"" STKseg[s] "\" is not Residential, BE&G, Wholesale or blank") }
+    # Segment is blank or a ", "-separated set of Residential, BE&G, Wholesale, each once and in that order (lib.sh segment_ok).
+    segrank["Residential"] = 1; segrank["BE&G"] = 2; segrank["Wholesale"] = 3
+    for (s in STK) { if (STKseg[s] == "") continue; m = split(STKseg[s], sp, /, /); last = 0; bad = 0
+      for (j = 1; j <= m; j++) { if (!(sp[j] in segrank) || segrank[sp[j]] <= last) { bad = 1; break } last = segrank[sp[j]] }
+      if (bad) fail("I19", s, "segment \"" STKseg[s] "\" is not blank or a set of Residential, BE&G, Wholesale in that order, separated by \", \"") }
     for (e in dupe) fail("I1", e, "element id appears more than once")
     for (i = 1; i <= cnt; i++) { id = order[i]; t = T[id]; st = F[id, "Status"]; term = ((t " " st) in TERM)
       if (seen[id] > 1 || (id in ELEM) || (id in STK)) fail("I1", id, "id appears more than once")
