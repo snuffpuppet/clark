@@ -34,9 +34,10 @@ to=$(iso "${s3log%%-*}"); [ $# -eq 4 ] && to=$4
 if [ $# -eq 4 ]; then from=$3
 else
   from=$(while IFS= read -r f; do awk -v tid="$tid" -v file="$file" '
-      /"type":"user"/ && /ingest-transcript/ && (index($0, tid) || index($0, file)) && !/"type":"tool_result"/ {
+      /"type":"user"/ && /ingest-transcript/ && !/--backfill/ && (index($0, tid) || index($0, file)) && !/"type":"tool_result"/ {
         if (match($0, /"timestamp":"[0-9-]+T[0-9:.]+Z"/)) { print substr($0, RSTART + 13, RLENGTH - 14); exit } }' "$f"; done < "$W/files" | sort | head -1)
-  [ -n "$from" ] || from=$(iso "$(ls "$d/logs" | grep -- "-$tid-S0.md$" | head -1 | sed 's/-.*//')")
+  # A command later than the S3 write belongs to a later stage, not to S0 to S3; fall back to the S0 run log.
+  { [ -n "$from" ] && [ "$(printf '%s' "$from" | cut -c1-19)" \< "$(printf '%s' "$to" | cut -c1-19)" ]; } || from=$(iso "$(ls "$d/logs" | grep -- "-$tid-S0.md$" | head -1 | sed 's/-.*//')")
 fi
 
 # measure <from> <to> <background command> <dir>: the time, token, cost and plan usage figures for one window,
