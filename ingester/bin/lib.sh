@@ -48,7 +48,7 @@ log_run() { d=$(eng_dir "$1"); mkdir -p "$d/logs"; f="$d/logs/$(utcstamp)-$2-$3.
 
 # ---- Items as files (register model 2.18 section 7) ----
 # item_dir TYPE: folder name for a type prefix.
-item_dir() { case $1 in REQ) echo requirements;; DEC) echo decisions;; LIM) echo limitations;; RSK) echo risks;; OI) echo open-items;; PRC) echo processes;; SYS) echo systems;; STK) echo stakeholders;; TOP) echo topics;; T) echo transcripts;; *) return 1;; esac; }
+item_dir() { case $1 in REQ) echo requirements;; DEC) echo decisions;; LIM) echo limitations;; RSK) echo risks;; PPT) echo pain-points;; OI) echo open-items;; PRC) echo processes;; SYS) echo systems;; STK) echo stakeholders;; TOP) echo topics;; T) echo transcripts;; *) return 1;; esac; }
 # item_path engagement ID: path of an item file from its id.
 item_path() { p=${2%%-*}; case $2 in T[0-9]*) p=T;; esac; printf '%s/%s/%s.md\n' "$(eng_dir "$1")" "$(item_dir "$p")" "$2"; }
 # next_id engagement PREFIX: next free id from the filenames in the type folder. Four digits; T is three.

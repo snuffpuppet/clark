@@ -1,11 +1,11 @@
 ---
 name: ingest-transcript
-description: Ingest a discovery transcript (WebVTT or the Webex text export, in one file or several parts) through stages S0 to S4, stopping at each signed gate. Usage /ingest-transcript <file ...|Tnnn> ["meeting subject"], run from inside an engagement folder (engagements/<name>/), which is how the engagement is known.
+description: Ingest a discovery transcript (WebVTT or the Webex text export, in one file or several parts) through stages S0 to S4, stopping at each signed gate, or backfill a register type into a transcript already written. Usage /ingest-transcript <file ...|Tnnn> ["meeting subject"] or /ingest-transcript Tnnn --backfill PPT, run from inside an engagement folder (engagements/<name>/), which is how the engagement is known.
 ---
 
 # ingest-transcript
 
-Version 0.11.0 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `$ROOT/ingester/bin/` do every deterministic step; you do the reading.
+Version 0.12.0 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `$ROOT/ingester/bin/` do every deterministic step; you do the reading.
 
 **The runbooks under `ingester/runbooks/` are the source of truth for what each stage reads, produces, checks and reports.** This file says only how you, in a Claude Code session, operate them: where you run, what you never do, how you show progress, how you find the current stage, and how you take verdicts in the terminal. When this file and a runbook disagree, the runbook wins and this file is wrong.
 
@@ -26,11 +26,12 @@ The root is two levels above the engagement folder, never `git rev-parse --show-
 
 - `<first>` is either a path to a transcript file, `.vtt` or the Webex `.txt` export (first invocation for a transcript), or a transcript id `Tnnn` (every later invocation).
 - A meeting recorded in parts is one transcript: every part is given, in recording order. When the reviewer names the parts in words ("both unprocessed files, part 1 and 2"), resolve them to paths, state the order you read from the file names, and confirm it before registering. What they say about a gap goes under Notes on the session sheet on their word (runbook S0).
+- `Tnnn --backfill <KIND>` backfills one register type into a transcript already written (see Backfill below). The only kind so far is `PPT`.
 - The optional meeting subject is a quoted phrase, for example "entity upgrade for multi-gig orders" or the title of the calendar invitation. It is recorded on the transcript file and the session sheet and read as a prior at S1 (runbook S1). It is never a filter (design 5.3).
 
 ## Rules you never break
 
-- Nothing is written to an item file (requirements/, decisions/, limitations/, risks/, open-items/, processes/, systems/, topics/) except by `$ROOT/ingester/bin/s3-write`, only after both review files are signed with no pending verdicts, and by `$ROOT/ingester/bin/s4-write`, only after the processes file is signed. Stakeholder files are written by `$ROOT/ingester/bin/s1-stakeholders` once the session sheet is signed. Silence is not approval.
+- Nothing is written to an item file (requirements/, decisions/, limitations/, risks/, pain-points/, open-items/, processes/, systems/, topics/) except by `$ROOT/ingester/bin/s3-write`, only after both review files are signed with no pending verdicts, by `$ROOT/ingester/bin/s4-write`, only after the processes file is signed, by `s3-write --backfill`, only after the backfill file is signed, and by `$ROOT/ingester/bin/promote-pain-points`. Stakeholder files are written by `$ROOT/ingester/bin/s1-stakeholders` once the session sheet is signed. Silence is not approval.
 - Never edit a signed file. Never advance past an unsigned gate: say which file is waiting and stop.
 - Never edit, rename or delete a transcript file. A SHA-256 mismatch reported by any script blocks everything; report it and stop.
 - Write nothing under `ingester/`. Every output goes under `ENG/`.
@@ -79,6 +80,16 @@ It prints one word and act only on that word.
 | `needs-s4-write` | Run `stage <engagement> TID S4` **in the background** and wait for its exit line, exactly as for S3. Report the processes written and changed from the session log rows after `- S4 written on:`, and point at `ENG/index/processes.md` and `ENG/sessions/TID/TID.walkthrough-agenda.md`. Then, in the same turn, rerun `stage <engagement> TID summary` (runbook S4, After the write) and carry on with `done`. If it refuses, report its reason verbatim and stop. |
 | `done` | Say the transcript has been written and point at `ENG/sessions/TID/TID.session-log.md`. If `ENG/evaluation/TID-summary.md` does not exist, or has no S4 figures, run `stage <engagement> TID summary` and present it as runbook summary says. If there is no `ENG/evaluation/TID-run-*.md`, score the draft (runbook evaluate): `stage <engagement> TID score sessions/TID/TID.dossier.md sessions/TID/TID.dossier.draft.md`, using `ENG/evaluation/TID-reference.md` as the reference instead when one exists. Present the counts, and a recommended Tag and Rule for each row of the failure-mode table as a ruling; "proceed" writes them into the run report and folds them into `ingester/extraction-rules.md` as runbook evaluate says. Stop. |
 | `blocked: <reason>` | Report the reason verbatim. Stop. |
+
+## Backfill
+
+When the arguments are `Tnnn --backfill <KIND>`, do not act on `stage status`. Follow runbook backfill instead:
+
+1. If `ENG/pain-points/` holds no file that says `Promoted from` in its Notes and `ENG/processes/` holds any fact of Kind Pain point, pass 1 has not run. Say so in one line, give the command (`$ROOT/ingester/bin/promote-pain-points <engagement>`), and run it **in the background** once the reviewer says proceed: it writes item files. Then carry on.
+2. Run `$ROOT/ingester/bin/stage <engagement> TID backfill <KIND>`. If it refuses, report its reason verbatim and stop. If it says there is no backfill file yet, follow runbook backfill, Procedure, steps 1 to 6, with one task per step in the task list, and stop at the ruling as it says.
+3. When the file is signed, run the same command **in the background**, as for S3, report the session log rows under `- Backfill <KIND> written on:`, then rerun `stage <engagement> TID summary` and present the PPT backfill figures (runbook backfill, After the write).
+
+Name the next transcript to backfill in the final message, because the runbook backfills them in order.
 
 ## Review happens in the terminal
 

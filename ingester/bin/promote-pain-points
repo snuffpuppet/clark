@@ -1,0 +1,37 @@
+#!/bin/sh
+# promote-pain-points <engagement>
+# One-off, for an engagement ingested before ingester 0.12.0 (runbook backfill, pass 1). Writes one
+# pain-points/PPT-nnnn.md per process fact of Kind Pain point that no pain point links to yet: title from the
+# claim, status Raised, raised by the claim's asserter on its session date, Source from its evidence, and a
+# felt in link to the claim. The claim is left as it is. Current claims only; a second run writes nothing.
+set -e
+. "$(dirname "$0")/lib.sh"
+[ $# -eq 1 ] || die "usage: promote-pain-points <engagement>"
+eng=$1; d=$(eng_dir "$eng"); [ -f "$d/engagement.md" ] || die "no engagement at $d"; TODAY=$(today)
+mkdir -p "$d/pain-points"; [ -f "$d/pain-points/.gitkeep" ] || touch "$d/pain-points/.gitkeep"
+linked=$(for f in "$d"/pain-points/PPT-*.md; do [ -f "$f" ] && fm_list "$f" links; done | sed -n 's/^felt in //p')
+n=$(next_id "$eng" PPT | sed 's/^PPT-//; s/^0*//'); made=0; written=""
+for f in "$d"/processes/PRC-*.md; do [ -f "$f" ] || continue; pid=$(fm "$f" id)
+  for s in $(claim_sections "$f" | grep '^n'); do
+    [ "$(claim_field "$f" "$s" kind)" = "Pain point" ] || continue
+    case $(claim_field "$f" "$s" status) in Current|"Current, not needed") ;; *) continue ;; esac
+    cid="$pid.$s"; printf '%s\n' "$linked" | grep -qxF "$cid" && continue
+    id=$(printf 'PPT-%04d' "$n"); n=$((n + 1)); made=$((made + 1)); written="$written $id"
+    title=$(awk -v s="$s" '$1 == "##" && $2 == s { $1 = ""; $2 = ""; sub(/^ +/, ""); print; exit }' "$f")
+    session=$(claim_field "$f" "$s" session)
+    evidence=$(awk -v s="$s" '/^## / { on = ($2 == s) } on && $0 == "- evidence:" { inl = 1; next } on && inl && /^  - / { sub(/^  - /, "- "); print; next } { inl = 0 }' "$f")
+    vals; set_val ID "$id"; set_val TITLE "$title"; set_val STATUS Raised
+    set_val RAISED_ON "${session#*, }"; set_val RAISED_BY "$(claim_field "$f" "$s" asserted-by)"
+    set_list LINKS "felt in $cid"; set_val TID "${session%%,*}"; set_val EPISODE "$(claim_field "$f" "$s" episode)"; set_val DATE "$TODAY"
+    set_val SOURCE "$evidence"
+    set_val NOTES "Promoted from $cid ($(fm "$f" title)) by promote-pain-points, ingester $(ingester_version). Severity, Affects and Impact are for the backfill or a reviewer to set."
+    render "$INGESTER_DIR/templates/items/PPT.md" "$d/pain-points/$id.md"; vals_done
+    history_add "$d/pain-points/$id.md" "$TODAY | promote-pain-points | Created from $cid | "
+  done
+done
+"$INGESTER_DIR/bin/render-index" "$eng" > /dev/null
+if [ "$made" -gt 0 ]; then
+  log_run "$eng" ALL promote-pain-points "promoted $made" "processes/" "pain-points/ index" > /dev/null
+  eng_log "$eng" "promote-pain-points: $made pain point(s) promoted from process facts:$written."
+fi
+printf 'promote-pain-points: %s pain point(s) written\n' "$made"

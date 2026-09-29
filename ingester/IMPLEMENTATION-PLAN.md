@@ -1,6 +1,6 @@
 # Ingester implementation plan
 
-Version 0.7, 23 September 2026.
+Version 0.8, 29 September 2026.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: use superpowers:executing-plans to implement this plan step by step. Steps use checkbox (`- [ ]`) syntax for tracking. Commit after every numbered step. Nothing is pushed.
 
@@ -553,3 +553,16 @@ Added 23 September 2026 at Adam Moyes's direction, after the audit of all 17 tec
 - **Index.** `render-index` writes the Processes table in flow order (a walk of `follows` from the steps that follow nothing, variants shown with their `when`), process facts after the steps, and `index/walkthrough-agenda.md`.
 - **Stage.** `stage` status after S3 is `needs-s4` until `Tnnn.processes.md` exists, then `awaiting-processes`, then `done` once the session log has `- S4 written on:`. `stage <eng> <Tnnn> S4` runs `s4-write`.
 - **Score.** `score --flow <reference>` compares a processes file with a flow reference in the same shape: step recall by overlapping citations, order agreement over pairs of matched steps, compound steps (a draft step matching two or more reference steps) and misfiled steps (matched to a reference step in a different process).
+
+## Addendum D: pain points and backfill (ingester 0.12.0)
+
+Added 29 September 2026 at George Beatty's direction. Register model 2.22 (PPT, I25, I26), rules 1.8 (R26), design 1.10, runbook backfill.
+
+- **Formats.** F3 gains the body heading Disposition. F4 and F13 gain the kind PPT. F15 is the backfill file, `sessions/Tnnn/Tnnn.backfill-<KIND>.md`, a dossier in shape and gate. The PPT item file is `templates/items/PPT.md`: frontmatter id, title, status, raised-on, raised-by, severity, affects, links, created, updated; body Impact, Disposition, Source, Notes, History.
+- **Layout.** `item_dir PPT` is `pain-points`; `new-engagement` creates it; `s3-write` snapshots it.
+- **Writing.** `s3-write` writes PPT on the REQ, DEC, LIM, RSK and OI path, new or mutation, and treats Disposition as a body section. `s3-write --backfill <KIND>` reads the backfill file, requires `- S4 written on:` and no `- Backfill <KIND> written on:` in the session log, refuses any accepted item that is not that kind, a Question or a link-only mutation, and writes `- Backfill <KIND> completed by:` and `- Backfill <KIND> written on: <date>, ingester <v>, rules <v>` under the S4 line.
+- **Integrity.** PPT joins the type loop, states and terminal states. I25 and I26 as the model says. I3 requires Raised by on a PPT. I6 also checks a link to a bare PRC or SYS id; I18 covers `.nN` claim links as well as `.sN` and `.fN`. `--proposed` takes a backfill file and, as for a processes file, does not add the sheet's new stakeholders again.
+- **Index.** `index/pain-points.md`; `outstanding.md` section 7 lists pain points Raised or Confirmed, severity H first, with their `felt in` targets and the REQ and DEC ids that address them; `changes.md` reads PPT History.
+- **Promotion.** `bin/promote-pain-points <engagement>` writes a PPT per Current Pain point fact not yet named in any PPT's `felt in`. Deterministic, so there is no review file; the backfill that follows proposes the judgement calls.
+- **Stage.** `stage <eng> <Tnnn> backfill <KIND> [check]`: refuses unless status is `done` and the backfill is not written; with no file, says the reading is the skill's; `check` runs citations and integrity on the file; otherwise gates the file and runs `s3-write --backfill`.
+- **Summary.** A PPT backfill is measured on its own window, from the first `/ingest-transcript Tnnn --backfill` command to the backfill run log, and reported under PPT backfill with `ppt_` metrics.

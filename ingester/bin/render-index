@@ -21,6 +21,7 @@ KEYS="id title status moscow phase raised-on owner implemented-by vendor-ref lin
 KEYS="id title status raised-by consulted approved-by decided-on implemented-by links updated"; render_type DEC Decisions ID Title Status "Raised by" Consulted "Approved by" "Decided on" "Implemented by" Links Updated
 KEYS="id title status identified-on chosen-option disposition-record implemented-by vendor-ref links updated"; render_type LIM Limitations ID Title Status "Identified on" "Chosen option" "Disposition record" "Implemented by" "Vendor ref" Links Updated
 KEYS="id title status identified-on raised-by likelihood impact links due updated"; render_type RSK Risks ID Title Status "Identified on" "Raised by" Likelihood Impact Links Due Updated
+KEYS="id title status raised-on raised-by severity affects links updated"; render_type PPT "Pain points" ID Title Status "Raised on" "Raised by" Severity Affects Links Updated
 KEYS="id title status owner raised-on blocked-by links resolution due closed-on updated"; render_type OI "Open items" ID Title Status Owner "Raised on" "Blocked by" Links Resolution Due "Closed on" Updated
 KEYS="id name organisation role segment department standing decides status sessions updated"
 { header Stakeholders; row ID Name Organisation Role Segment Department Standing Decides Status Sessions Updated; sep 1 2 3 4 5 6 7 8 9 10 11
@@ -97,11 +98,17 @@ flow_rows() { awk '
     for s in $(claim_sections "$f"); do c=$(claim_field "$f" "$s" confidence); case $c in Hedged|Contested) ;; *) continue;; esac
       desc=$(awk -v s="$s" '$1 == "##" && $2 == s { $1=""; $2=""; sub(/^ +/, ""); print; exit }' "$f")
       row "$id.$s" "$el" "$desc" "$(claim_field "$f" "$s" kind)" "$(claim_field "$f" "$s" status)" "$c" "$(claim_field "$f" "$s" asserted-by)" "$(claim_field "$f" "$s" episode)"; done; done
-  printf '\nSections 4 and 5 list every Proposed decision and Draft requirement; the model flags those older than 14 days, which `check-integrity` reports as I15 warnings. Section 6 is the set R17 reads to build the next session'"'"'s outstanding claims; a Hedged or Contested claim is complete work, cleared by a later session or a reviewer answer, not by a verdict at S2.\n'; } > "$d/index/outstanding.md"
+  printf '\n## 7. Pain points Raised or Confirmed, severity H first\n\n'; row ID Title Status Severity Affects "Felt in" "Addressed by"; sep 1 2 3 4 5 6 7
+  for f in "$d"/requirements/REQ-*.md "$d"/decisions/DEC-*.md; do [ -f "$f" ] || continue; fm_list "$f" links | grep -o 'addresses PPT-[0-9]*' | sed "s/addresses //; s/\$/ $(fm "$f" id)/"; done > "$d/index/.addr"
+  for f in "$d"/pain-points/PPT-*.md; do [ -f "$f" ] || continue; st=$(fm "$f" status); case $st in Raised|Confirmed) ;; *) continue;; esac; id=$(fm "$f" id)
+    sv=$(fm "$f" severity); case $sv in H) k=1;; M) k=2;; L) k=3;; *) k=4;; esac
+    printf '%s\t' "$k"; row "$id" "$(fm "$f" title)" "$st" "$sv" "$(fm "$f" affects)" "$(fm_list "$f" links | grep '^felt in ' | sed 's/^felt in //' | paste -sd';' - | sed 's/;/; /g')" "$(awk -v p="$id" '$1 == p { print $2 }' "$d/index/.addr" | paste -sd, - | sed 's/,/, /g')"; done | sort -t "$TAB" -k1,1 -s | cut -f2-
+  rm -f "$d/index/.addr"
+  printf '\nSections 4 and 5 list every Proposed decision and Draft requirement; the model flags those older than 14 days, which `check-integrity` reports as I15 warnings. Section 6 is the set R17 reads to build the next session'"'"'s outstanding claims; a Hedged or Contested claim is complete work, cleared by a later session or a reviewer answer, not by a verdict at S2. Section 7 lists every pain point not yet Addressed or Not pursued, with the requirements and decisions that address it so far.\n'; } > "$d/index/outstanding.md"
 # Changes (F10): every History line on a register item and every history entry on a claim, oldest first.
 { header Changes; printf 'One row per change to an existing item or claim, from the History section of each item file and the history list of each claim. A new item has no row here; see the session logs.\n\n'
   row Id Date Source Change Evidence; sep 1 2 3 4 5
-  for f in "$d"/requirements/REQ-*.md "$d"/decisions/DEC-*.md "$d"/limitations/LIM-*.md "$d"/risks/RSK-*.md "$d"/open-items/OI-*.md; do [ -f "$f" ] || continue
+  for f in "$d"/requirements/REQ-*.md "$d"/decisions/DEC-*.md "$d"/limitations/LIM-*.md "$d"/risks/RSK-*.md "$d"/pain-points/PPT-*.md "$d"/open-items/OI-*.md; do [ -f "$f" ] || continue
     body_section "$f" History | grep '^- ' | sed 's/^- //' | while IFS= read -r l; do row "$(fm "$f" id)" "$(printf '%s' "$l" | cut -d'|' -f1 | sed 's/ *$//')" "$(printf '%s' "$l" | cut -d'|' -f2 | sed 's/^ *//; s/ *$//')" "$(printf '%s' "$l" | cut -d'|' -f3 | sed 's/^ *//; s/ *$//')" "$(printf '%s' "$l" | cut -d'|' -f4- | sed 's/^ *//')"; done; done
   for f in "$d"/systems/SYS-*.md "$d"/processes/PRC-*.md; do [ -f "$f" ] || continue; id=$(fm "$f" id)
     for sec in $(claim_sections "$f"); do awk -v s="$sec" '/^## / { on = ($2 == s) } on && $0 == "- history:" { inl = 1; next } on && inl && /^  - / { sub(/^  - /, ""); print; next } { inl = 0 }' "$f" | while IFS= read -r l; do

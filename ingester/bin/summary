@@ -139,6 +139,16 @@ if [ -n "$s4log" ] && [ -f "$slog" ] && grep -q '^- S4 written on:' "$slog"; the
   [ -n "$s4from" ] || s4from=$main_to
   if ( measure "$s4from" "$s4to" "$eng $tid S4" "$W/s4" ) > "$W/s4.err" 2>&1; then s4state=measured; else s4state=failed; fi
 fi
+# A PPT backfill (runbook backfill), measured on its own the same way: from the first /ingest-transcript command
+# for this transcript that names --backfill to the backfill run log, which s3-write --backfill leaves.
+bflog=$(ls "$d/logs" 2>/dev/null | grep -- "-$tid-backfill-PPT.md$" | tail -1 || true); bfstate=none; bffile="$sdir/$tid.backfill-PPT.md"
+if [ -n "$bflog" ] && [ -f "$slog" ] && grep -q '^- Backfill PPT written on:' "$slog"; then
+  bfto=$(iso "${bflog%%-*}")
+  bffrom=$(while IFS= read -r f; do awk -v tid="$tid" '
+      /"type":"user"/ && /ingest-transcript/ && /--backfill/ && index($0, tid) && !/"type":"tool_result"/ {
+        if (match($0, /"timestamp":"[0-9-]+T[0-9:.]+Z"/)) { print substr($0, RSTART + 13, RLENGTH - 14); exit } }' "$f"; done < "$W/files" | sort | head -1)
+  if [ -n "$bffrom" ] && ( measure "$bffrom" "$bfto" "$eng $tid backfill PPT" "$W/bf" ) > "$W/bf.err" 2>&1; then bfstate=measured; else bfstate=failed; [ -n "$bffrom" ] || echo "no --backfill command found in the session files" > "$W/bf.err"; fi
+fi
 M=$W/main; from=$main_from; to=$main_to; usage_text=$(cat "$W/main/usage_text")
 s4v() { grep "^$2=" "$W/s4/$1" 2>/dev/null | sed "s/^$2=//"; }
 if [ "$s4state" = measured ]; then
@@ -168,6 +178,32 @@ if [ "$s4state" = measured ]; then
 - s4_changed_items: $(s4v procs changed)"
 elif [ "$s4state" = failed ]; then s4_text="S4 has been written but could not be measured: $(tail -1 "$W/s4.err")"; s4_metrics=""
 else s4_text="S4 has not been written yet. Rerun \`stage $eng $tid summary\` after the S4 write to add its figures here, measured on their own."; s4_metrics=""; fi
+bfv() { grep "^$2=" "$W/bf/$1" 2>/dev/null | sed "s/^$2=//"; }
+if [ "$bfstate" = measured ]; then
+  awk '/^### Item / { n++; if ($0 ~ /Needs a human/) nhc++; k = $0; sub(/^### Item [0-9]+ \| /, "", k); sub(/ \|.*/, "", k); kind = k }
+    /^- Target:/ { if (kind == "PPT") { if ($3 == "new") nw++; else mu++ } }
+    /^- Verdict:/ { if ($3 == "Edit" || $3 == "Reject") ch++ }
+    END { printf "items=%d\nnh=%d\nchanged=%d\nnew=%d\nmut=%d\n", n, nhc, ch, nw, mu }' "$bffile" 2>/dev/null > "$W/bf/file" || : > "$W/bf/file"
+  bf_text="Measured on its own, from the first \`/ingest-transcript $tid --backfill\` command ($(printf '%s' "$bffrom" | cut -c1-19 | sed 's/T/ /') UTC) to the backfill write ($(printf '%s' "$bfto" | sed 's/T/ /') UTC). These figures are not included in the sections above.
+
+- Elapsed: $(bfv time elapsed) minutes; active: $(bfv time active) minutes; waiting on the reviewer: $(bfv time waiting) minutes
+- Model calls: $(bfv usage calls); output tokens: $(thou "$(bfv usage output)"); cache read: $(thou "$(bfv usage cacher)")
+- Cost at API list price: \$$(bfv usage cost)
+- Plan usage: $(cat "$W/bf/usage_text" | tr '\n' ' ' | sed 's/^- //; s/ - /; /g; s/ *$//')
+- Backfill file: $(bfv file items) items, $(bfv file nh) needing a human; $(bfv file new) new pain points and $(bfv file mut) changes to existing ones; the reviewer changed $(bfv file changed) items"
+  bf_metrics="- ppt_elapsed_minutes: $(bfv time elapsed)
+- ppt_active_minutes: $(bfv time active)
+- ppt_waiting_minutes: $(bfv time waiting)
+- ppt_model_calls: $(bfv usage calls)
+- ppt_output_tokens: $(bfv usage output)
+- ppt_cost_usd: $(bfv usage cost)
+- ppt_items: $(bfv file items)
+- ppt_new: $(bfv file new)
+- ppt_mutations: $(bfv file mut)
+- ppt_needs_human: $(bfv file nh)
+- ppt_changed_items: $(bfv file changed)"
+elif [ "$bfstate" = failed ]; then bf_text="The PPT backfill has been written but could not be measured: $(tail -1 "$W/bf.err")"; bf_metrics=""
+else bf_text="No PPT backfill has been written for this transcript."; bf_metrics=""; fi
 
 # The transcript.
 awk -F'\t' 'NR > 1 { cues++; if (!($1 in U)) { U[$1] = 1; utt++ }; if (!($5 in S)) { S[$5] = 1; spk++ }; e = $4 }
@@ -238,6 +274,7 @@ cat > "$W/metrics" <<EOF
 - session_windows: $(pu windows5)
 - weekly_usage_pct: $(pu usage7)
 $s4_metrics
+$bf_metrics
 EOF
 prevf=$(ls "$d/evaluation" 2>/dev/null | grep '^T[0-9]*-summary\.md$' | sed 's/-summary\.md$//' | awk -v t="$tid" '$0 < t' | sort | tail -1 || true)
 if [ -n "$prevf" ]; then
@@ -293,7 +330,7 @@ set_val ACCURACY "- Needs a human: $(o nh) of $(o items) ($share%)
 - Accepted: $(o accept); edited: $(o edit); rejected: $(o reject); blank: $(o blank)
 - Changed by the reviewer: $changed ($chpct%), of which $(o nhch) were graded Needs a human
 - Confident but changed: $(o cch)"
-set_val USAGE "$usage_text"; set_val S4 "$s4_text"; set_val RUN_REPORT "$runrep"; set_val COMPARISON "$comparison"; set_val CAVEATS "$caveats"; set_val METRICS "$(cat "$W/metrics")"
+set_val USAGE "$usage_text"; set_val S4 "$s4_text"; set_val BACKFILL "$bf_text"; set_val RUN_REPORT "$runrep"; set_val COMPARISON "$comparison"; set_val CAVEATS "$caveats"; set_val METRICS "$(cat "$W/metrics")"
 render "$INGESTER_DIR/templates/ingestion-summary.md" "$out"; vals_done
 sed -i '' "s/^Version 0\.1, /Version $ver, /" "$out"
 "$INGESTER_DIR/bin/summary-table" "$eng" --write > /dev/null

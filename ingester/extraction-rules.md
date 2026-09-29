@@ -1,8 +1,8 @@
 # Extraction rules
 
-Version 1.7, 23 September 2026.
+Version 1.8, 29 September 2026.
 
-These rules are the method. The skill reads them before S1 and applies them to every exchange. Each rule carries the failure modes that map to it (design Q4) and a table of test passages. When a run report tags a failure against a rule, the fix is made here: the statement is edited and the failing passage is added as a test passage under the rule, with the run that found it. A rule change that lowers any kind's Right count on an earlier reference is a regression and is reverted or explained in the change log. Every test passage citation passes `ingester/bin/check-citations` against its own engagement: passages added in 1.0 are from `puppy-gloves` T001, and passages added in 1.4 are from `techm-bss` T001 and T002, and passages added in 1.6 from `techm-bss` T003, and passages added in 1.7 from `techm-bss` T004.
+These rules are the method. The skill reads them before S1 and applies them to every exchange. Each rule carries the failure modes that map to it (design Q4) and a table of test passages. When a run report tags a failure against a rule, the fix is made here: the statement is edited and the failing passage is added as a test passage under the rule, with the run that found it. A rule change that lowers any kind's Right count on an earlier reference is a regression and is reverted or explained in the change log. Every test passage citation passes `ingester/bin/check-citations` against its own engagement: passages added in 1.0 are from `puppy-gloves` T001, and passages added in 1.4 are from `techm-bss` T001 and T002, and passages added in 1.6 from `techm-bss` T003, and passages added in 1.7 from `techm-bss` T004, and passages added in 1.8 from `techm-bss` T004 and T007.
 
 ## Roles and standing
 
@@ -307,7 +307,7 @@ A handoff to another function is a process boundary: where the work passes to a 
 
 ### R22 Statements about a process are facts
 
-A statement about a process that is not an action is a PRC.fact with Kind Rule (a condition, a routing rule, an SLA), Volume, Timing (a duration or a wait) or Pain point, and names in `follows` the step it qualifies when there is one. It is never a step. A pain point that threatens delivery also yields a RSK candidate as today.
+A statement about a process that is not an action is a PRC.fact with Kind Rule (a condition, a routing rule, an SLA), Volume, Timing (a duration or a wait) or Pain point, and names in `follows` the step it qualifies when there is one. It is never a step. A Pain point fact is always paired with a PPT item in the same processes file, new or a mutation of an existing one linking it with `felt in` (R26). A pain point that threatens delivery also yields a RSK candidate as today.
 
 **Failure modes:** statement-as-step
 
@@ -356,6 +356,19 @@ After a flow is assembled, walk it from trigger to outcome. Each of these is a Q
 | T001 | answered \| T001/12268:0-2 \| Ryan Morley \| 01:38:35 \| "if it's through wide sales, they agree to the terms and conditions. We then send them a copy of the CIS, the critical information summary." | Contested, against the passage above. | 1.4 | Audit, PRC-0010 |
 | T002 | answered \| T002/7412:0-3 \| John McCarthy \| 01:00:39 \| "So the leads captured by Aussie Broadband Wholesale will then drop into Symbio's HubSpot instance and enable those leads to be pushed through the funnel by the Symbio sales team." | Contested against T002/8821:0-3 ("farmed out by the head of sales operations to the various partner managers"), with a Question on which route ABB Wholesale leads take. Drafted by 0.9.1 as two Stated steps, PRC-0014.s3 and s4. | 1.4 | Audit, PRC-0014 |
 | T002 | answered \| T002/5682:0-3 \| Jacque Greet \| 00:46:13 \| "well, actually the other thing that we do when a lead comes in, we check to see whether it's already in the system and has an owner. If it has an owner, then we forward that lead on to the same owner." | A correction that inserts a step before the wash spoken first: this step comes first in the flow, and the wash `follows` it. Drafted by 0.9.1 in spoken order. | 1.4 | Audit, PRC-0013 |
+
+### R26 A complaint is a pain point
+
+A statement by someone who does the work that something about today hurts (it is slow, manual, repeated, error-prone, or dreaded) is a PPT, Raised by that person, with `felt in` naming the process, system or claim where it is felt. At S1 it sits beside the SYS.fact or other item the same passage yields, and cites the same range (R11). At S4 it is paired with the PRC.fact of Kind Pain point (R22). The same pain said again, in this session or a later one, is a mutation of the existing PPT, never a new one; when a second person, or the person whose work it is (R24), agrees, the mutation sets Status Confirmed and Impact. A pain described by someone about another team's work is Needs a human: standing unclear. An interviewer's question ("any pain points?") yields nothing on its own, and a consultant's summary of pains ("so the pain points are...") is cited `restated` and borrows the standing of whoever confirms it (R13).
+
+**Failure modes:** pain-point-missed, pain-point-duplicated
+
+**Test passages:**
+
+| Transcript | Citation | Expected | Added in | Note |
+|---|---|---|---|---|
+| T007 | answered \| T007/8154:0-1 \| Kerryn Wilkinson \| 01:10:28 \| "Probably one of the biggest pain points for CMS is the way that payment plans are set up, because..." | PPT, Raised by Kerryn Wilkinson, felt in the CMS system file, Severity H ("biggest"). Written by 0.11.0 as nothing in processes, systems or risks, so promotion cannot find it; the backfill must. | 1.8 | PPT backfill |
+| T004 | answered \| T004/11186:0-2 \| Mitch Mansell \| 01:34:36 \| "The one thing I want to touch on, Jason, was the hardware provisioning because it's a big pain point is at the moment it's just all manual and there's no way to like create shells and all that kind of stuff." | PPT felt in PRC-0018.n9, paired with that PRC.fact of Kind Pain point. Written by 0.11.0 as the fact alone; promotion makes the PPT, and the backfill proposes nothing new for it. | 1.8 | PPT backfill |
 
 ## Grading conditions
 
@@ -413,11 +426,14 @@ The controlled list for run reports. Each maps to one rule.
 | unknown-term-kept | R10 |
 | transcription-noise-unglossed | R10 |
 | req-without-approval-oi | R2 |
+| pain-point-missed | R26 |
+| pain-point-duplicated | R26 |
 
 ## Change log
 
 | Version | Date | Change |
 |---|---|---|
+| 1.8 | 29 September 2026 | Pain points become a register type (PPT, register model 2.22). R26 added: a complaint by someone who does the work is a PPT, raised by them and linked to where it is felt, and the same pain said again is a mutation. R22 now pairs every Pain point fact with a PPT. Tags pain-point-missed and pain-point-duplicated added. Test passages from techm-bss T004 and T007. At George Beatty's direction. |
 | 1.7 | 23 September 2026 | From T004 run 01 (techm-bss): tags transcription-noise-unglossed (R10) and req-without-approval-oi (R2) added. R10 now requires a garbled form of a known term to be glossed in the Gist and never raised as a conflict on the garbled wording; R2 now requires every Draft requirement to link an open item in the same dossier that tracks its agreement, so integrity rule I3 passes before review. Test passages from T004 items 53 and 79, edited at review, and reference item 144, added after review. Tags given by Adam Moyes. |
 | 1.6 | 23 September 2026 | From T003 run 01 (techm-bss): tags non-source-requirement (R2) and unknown-term-kept (R10) added; R10 now keeps an unidentifiable name out of any claim until a Question identifies it; test passages from T003 items 48, 52 and 60, all rejected at review. Tags given by Adam Moyes. |
 | 1.5 | 23 September 2026 | Sources of requirements and decisions by kind of session: an engagement may say who is a source of requirements and decisions (techm-bss: only business stakeholders in business sessions, the Architecture team also for technical, integration and non-functional requirements in architecture sessions), overriding the role table, R2, R12 and R19; non-sources raise open items. Given by Adam Moyes at T003 S2, after the T003 dossier drafted a requirement from an architect and proposed Program owners for decisions. |

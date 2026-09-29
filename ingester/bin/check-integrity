@@ -1,7 +1,7 @@
 #!/bin/sh
 # check-integrity <engagement> [--proposed <dossier>]
 # Runs the integrity rules of solution-register-model.md 2.18 section 9 over the engagement's item files
-# (requirements/, decisions/, limitations/, risks/, open-items/, processes/, systems/, stakeholders/).
+# (requirements/, decisions/, limitations/, risks/, pain-points/, open-items/, processes/, systems/, stakeholders/).
 # With --proposed, the dossier's accepted items and the session sheet's accepted new stakeholders are
 # merged in as virtual rows first, so links to items created in the same session resolve.
 # Prints FAIL and WARN lines, then OK when nothing failed. Exit 1 on FAIL. I10 and I17 are retired; I5 is Phase valid.
@@ -14,7 +14,7 @@ eng=$1; d=$(eng_dir "$eng"); dossier=""; [ "${2:-}" = "--proposed" ] && dossier=
 facts=$(mktemp "${TMPDIR:-/tmp}/ing.XXXXXXXX")
 
 # Stream: TYPE <tab> ID <tab> KEY <tab> VALUE. Frontmatter keys become model field names; body sections too.
-for type in REQ DEC LIM RSK OI; do dir="$d/$(item_dir "$type")"
+for type in REQ DEC LIM RSK PPT OI; do dir="$d/$(item_dir "$type")"
   for f in "$dir"/$type-*.md; do [ -f "$f" ] || continue
     awk -v type="$type" '
       function name(k) { gsub(/-/, " ", k); k = toupper(substr(k, 1, 1)) substr(k, 2); if (k == "Moscow") k = "MoSCoW"; return k }
@@ -69,7 +69,7 @@ if [ -n "$dossier" ]; then
           for (j = 1; j <= 3; j++) { v = kv_get(fields, keys[j]); if (v != "" || target == "new") printf "PEL\t%s\t%s\t%s\n", id, keys[j], v } }
         next }
       if (kind == "STK.edit") { printf "STKEDIT\t%s\tTarget\titem %s\n", target, item; next }
-      if (type != "REQ" && type != "DEC" && type != "LIM" && type != "RSK" && type != "OI") next
+      if (type != "REQ" && type != "DEC" && type != "LIM" && type != "RSK" && type != "PPT" && type != "OI") next
       id = (target == "new") ? type "-item" item : target
       printf "ITEMMAP\titem %s\tid\t%s\n", item, id
       # A new item declares its id; a mutation overlays its changed fields on the row read from disk (F4 Target).
@@ -78,7 +78,7 @@ if [ -n "$dossier" ]; then
       n = split(fields, kv, "\001"); for (i = 1; i <= n; i++) { k = kv[i]; sub(/=.*/, "", k); v = kv[i]; sub(/^[^=]*=/, "", v); if (k != "Gist") printf "%s\t%s\t%s\t%s\n", type, id, k, v }
       if ($9 != "") { c = $9; gsub(/\002/, "; ", c); printf "%s\t%s\t%s\t%s\n", type, id, (type == "OI" ? "Raised by" : "Source"), c } }' >> "$facts"
   # A processes file comes after S3, when the sheet's new stakeholders are already files; adding them again would duplicate them.
-  case $dossier in *.processes.md|*.processes.v[0-9]*.md) sheet="" ;; esac
+  case $dossier in *.processes.md|*.processes.v[0-9]*.md|*.backfill-*.md) sheet="" ;; esac
   if [ -n "$sheet" ] && [ -f "$sheet" ]; then
     awk '/^## New stakeholders/ { on=1 } /^## Notes/ { on=0 } on && /^\| / && !/^\| *Proposed *\|/ && !/^\|[-| ]*$/' "$sheet" | awk -F'|' '{ v=$(NF-1); gsub(/ /, "", v); if (v == "Accept" || v == "Edit") { n=$3; r=$5; s=$6; gsub(/^ +| +$/, "", n); gsub(/^ +| +$/, "", r); gsub(/^ +| +$/, "", s); printf "STK\tSTK-new%d\tName\t%s\nSTK\tSTK-new%d\tVariants\t\nSTK\tSTK-new%d\tRole\t%s\nSTK\tSTK-new%d\tSegment\t%s\n", NR, n, NR, NR, r, NR, s } }' >> "$facts"
   fi
@@ -118,6 +118,8 @@ awk -F'\t' -v today="$(today)" '
     if (type == "PEL") { PELS[id] = 1; PEL[id, key] = val; next }
     if (key == "MUTATES") { MUT[id] = val; if (!(id in T)) { T[id] = type; order[++cnt] = id; seen[id]++; MISSING[id] = 1 } OLD[id] = F[id, "Status"]; next }
     if (!(id in T)) { T[id] = type; order[++cnt] = id; seen[id]++ } else if (T[id] != type || key == "ID") seen[id]++
+    # A mutation adds to Links, as s3-write does; every other field it sets replaces the value on disk.
+    if (key == "Links" && (id in MUT) && F[id, key] != "") { F[id, key] = F[id, key] "; " val; next }
     F[id, key] = val }
   END {
     V["REQ", "Draft"] = V["REQ", "Agreed"] = V["REQ", "Designed"] = V["REQ", "Delivered"] = V["REQ", "Verified"] = V["REQ", "Deferred"] = V["REQ", "Withdrawn"] = 1
@@ -125,8 +127,14 @@ awk -F'\t' -v today="$(today)" '
     V["LIM", "Identified"] = V["LIM", "Under assessment"] = V["LIM", "Accepted"] = V["LIM", "Resolved"] = 1
     V["RSK", "Identified"] = V["RSK", "Mitigating"] = V["RSK", "Realised"] = V["RSK", "Retired"] = 1
     V["OI", "Open"] = V["OI", "In progress"] = V["OI", "Blocked"] = V["OI", "Closed"] = 1
+    V["PPT", "Raised"] = V["PPT", "Confirmed"] = V["PPT", "Addressed"] = V["PPT", "Not pursued"] = 1
     TERM["REQ Verified"] = TERM["REQ Deferred"] = TERM["REQ Withdrawn"] = TERM["DEC Superseded"] = TERM["DEC Rejected"] = 1
-    TERM["LIM Accepted"] = TERM["LIM Resolved"] = TERM["RSK Realised"] = TERM["RSK Retired"] = TERM["OI Closed"] = 1
+    TERM["LIM Accepted"] = TERM["LIM Resolved"] = TERM["RSK Realised"] = TERM["RSK Retired"] = TERM["OI Closed"] = TERM["PPT Addressed"] = TERM["PPT Not pursued"] = 1
+    # A pain point is addressed by a REQ or DEC whose Links say addresses PPT-nnnn, or by its own addressed by link (I26).
+    for (i = 1; i <= cnt; i++) { a = order[i]; if (T[a] != "REQ" && T[a] != "DEC") continue; n = split(F[a, "Links"], lk, /;/)
+      for (j = 1; j <= n; j++) { l = lk[j]; if (l !~ /addresses/) continue
+        while (match(l, /item [0-9]+/)) { r = resolve(substr(l, RSTART + 5, RLENGTH - 5)); l = substr(l, 1, RSTART - 1) r substr(l, RSTART + RLENGTH) }
+        if (match(l, /PPT-[0-9a-z]+/)) ADDR[substr(l, RSTART, RLENGTH)] = a } }
     for (i = 1; i <= nse; i++) { t = SE[i]
       if (t == "new") fail("I20", t, SEfrom[i] " is an STK.edit with Target new; a standing edit targets an existing STK id")
       else if (!(t in STK)) fail("I20", t, SEfrom[i] " is an STK.edit targeting " t ", which is not a stakeholder in the register") }
@@ -143,7 +151,11 @@ awk -F'\t' -v today="$(today)" '
         if (st == "Accepted" && (split(F[id, "Options"], oo, /[0-9]+\. /) < 3 || !has(id, "Chosen option"))) fail("I2", id, "Accepted needs two Options and a Chosen option") }
       if (t == "RSK") { if (!has(id, "Identified on")) fail("I2", id, "no Identified on"); if (st == "Mitigating" && (!has(id, "Trigger") || !has(id, "Mitigation"))) fail("I2", id, "Mitigating needs Trigger and Mitigation") }
       if ((t == "REQ" || t == "OI") && !term && !has(id, "Owner")) fail("I3", id, "no Owner")
-      if ((t == "DEC" || t == "LIM" || t == "RSK") && !has(id, "Raised by")) fail("I3", id, "no Raised by")
+      if (t == "PPT") { if (!has(id, "Raised on")) fail("I25", id, "no Raised on"); if (st != "Raised" && !has(id, "Impact")) fail("I25", id, "no Impact past Raised")
+        if (has(id, "Severity") && F[id, "Severity"] !~ /^(L|M|H)$/) fail("I25", id, "Severity must be L, M or H")
+        if (st == "Addressed" && !(id in ADDR) && F[id, "Links"] !~ /addressed by (REQ|DEC)-[0-9a-z]+/) fail("I26", id, "Addressed needs a REQ or DEC with an addresses link to it")
+        if ((st == "Addressed" || st == "Not pursued") && !has(id, "Disposition")) fail("I26", id, st " needs a Disposition") }
+      if ((t == "DEC" || t == "LIM" || t == "RSK" || t == "PPT") && !has(id, "Raised by")) fail("I3", id, "no Raised by")
       if (((t == "DEC" && st == "Proposed") || (t == "REQ" && st == "Draft") || (t == "LIM" && st == "Under assessment")) && !linked_oi_has_owner(id)) fail("I3", id, t " in " st " needs an open item in Links with an Owner")
       if (t == "OI" && st != "Closed" && !has(id, "Next action")) fail("I4", id, "open item needs Next action")
       if (t == "OI" && st != "Closed" && !has(id, "Due")) warn("I4", id, "open item has no Due")
@@ -152,10 +164,11 @@ awk -F'\t' -v today="$(today)" '
       links = F[id, "Links"]; n = split(links, lk, /;/)
       for (j = 1; j <= n; j++) { l = lk[j]
         while (match(l, /item [0-9]+/)) { r = resolve(substr(l, RSTART + 5, RLENGTH - 5)); l = substr(l, 1, RSTART - 1) r substr(l, RSTART + RLENGTH) }
-        if (match(l, /(SYS|PRC)-[0-9a-z]+\.[fs][0-9]+/) || match(l, /CLAIM-item[0-9]+/)) { c = substr(l, RSTART, RLENGTH)
+        if (match(l, /(SYS|PRC)-[0-9a-z]+\.[fsn][0-9]+/) || match(l, /CLAIM-item[0-9]+/)) { c = substr(l, RSTART, RLENGTH)
           if (!(c in CLAIM)) fail("I18", id, "link target " c " is not in the current-state record")
           else if (l ~ /(replaces|preserves)/ && (CLAIM[c] == "Retired" || CLAIM[c] == "Withdrawn")) fail("I18", id, c " is " CLAIM[c] " and cannot be replaced or preserved") }
-        else if (match(l, /(REQ|DEC|LIM|RSK|OI)-[0-9a-z]+/)) { c = substr(l, RSTART, RLENGTH); if (!(c in T)) fail("I6", id, "link target " c " does not exist") } }
+        else if (match(l, /(REQ|DEC|LIM|RSK|PPT|OI)-[0-9a-z]+/)) { c = substr(l, RSTART, RLENGTH); if (!(c in T)) fail("I6", id, "link target " c " does not exist") }
+        else if (match(l, /(SYS|PRC)-[0-9a-z]+/)) { c = substr(l, RSTART, RLENGTH); if (!(c in ELEM)) fail("I6", id, "link target " c " does not exist") } }
       if (t == "LIM") { dr = F[id, "Disposition record"]
         if (st == "Accepted" && !(dr in T && T[dr] == "DEC" && F[dr, "Status"] == "Accepted")) fail("I7", id, "Accepted needs a Disposition record that is a DEC in Accepted")
         if ((st == "Identified" || st == "Under assessment") && dr != "") fail("I7", id, "has a Disposition record before disposition")
@@ -170,7 +183,7 @@ awk -F'\t' -v today="$(today)" '
       if (t == "OI" && (!has(id, "Raised on") || !has(id, "Raised by"))) fail("I14", id, "open item needs Raised on and Raised by")
       if (t == "DEC" && st == "Proposed" && older14(F[id, "Updated"])) warn("I15", id, "Proposed for more than 14 days")
       if (t == "REQ" && st == "Draft" && older14(F[id, "Raised on"])) warn("I15", id, "Draft for more than 14 days")
-      if (t == "DEC" && links !~ /addresses (REQ-[0-9a-z]+|item [0-9]+)/ && lc(F[id, "Rationale"]) !~ /accept/) warn("I16", id, "no addresses REQ link and no accepts wording in Rationale")
+      if (t == "DEC" && links !~ /addresses (REQ-[0-9a-z]+|PPT-[0-9a-z]+|item [0-9]+)/ && lc(F[id, "Rationale"]) !~ /accept/) warn("I16", id, "no addresses REQ link and no accepts wording in Rationale")
       split("Owner Raised by Approved by", pf, " ")
       for (j = 1; j <= 3; j++) { v = F[id, pf[j]]; if (v == "" || v ~ /T[0-9][0-9][0-9]\// || v ~ /[0-9] [A-Z][a-z]+ [0-9][0-9][0-9][0-9]/) continue
         if (!person_ok(v)) fail("I19", id, pf[j] " \"" v "\" is not a known stakeholder")

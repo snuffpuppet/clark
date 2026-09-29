@@ -1,6 +1,6 @@
 # Dossier: {{TID}}
 
-Version 0.2, {{DATE}}.
+Version 0.3, {{DATE}}.
 
 - Transcript: {{TID}}
 - Session date: {{SESSION_DATE}}
@@ -55,6 +55,22 @@ Read every episode. Each item carries a grade. An item whose Target is an existi
 - Citations:
   - answered | T001/631:0, 632:0 | Martin Vasquez | 00:35:40 | "but the PRIORITY-MARK and the tagged ones. Absolutely not."
 - Gist: Example mutation: Status Open to Closed; Resolution set to the claim written from item 01. Only the fields that change appear. Delete when writing a real dossier.
+
+### Item 03 | PPT | Confident
+- Episode: {{TID}}-E01
+- Target: new
+- Grade: Confident
+- Verdict:
+- Title: Tagged templates have to be handled outside CONFIG-MGMT
+- Status: Raised
+- Raised on: 12 September 2026
+- Raised by: Elena Marchetti
+- Severity:
+- Affects: Service assurance
+- Links: felt in item 01
+- Citations:
+  - accepted | T001/633:0 | Elena Marchetti | 00:35:48 | "We already have this problem."
+- Gist: Example pain point (R26), beside the fact it is felt in. Severity left blank because the passage does not say how much it hurts. Delete when writing a real dossier.
 
 ## Closing
 

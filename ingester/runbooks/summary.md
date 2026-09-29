@@ -1,6 +1,6 @@
 # Runbook: ingestion summary
 
-Version 0.3, 23 September 2026.
+Version 0.4, 29 September 2026.
 
 ## Purpose
 
@@ -43,6 +43,7 @@ Or, as the skill: straight after S3 reports it has written, in the same turn.
 - **Cost** prices every model call by its own model from `ingester/pricing.tsv`: output, cache read, cache write by TTL (the session file records 5-minute and 1-hour writes separately) and uncached input, with fast-mode calls at the fast multiplier. It is the API list-price equivalent; on a subscription plan nothing is charged per token. A model with no row in the price file is named as not priced and left out of the total. When a price changes, edit the row, set its as_of date, and bump `ingester/VERSION`.
 - **Plan usage** is the share of the Claude plan's five-hour session limit and weekly limit used inside the window. Claude Code gives the status line the current figures (`rate_limits.five_hour` and `rate_limits.seven_day`, each with `used_percentage` and `resets_at`), and the status line appends a line to `~/.claude/usage-samples.tsv` (or `CLARK_USAGE_LOG`) whenever they change: time, five-hour used %, five-hour resets at, weekly used %, weekly resets at, session id, tab separated, times in UTC. Every session writes to the same file, so an ingestion spread across several sessions is counted whole; the summary reads only the samples written by the sessions that ran the ingestion, so a session on another account does not count. Within each limit window, keyed by its reset time, the use is the highest sample inside the ingestion window less the last sample before it. A limit window that opened inside the ingestion window starts from zero; one already open with no earlier sample starts from its first sample, and is reported as at least that figure. The limits are per account, so other sessions and claude.ai inside the window are counted too. With no samples in the window the summary says Not recorded.
 - **S4** is measured on its own window, from the first `/ingest-transcript` command for the transcript after S3 to the last S4 run log, which the S4 write leaves. It is kept out of the S0 to S3 figures and reported under S4 processes with `s4_` metrics. Until S4 is written the section says so; rerun `stage <engagement> Tnnn summary` after the S4 write to fill it.
+- **PPT backfill** is measured the same way, from the first `/ingest-transcript Tnnn --backfill` command to the backfill run log that `s3-write --backfill PPT` leaves (runbook backfill). It is reported under PPT backfill with `ppt_` metrics, and kept out of every other figure.
 - **Accuracy** is read from the signed dossier. Changed means Edit or Reject. A blank verdict on a Confident item in a bulk-accepted episode is an Accept. A Confident item the reviewer changed is the design's Confident-but-wrong count.
 
 ## Automatic checks
