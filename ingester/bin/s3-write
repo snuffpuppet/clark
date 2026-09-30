@@ -17,7 +17,7 @@ set -e
 eng=$1; tid=$2; d=$(eng_dir "$eng"); sdir="$d/sessions/$tid"; mode=S3; [ "${3:-}" = --processes ] && mode=S4
 sheet="$sdir/$tid.session.md"; dossier="$sdir/$tid.dossier.md"; log="$sdir/$tid.session-log.md"
 [ "$mode" = S4 ] && dossier="$sdir/$tid.processes.md"
-bk=""; if [ "${3:-}" = --backfill ]; then mode=BF; bk=$4; case $bk in PPT) ;; *) die "backfill of $bk is not supported; kinds: PPT" ;; esac
+bk=""; if [ "${3:-}" = --backfill ]; then mode=BF; bk=$4; case $bk in PPT|INT) ;; *) die "backfill of $bk is not supported; kinds: PPT, INT" ;; esac
   dossier="$sdir/$tid.backfill-$bk.md"; fi
 TODAY=$(today)
 
@@ -45,13 +45,13 @@ US=$(printf '\003'); items=$(mktemp "${TMPDIR:-/tmp}/ing.XXXXXXXX"); review_item
 # A backfill writes one kind: anything else accepted in the file is refused before a byte is written.
 if [ "$mode" = BF ]; then bad=$(awk -F"$US" -v bk="$bk" '
     $2 == bk || $2 == "Question" { next }
-    $2 ~ /^(REQ|DEC|LIM|RSK|OI)$/ && $5 != "new" { n = split($8, kv, "\001"); ok = 1; for (i = 1; i <= n; i++) { k = kv[i]; sub(/=.*/, "", k); if (k != "Links" && k != "Gist" && k != "Title") ok = 0 } if (ok) next }
+    $2 ~ /^(REQ|DEC|LIM|RSK|PPT|INT|OI)$/ && $5 != "new" { n = split($8, kv, "\001"); ok = 1; for (i = 1; i <= n; i++) { k = kv[i]; sub(/=.*/, "", k); if (k != "Links" && k != "Gist" && k != "Title") ok = 0 } if (ok) next }
     { printf "%s ", $1 }' "$items")
-  [ -z "$bad" ] || die "gate: a $bk backfill takes only $bk items, Questions and link-only mutations; refused item(s): $bad"; fi
+  [ -z "$bad" ] || die "gate: the $bk backfill takes only $bk items, Questions and link-only mutations; refused item(s): $bad"; fi
 # Elements before the claims that hang off them, and new claims before mutations: a SYS.fact cannot be written
 # until its SYS file exists, and a mutation's Replaced by may name a claim written in this run.
 awk -F"$US" '{ if ($2 == "SYS" || $2 == "PRC") a[++na] = $0; else if ($2 ~ /\./ && $5 == "new") b[++nb] = $0; else c[++nc] = $0 }
-  END { for (i = 1; i <= na; i++) print a[i]; for (i = 1; i <= nb; i++) print b[i]; for (i = 1; i <= nc; i++) print c[i] }' "$items" > "$items.ord" && mv "$items.ord" "$items"
+  END { for (i = 1; i <= na; i++) print a[i]; for (i = 1; i <= nb; i++) print b[i]; for (i = 1; i <= nc; i++) print c[i] }' "$items" > "$items.ord" && mv "$items.ord" "$items" || die "cannot write $items"
 acc=$(mktemp "${TMPDIR:-/tmp}/ing.XXXXXXXX"); cut -d "$US" -f9 "$items" | tr '\002' '\n' | grep . | sed 's/^/  - /' > "$acc" || true
 r=$("$INGESTER_DIR/bin/check-citations" "$eng" "$tid" "$acc") || die "gate: citation check failed on accepted items: $r"
 r=$("$INGESTER_DIR/bin/check-integrity" "$eng" --proposed "$dossier") || die "gate: integrity failed on the proposed set: $r"
@@ -59,7 +59,7 @@ rm -f "$acc"
 
 # Snapshot the item folders so a failure part-way leaves the engagement as it was.
 snap=$(mktemp -d "${TMPDIR:-/tmp}/ing.XXXXXXXX"); ok=0
-FOLDERS="requirements decisions limitations risks pain-points open-items processes systems stakeholders topics index"
+FOLDERS="requirements decisions limitations risks pain-points integrations open-items processes systems stakeholders topics index"
 for f in $FOLDERS; do [ -d "$d/$f" ] && cp -R "$d/$f" "$snap/$f"; done
 mkdir -p "$snap/transcripts"; cp "$d"/transcripts/T[0-9]*.md "$snap/transcripts/" 2>/dev/null || true
 cp "$d/engagement.md" "$snap/engagement.md"; [ -f "$log" ] && cp "$log" "$snap/session-log"
@@ -77,8 +77,8 @@ dos_appr=$(header_field "$dossier" 'Completed by'); [ -n "$dos_appr" ] || dos_ap
 dos_on=$(header_field "$dossier" 'Completed on'); [ -n "$dos_on" ] || dos_on=$(header_field "$dossier" 'Approved on')
 if [ "$mode" = S3 ]; then "$INGESTER_DIR/bin/s1-stakeholders" "$eng" "$tid" > /dev/null
   sed -i '' "s/^- Dossier completed by: .*/- Dossier completed by: $dos_appr/" "$log"
-elif [ "$mode" = BF ]; then awk -v by="$dos_appr" -v bk="$bk" '!done && /^- S4 written on:/ { print; print "- Backfill " bk " completed by: " by; done=1; next } { print }' "$log" > "$log.tmp" && mv "$log.tmp" "$log"
-else awk -v by="$dos_appr" '!done && /^- S3 written on:/ { print; print "- Processes completed by: " by; done=1; next } { print }' "$log" > "$log.tmp" && mv "$log.tmp" "$log"; fi
+elif [ "$mode" = BF ]; then awk -v by="$dos_appr" -v bk="$bk" '!done && /^- S4 written on:/ { print; print "- Backfill " bk " completed by: " by; done=1; next } { print }' "$log" > "$log.tmp" && mv "$log.tmp" "$log" || die "cannot write $log"
+else awk -v by="$dos_appr" '!done && /^- S3 written on:/ { print; print "- Processes completed by: " by; done=1; next } { print }' "$log" > "$log.tmp" && mv "$log.tmp" "$log" || die "cannot write $log"; fi
 logrow() { printf '| %s | %s | %s | %s | %s |\n' "$1" "$2" "$3" "$4" "$TODAY" >> "$log"; }
 RESTART=$(wc -l < "$log" | tr -d " ")
 
@@ -97,7 +97,7 @@ reserve_id() { p=$1; n=$(next_id "$eng" "$p" | sed "s/^$p-//; s/^0*//"); [ -f "$
 IDMAP=""
 while IFS="$US" read -r item kind grade verdict target episode bulk fields cites flow; do
   type=${kind%%.*}
-  case $kind in REQ|DEC|LIM|RSK|PPT|OI|SYS|PRC|TOP)
+  case $kind in REQ|DEC|LIM|RSK|PPT|INT|OI|SYS|PRC|TOP)
     case $target in new) id=$(reserve_id "$type") ;; "item "*) id=$(resolve_items "$target"); [ "$kind" = TOP ] || die "item $item targets $target; only a TOP item may target an item in the same dossier" ;; *) id=$target ;; esac
     IDMAP="$IDMAP $item=$id" ;; esac
 done < "$items"
@@ -106,25 +106,33 @@ done < "$items"
 while IFS="$US" read -r item kind grade verdict target episode bulk fields cites flow; do
   type=${kind%%.*}; id=""; for pair in $IDMAP; do [ "${pair%%=*}" = "$item" ] && id=${pair#*=}; done
   case $kind in
-    REQ|DEC|LIM|RSK|PPT|OI)
+    REQ|DEC|LIM|RSK|PPT|INT|OI)
       path=$(item_path "$eng" "$id")
       if [ "$target" = new ]; then
         vals; set_val ID "$id"; set_val TID "$tid"; set_val EPISODE "$episode"; set_val DATE "$TODAY"
         printf '%s' "$fields" | tr '\001' '\n' | while IFS= read -r kv; do k=${kv%%=*}; v=$(resolve_items "${kv#*=}"); [ "$k" = Gist ] && k=Notes; [ "$k" = Links ] && continue; set_val "$(upper_snake "$k")" "$v"; done
         set_list LINKS "$(resolve_items "$(fld "$fields" Links)" | tr ';' '\n' | sed 's/^ *//')"
         if [ "$type" = OI ]; then set_val RAISED_BY "$(cite_lines "$cites")"; else set_val SOURCE "$(cite_lines "$cites")"; fi
+        # An engagement made before a type existed has no folder for it (integrations/ before 0.14.0).
+        [ -d "$(dirname "$path")" ] || { mkdir -p "$(dirname "$path")"; touch "$(dirname "$path")/.gitkeep"; }
         render "$INGESTER_DIR/templates/items/$type.md" "$path"; vals_done
         logrow "$id" created "$(item_dir "$type")/$id.md" "$(fld "$fields" Title)"
       else
         # A mutation (F4 Target): every field in the block is set as it should read afterwards, the block's
         # citations join Source (Raised by on an open item), and one F10 History line records each old and new value.
         [ -f "$path" ] || die "item $item targets $id, which does not exist"
-        changes=$(printf '%s' "$fields" | tr '\001' '\n' | while IFS= read -r kv; do k=${kv%%=*}; v=$(resolve_items "${kv#*=}")
+        # The loop reads a here-document rather than a pipe so that it runs in this shell: a failed write inside it
+        # stops the stage and the rollback runs, where a pipe ending in sed would report success.
+        changes=""
+        while IFS= read -r kv; do [ -n "$kv" ] || continue; k=${kv%%=*}; v=$(resolve_items "${kv#*=}")
           case $k in (Gist|Source|"Raised by") continue ;;
-            (Links) for l in $(printf '%s' "$v" | tr ';' '\n' | sed 's/^ *//; s/ /_/g'); do fm_list_add "$path" links "$(printf '%s' "$l" | tr '_' ' ')"; done; printf 'Links: added %s; ' "$v" ;;
-            (Rationale|Impact|Options|Trigger|Mitigation|Disposition|"Next action"|Notes) old=$(body_section "$path" "$k"); [ "$old" = "$v" ] && continue; body_set "$path" "$k" "$v"; printf '%s: %s to %s; ' "$k" "${old:-blank}" "$v" ;;
-            (*) old=$(fm "$path" "$(kebab "$k")"); [ "$old" = "$v" ] && continue; fm_set "$path" "$(kebab "$k")" "$v"; printf '%s: %s to %s; ' "$k" "${old:-blank}" "$v" ;;
-          esac; done | sed 's/; $//')
+            (Links) for l in $(printf '%s' "$v" | tr ';' '\n' | sed 's/^ *//; s/ /_/g'); do fm_list_add "$path" links "$(printf '%s' "$l" | tr '_' ' ')"; done; changes="${changes}Links: added $v; " ;;
+            (Rationale|Impact|Options|Trigger|Mitigation|Disposition|"Next action"|Notes) old=$(body_section "$path" "$k"); [ "$old" = "$v" ] && continue; body_set "$path" "$k" "$v"; changes="$changes$k: ${old:-blank} to $v; " ;;
+            (*) old=$(fm "$path" "$(kebab "$k")"); [ "$old" = "$v" ] && continue; fm_set "$path" "$(kebab "$k")" "$v"; changes="$changes$k: ${old:-blank} to $v; " ;;
+          esac; done <<FIELDS
+$(printf '%s' "$fields" | tr '\001' '\n')
+FIELDS
+        changes=${changes%; }
         sec=Source; [ "$type" = OI ] && sec="Raised by"
         printf '%s' "$cites" | tr '\002' '\n' | grep . | while IFS= read -r c; do body_append "$path" "$sec" "- $c"; done
         fm_set "$path" updated "$TODAY"
@@ -143,8 +151,12 @@ while IFS="$US" read -r item kind grade verdict target episode bulk fields cites
       elif [ "$type" = PRC ] && [ "$mode" = S4 ]; then
         # A process mutation (runbook S4 step 7): each field set in the frontmatter, one F10 History line.
         [ -f "$path" ] || die "item $item targets $id, which does not exist"
-        changes=$(printf '%s' "$fields" | tr '\001' '\n' | while IFS= read -r kv; do k=${kv%%=*}; v=$(resolve_items "${kv#*=}"); [ "$k" = Gist ] && continue
-          old=$(fm "$path" "$(kebab "$k")"); [ "$old" = "$v" ] && continue; fm_set "$path" "$(kebab "$k")" "$v"; printf '%s: %s to %s; ' "$k" "${old:-blank}" "$v"; done | sed 's/; $//')
+        changes=""
+        while IFS= read -r kv; do [ -n "$kv" ] || continue; k=${kv%%=*}; v=$(resolve_items "${kv#*=}"); [ "$k" = Gist ] && continue
+          old=$(fm "$path" "$(kebab "$k")"); [ "$old" = "$v" ] && continue; fm_set "$path" "$(kebab "$k")" "$v"; changes="$changes$k: ${old:-blank} to $v; "; done <<FIELDS
+$(printf '%s' "$fields" | tr '\001' '\n')
+FIELDS
+        changes=${changes%; }
         fm_set "$path" updated "$TODAY"
         history_add "$path" "$TODAY | $tid item $item | ${changes:-no field changed} | $(printf '%s' "$cites" | tr '\002' '\n' | grep . | paste -sd ';' - | sed 's/;/; /g')"
         logrow "$id" updated "$(item_dir "$type")/$id.md" "${changes:-no field changed}"
@@ -170,7 +182,7 @@ while IFS="$US" read -r item kind grade verdict target episode bulk fields cites
         if [ "$type" = SYS ] || [ "$kind" = PRC.fact ]; then grep -v -e '^- performed-by: *$' -e '^- system: *$' "$RES/claim" > "$RES/claim2"; else grep -v -e '^- kind: *$' "$RES/claim" > "$RES/claim2"; fi
         grep -v -e '^- follows: *$' -e '^- when: *$' -e '^- hands-to: *$' "$RES/claim2" > "$RES/claim"; mv "$RES/claim" "$RES/claim2"
         grep -q -e '^- follows: .*item [0-9]' -e '^- hands-to: .*item [0-9]' "$RES/claim2" && die "item $item follows or hands to an item not yet written; list steps in flow order (F13)"
-        awk -v ins="$RES/claim2" '/^## Questions/ && !done { while ((getline l < ins) > 0) print l; print ""; done=1 } { print } END { if (!done) while ((getline l < ins) > 0) print l }' "$ppath" > "$ppath.tmp" && mv "$ppath.tmp" "$ppath"
+        awk -v ins="$RES/claim2" '/^## Questions/ && !done { while ((getline l < ins) > 0) print l; print ""; done=1 } { print } END { if (!done) while ((getline l < ins) > 0) print l }' "$ppath" > "$ppath.tmp" && mv "$ppath.tmp" "$ppath" || die "cannot write $ppath"
         fm_set "$ppath" updated "$TODAY"; cid="$parent.$sec"; IDMAP="$IDMAP $item=$cid"; logrow "$cid" created "$(item_dir "$type")/$parent.md" "$(fld "$fields" Title)"
       else
         # A claim mutation: the fields in the block set, the block's citations added to evidence, a history entry (F10).
@@ -221,7 +233,7 @@ fi
 if [ "$mode" = BF ]; then
   # A backfill: one kind added to a transcript already written. The transcript and its files stay as they are.
   n=$(awk -v f="$RESTART" 'NR > f' "$log" | grep -c '^| [A-Z]' || true)
-  awk -v dt="$TODAY" -v bk="$bk" '!done && index($0, "- Backfill " bk " completed by:") == 1 { print; print "- Backfill " bk " written on: " dt ", ingester " iv ", rules " rv; done=1; next } { print }' iv="$(ingester_version)" rv="$(rules_version)" "$log" > "$log.tmp" && mv "$log.tmp" "$log"
+  awk -v dt="$TODAY" -v bk="$bk" '!done && index($0, "- Backfill " bk " completed by:") == 1 { print; print "- Backfill " bk " written on: " dt ", ingester " iv ", rules " rv; done=1; next } { print }' iv="$(ingester_version)" rv="$(rules_version)" "$log" > "$log.tmp" && mv "$log.tmp" "$log" || die "cannot write $log"
   "$INGESTER_DIR/bin/render-index" "$eng" > /dev/null
   rm -rf "$RES"; rm -f "$items"; ok=1
   log_run "$eng" "$tid" "backfill-$bk" "written" "$sheet $dossier" "$(item_dir "$bk") index $log" > /dev/null
@@ -233,8 +245,9 @@ fi
 if [ "$mode" = S4 ]; then
   # Stage S4: processes only. The transcript, stakeholders and engagement were written at S3.
   n=$(awk -v f="$RESTART" 'NR > f' "$log" | grep -c '^| [A-Z]' || true)
-  awk -v dt="$TODAY" '!done && /^- Processes completed by:/ { print; print "- S4 written on: " dt; done=1; next } { print }' "$log" > "$log.tmp" && mv "$log.tmp" "$log"
-  agenda="$sdir/$tid.walkthrough-agenda.md"; [ -f "$agenda" ] && resolve_items "$(cat "$agenda")" > "$agenda.tmp" && printf '\n' >> "$agenda.tmp" && mv "$agenda.tmp" "$agenda"
+  awk -v dt="$TODAY" '!done && /^- Processes completed by:/ { print; print "- S4 written on: " dt; done=1; next } { print }' "$log" > "$log.tmp" && mv "$log.tmp" "$log" || die "cannot write $log"
+  agenda="$sdir/$tid.walkthrough-agenda.md"
+  if [ -f "$agenda" ]; then { resolve_items "$(cat "$agenda")"; printf '\n'; } > "$agenda.tmp" && mv "$agenda.tmp" "$agenda" || die "cannot write $agenda"; fi
   "$INGESTER_DIR/bin/render-index" "$eng" > /dev/null
   rm -rf "$RES"; rm -f "$items"; ok=1
   log_run "$eng" "$tid" S4 "written" "$sheet $dossier" "processes systems open-items index $log" > /dev/null
@@ -251,7 +264,7 @@ awk '/^## Attendees/ { on=1 } /^## New/ { on=0 } on && /^\| / && !/Speaker tag/ 
   s=$(cell "$row" 2); [ "$s" = new ] && s=$(stk_lookup "$eng" "$(cell "$row" 1)" || true); [ -n "$s" ] && fm_list_add "$tf" attendees "$s"; done
 sed -i '' "s/^- Ingester version last used:.*/- Ingester version last used: $(ingester_version)/; s/^- Rules version last used:.*/- Rules version last used: $(rules_version)/; s/^- Domain: to be set at S0/- Domain: $domain/" "$d/engagement.md"
 bump_version "$d/engagement.md"
-awk -v dt="$TODAY" '!done && /^- Stakeholders written on:/ { print; print "- S3 written on: " dt; done=1; next } { print }' "$log" > "$log.tmp" && mv "$log.tmp" "$log"
+awk -v dt="$TODAY" '!done && /^- Stakeholders written on:/ { print; print "- S3 written on: " dt; done=1; next } { print }' "$log" > "$log.tmp" && mv "$log.tmp" "$log" || die "cannot write $log"
 "$INGESTER_DIR/bin/render-index" "$eng" > /dev/null
 rm -rf "$RES"; rm -f "$items"
 

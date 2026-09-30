@@ -1,6 +1,6 @@
 # Dossier: {{TID}}
 
-Version 0.3, {{DATE}}.
+Version 0.4, {{DATE}}.
 
 - Transcript: {{TID}}
 - Session date: {{SESSION_DATE}}
@@ -71,6 +71,26 @@ Read every episode. Each item carries a grade. An item whose Target is an existi
 - Citations:
   - accepted | T001/633:0 | Elena Marchetti | 00:35:48 | "We already have this problem."
 - Gist: Example pain point (R26), beside the fact it is felt in. Severity left blank because the passage does not say how much it hurts. Delete when writing a real dossier.
+
+### Item 04 | INT | Confident
+- Episode: {{TID}}-E01
+- Target: new
+- Grade: Confident
+- Verdict:
+- Title: CONFIG-MGMT pushes template changes to the provisioning platform by API
+- Status: Current
+- From: SYS-0002
+- To: SYS-0003
+- Direction: One-way
+- Mechanism: API
+- Data: Template changes
+- Frequency: Real-time
+- Raised on: 12 September 2026
+- Raised by: Martin Vasquez
+- Links: described in SYS-0002.f3
+- Citations:
+  - answered | T001/640:0-1 | Martin Vasquez | 00:36:10 | "Any template change goes straight across to provisioning over the API."
+- Gist: Example integration (R27), linked to the system fact that states it today. Implemented by is left out because the integration exists already. Delete when writing a real dossier.
 
 ## Closing
 

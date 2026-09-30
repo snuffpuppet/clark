@@ -60,5 +60,5 @@ phases_named=todo; [ "$(phases "$eng" | grep -c .)" -gt 0 ] && [ "$(phases "$eng
     done) if [ $summ = done ]; then printf 'none; %s is written and summarised. Score it, or register the next transcript.\n' "$tid"; else printf '`ingester/bin/stage %s %s summary` (writes the ingestion summary)\n' "$eng" "$tid"; fi ;;
     *) printf 'resolve: %s\n' "$st" ;;
   esac
-} > "$sdir/TASKS.md"
+} > "$sdir/TASKS.md" || die "cannot write $sdir/TASKS.md"
 cat "$sdir/TASKS.md"

@@ -38,17 +38,17 @@ cell() { printf '%s\n' "$1" | awk -v n="$2" '{ gsub(/\\\|/, "\001"); split($0, c
 col_index() { table_header "$1" | awk -F'|' -v want="$2" '{ for (i=2;i<NF;i++) { v=$i; gsub(/^ +| +$/, "", v); if (v==want) { print i-1; exit } } }'; }
 
 # fill_template template out KEY=value...: replaces {{KEY}} placeholders.
-fill_template() { t=$1; o=$2; shift 2; cp "$t" "$o"
+fill_template() { t=$1; o=$2; shift 2; cp "$t" "$o" || return 1
   for kv in "$@"; do k=${kv%%=*}; v=${kv#*=}; v=$(printf '%s' "$v" | sed 's/[\/&]/\\&/g')
-    sed -i '' "s/{{$k}}/$v/g" "$o"; done; }
+    sed -i '' "s/{{$k}}/$v/g" "$o" || return 1; done; }
 
 # log_run engagement tid stage outcome "read files" "written files"
 log_run() { d=$(eng_dir "$1"); mkdir -p "$d/logs"; f="$d/logs/$(utcstamp)-$2-$3.md"
-  { printf '# Run: %s %s\n\n- Time: %s\n- Stage: %s\n- Ingester version: %s\n- Rules version: %s\n- Outcome: %s\n- Read: %s\n- Written: %s\n' "$2" "$3" "$(utcstamp)" "$3" "$(ingester_version)" "$(rules_version)" "$4" "$5" "$6"; } > "$f"; printf '%s\n' "$f"; }
+  { printf '# Run: %s %s\n\n- Time: %s\n- Stage: %s\n- Ingester version: %s\n- Rules version: %s\n- Outcome: %s\n- Read: %s\n- Written: %s\n' "$2" "$3" "$(utcstamp)" "$3" "$(ingester_version)" "$(rules_version)" "$4" "$5" "$6"; } > "$f" || return 1; printf '%s\n' "$f"; }
 
 # ---- Items as files (register model 2.18 section 7) ----
 # item_dir TYPE: folder name for a type prefix.
-item_dir() { case $1 in REQ) echo requirements;; DEC) echo decisions;; LIM) echo limitations;; RSK) echo risks;; PPT) echo pain-points;; OI) echo open-items;; PRC) echo processes;; SYS) echo systems;; STK) echo stakeholders;; TOP) echo topics;; T) echo transcripts;; *) return 1;; esac; }
+item_dir() { case $1 in REQ) echo requirements;; DEC) echo decisions;; LIM) echo limitations;; RSK) echo risks;; PPT) echo pain-points;; INT) echo integrations;; OI) echo open-items;; PRC) echo processes;; SYS) echo systems;; STK) echo stakeholders;; TOP) echo topics;; T) echo transcripts;; *) return 1;; esac; }
 # item_path engagement ID: path of an item file from its id.
 item_path() { p=${2%%-*}; case $2 in T[0-9]*) p=T;; esac; printf '%s/%s/%s.md\n' "$(eng_dir "$1")" "$(item_dir "$p")" "$2"; }
 # next_id engagement PREFIX: next free id from the filenames in the type folder. Four digits; T is three.
@@ -79,7 +79,7 @@ render() { awk -v dir="$VALDIR" '
 # vals: start a fresh value set. set_val KEY value. set_list KEY "line\nline" writes list items.
 vals() { VALDIR=$(mktemp -d "${TMPDIR:-/tmp}/ing.XXXXXXXX"); export VALDIR; }
 set_val() { printf '%s' "$2" > "$VALDIR/$1"; }
-set_list() { printf '%s\n' "$2" | grep . | sed 's/^/  - /' > "$VALDIR/$1" || true; }
+set_list() { printf '%s\n' "$2" | grep . | sed 's/^/  - /' > "$VALDIR/$1"; }
 vals_done() { rm -rf "$VALDIR"; unset VALDIR; }
 # transcript helpers
 transcript_field() { f=$(item_path "$1" "$2"); [ -f "$f" ] || return 1; fm "$f" "$3"; }
@@ -154,12 +154,15 @@ eng_log() { f="$(eng_dir "$1")/LOG.md"; [ -f "$f" ] || printf '# Log: %s\n\nRunn
 # body_section file "Heading": text under "## Heading" up to the next "## ", trimmed of blank lines.
 body_section() { awk -v h="$2" '/^## / { on = ($0 == "## " h); next } on { print }' "$1" | awk 'NF { p = 1 } p { buf = buf $0 "\n" } END { sub(/\n+$/, "", buf); printf "%s", buf }'; }
 # body_set file "Heading" "text": replace the text under "## Heading"; the section is appended if missing.
-body_set() { printf '%s\n' "$3" > "$1.sec"
+body_set() { printf '%s\n' "$3" > "$1.sec" &&
   awk -v h="$2" -v sec="$1.sec" '
     function emit() { print "## " h; print ""; while ((getline l < sec) > 0) print l; close(sec); print ""; done = 1 }
     /^## / { if (on) on = 0; if ($0 == "## " h) { emit(); on = 1; next } }
     on { next } { print }
-    END { if (!done) { print ""; emit() } }' "$1" | awk 'NR == 1 || !(prev == "" && $0 == "") { print } { prev = $0 }' | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' > "$1.tmp" && mv "$1.tmp" "$1"; rm -f "$1.sec"; }
+    END { if (!done) { print ""; emit() } }' "$1" > "$1.t1" &&
+    awk 'NR == 1 || !(prev == "" && $0 == "") { print } { prev = $0 }' "$1.t1" > "$1.t2" &&
+    sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' "$1.t2" > "$1.tmp" &&
+    mv "$1.tmp" "$1"; rc=$?; rm -f "$1.sec" "$1.t1" "$1.t2" "$1.tmp"; return $rc; }
 # body_append file "Heading" "line": append a line to the section (created if missing) before the next heading.
 body_append() { cur=$(body_section "$1" "$2"); body_set "$1" "$2" "$(printf '%s\n%s' "$cur" "$3" | awk 'NF || p { p = 1; print }')"; }
 # history_add file "line": one F10 line under "## History", which is always the last section.
@@ -179,4 +182,6 @@ claim_list_add() { awk -v s="$2" -v key="$3" -v v="$4" '
     on && inlist { print "  - " v; inlist = 0; done = 1 }
     on && /^$/ { nb++; next }
     { print }
-    END { close_section() }' "$1" | awk 'NR == 1 || !(prev == "" && $0 == "") { print } { prev = $0 }' > "$1.tmp" && mv "$1.tmp" "$1"; }
+    END { close_section() }' "$1" > "$1.t1" &&
+    awk 'NR == 1 || !(prev == "" && $0 == "") { print } { prev = $0 }' "$1.t1" > "$1.tmp" &&
+    mv "$1.tmp" "$1"; rc=$?; rm -f "$1.t1" "$1.tmp"; return $rc; }

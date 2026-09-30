@@ -1,6 +1,6 @@
 # Solution register model
 
-Version 2.22, 29 September 2026. Version 2.22 adds the pain point (PPT) as a register type, with states Raised, Confirmed, Addressed and Not pursued, the links `felt in` and `addresses PPT`, a section of the outstanding view, and integrity rules I25 and I26; I6 now also checks links to a process or system, and I18 covers links to a process fact. At George Beatty's direction, 29 September 2026. Version 2.21, 23 September 2026. Version 2.21 lets a link target a process fact (PRC-nnn.nN) as well as a step, and adds integrity rules I21 to I24 on process flows, following design 1.9 and the process audit of 23 September 2026. Version 2.20, 10 September 2026, Version 2.20 makes Due a warning rather than a requirement on open items and risks, at Adam's direction, so that a session can be written before review dates are set. Owner: Adam Moyes. Version 2.19 names phases: the engagement lists them in order with the current one marked, a requirement's Phase takes one of those names, and I5 becomes Phase valid. Version 2.17 removed the Scope field, the scope taxonomy and integrity rule I5. Version 2.18 removes the change request type (to return in a later version when needed), makes ids four digits, adds Segment and Department to the stakeholder register, and replaces the register tables with one file per item plus generated index tables (section 7). Both at Adam's direction on review, 10 September 2026.
+Version 2.23, 30 September 2026. Version 2.23 adds the integration (INT) as a register type, a system-to-system connection today or in the target design, with states Proposed, Agreed, Current, Retired and Not pursued, the links `described in`, `used in`, `specifies` and `retires`, a section of the outstanding view, and integrity rules I27 and I28. At George Beatty's direction, 30 September 2026. Version 2.22, 29 September 2026. Version 2.22 adds the pain point (PPT) as a register type, with states Raised, Confirmed, Addressed and Not pursued, the links `felt in` and `addresses PPT`, a section of the outstanding view, and integrity rules I25 and I26; I6 now also checks links to a process or system, and I18 covers links to a process fact. At George Beatty's direction, 29 September 2026. Version 2.21, 23 September 2026. Version 2.21 lets a link target a process fact (PRC-nnn.nN) as well as a step, and adds integrity rules I21 to I24 on process flows, following design 1.9 and the process audit of 23 September 2026. Version 2.20, 10 September 2026, Version 2.20 makes Due a warning rather than a requirement on open items and risks, at Adam's direction, so that a session can be written before review dates are set. Owner: Adam Moyes. Version 2.19 names phases: the engagement lists them in order with the current one marked, a requirement's Phase takes one of those names, and I5 becomes Phase valid. Version 2.17 removed the Scope field, the scope taxonomy and integrity rule I5. Version 2.18 removes the change request type (to return in a later version when needed), makes ids four digits, adds Segment and Department to the stakeholder register, and replaces the register tables with one file per item plus generated index tables (section 7). Both at Adam's direction on review, 10 September 2026.
 
 This file describes how we track the artifacts of solution architecture on a project where we are the design authority and a vendor builds the platform. It is tool-agnostic. It says what the item types are, how they relate, how each one moves, and what a healthy register looks like. It does not say how to build or populate the registers in any particular tool; that belongs in a separate runner document.
 
@@ -19,6 +19,7 @@ Our architects produce solution design documents and need to track, from our per
 - limitations
 - risks
 - pain points
+- integrations
 - open items
 
 The vendor keeps their own registers with their own ids, costs and timelines. We do not mirror those. We hold our view and reference theirs.
@@ -41,7 +42,7 @@ Not every item begins with a requirement. Each item records where it came from, 
 
 ## 3. Entry points
 
-Five kinds of thing come in, and the question beside each one picks the type.
+Six kinds of thing come in, and the question beside each one picks the type.
 
 | Entry | Question | Usually becomes |
 |---|---|---|
@@ -50,8 +51,9 @@ Five kinds of thing come in, and the question beside each one picks the type.
 | Ask | A stakeholder wants X changed. | OI, then REQ or DEC |
 | Event | A risk lands, an assumption fails, a review finds a gap. | OI, then whatever record the work produces |
 | Complaint | Doing X today is slow, manual, error-prone or dreaded. | PPT, linked to where it is felt; later a REQ or DEC that addresses it |
+| Connection | System A sends to, calls, or reads from system B, today or in the design. | INT, linked to the system fact that describes it or the REQ or DEC that specifies it |
 
-Asks and events are work first and record later. Requirements, discoveries and complaints can go straight to a record.
+Asks and events are work first and record later. Requirements, discoveries, complaints and connections can go straight to a record.
 
 ## 4. Item types
 
@@ -59,11 +61,11 @@ Asks and events are work first and record later. Requirements, discoveries and c
 
 | Field | Rule |
 |---|---|
-| ID | Type prefix plus a four-digit zero-padded number, e.g. REQ-0014, DEC-0003, LIM-0021, RSK-0007, PPT-0012, OI-0045. Never reused. Transcript ids are three digits (T001) and episode ids are the transcript id plus E and a number (T001-E02). |
+| ID | Type prefix plus a four-digit zero-padded number, e.g. REQ-0014, DEC-0003, LIM-0021, RSK-0007, PPT-0012, INT-0009, OI-0045. Never reused. Transcript ids are three digits (T001) and episode ids are the transcript id plus E and a number (T001-E02). |
 | Title | One line, specific. |
 | Status | One of the values for the type (4.2). |
-| Owner | A named person on our side, or "Vendor" plus a named vendor contact, or "Joint". Required on every requirement and open item that is not in a terminal state. Not used on decisions, limitations, risks or pain points, which carry Raised by instead. While a decision is Proposed or a limitation is Under assessment, the open item driving it carries the owner. Risks have no standing owner; they are reviewed on their review date by the routine in section 10, and a realised risk raises an open item. |
-| Implemented by | Vendor, Internal or Both. Whose build the item lands in. Required on requirements, decisions and limitations. Optional on risks and open items. |
+| Owner | A named person on our side, or "Vendor" plus a named vendor contact, or "Joint". Required on every requirement and open item that is not in a terminal state. Not used on decisions, limitations, risks, pain points or integrations, which carry Raised by instead. While a decision is Proposed or a limitation is Under assessment, the open item driving it carries the owner. Risks have no standing owner; they are reviewed on their review date by the routine in section 10, and a realised risk raises an open item. |
+| Implemented by | Vendor, Internal or Both. Whose build the item lands in. Required on requirements, decisions and limitations. Optional on risks, integrations and open items. |
 | Vendor ref | The vendor's id for the corresponding item, if one exists. Otherwise blank. Not used on decisions; a vendor document reference goes in Source. |
 | Links | Ids of related items, with the relationship word (5). |
 | Next action | Required on open items that are not Closed. Not used on any other type; the open item driving a record carries it. |
@@ -83,6 +85,7 @@ Terminal states are marked *.
 | Risk | RSK | Identified, Mitigating, Realised*, Retired* | Identified on (date), Raised by (person, or the review it came from), Likelihood (L/M/H), Impact (L/M/H), Trigger (the observable event that says the risk has become real), Mitigation (what is being done, as text) |
 | Open item | OI | Open, In progress, Blocked, Closed* | Raised on (date), Raised by (person, or the meeting or review it came from), Blocked by (an id or a short reason, while Blocked), Resolution (id of the record it produced or changed), Closed on (date) |
 | Pain point | PPT | Raised, Confirmed, Addressed*, Not pursued* | Raised on (date it was said), Raised by (the person who feels it), Severity (L/M/H, when the speakers give it), Affects (the department or segment that feels it), Impact (one line: what the pain costs), Disposition (one line: what addressed it, or why it is not pursued) |
+| Integration | INT | Proposed, Agreed, Current, Retired*, Not pursued* | From (the SYS id that sends or calls), To (the SYS id that receives or is called), Direction (One-way or Two-way), Mechanism (API, File, Queue, Event or Database), Data (one line: what it carries), Frequency (Real-time, Scheduled or On demand, when known), Raised on (date it was said), Raised by (the person who described it), Disposition (one line: why it was retired or not pursued) |
 
 ### 4.3 Use it when
 
@@ -93,6 +96,7 @@ Terminal states are marked *.
 | Limitation | The solution will not do, or does differently, something we need. A fact about the solution, not a piece of work. Title says what the solution does; Impact says why we care; Options says what we could do about it and Chosen option says what we decided. |
 | Risk | Something might go wrong, or an assumption is unverified and would hurt if wrong. A record, not a piece of work: it carries who raised it and a review date, and the weekly routine reviews it. Mitigation actions are open items with their own owners. Anyone who sees the trigger happen raises an open item and the risk moves to Realised. |
 | Pain point | Someone who does the work today says it hurts: slow, manual, repeated, error-prone or dreaded. A record of the current state as its people feel it, not a piece of work. It says where the pain is felt, and later which requirement or decision addresses it, so the design can show which pains it removes. |
+| Integration | One system passes data to, or calls, another with no person in between, today or in the target design. A record of a connection, not a piece of work. It names the two systems, how they connect and what passes, and later which requirement or decision specifies or retires it, so the design can show which connections it keeps, adds and removes. A person moving data by hand between systems is not an integration. |
 | Open item | Someone must do something before a record can change. The only thing you work. |
 
 ### 4.4 Transition rules
@@ -102,6 +106,7 @@ Terminal states are marked *.
 - Limitation: Identified on is set when the row is created. Under assessment needs an open item in Links carrying the owner and next action. Impact, at least two Options, each with an impact and a phase, and a Chosen option must be filled before the limitation leaves assessment by Accepted; a vendor estimate is an input to Options, not a state. From Under assessment, exactly one of Accepted (the chosen option is to live with it, to work around it, or to ask the vendor for a change; needs a DEC id, and where the choice is a vendor change the DEC has Implemented by Vendor and carries the vendor's reference in Vendor ref once they assign one) or Resolved (needs evidence in Source or Links; no options needed). The disposition is written in Disposition record; Links holds the other relationships (constrains, introduced by, the assessing open item). If the vendor later declines a requested change, the accepting DEC is Superseded by a new one and the limitation is dispositioned again.
 - Risk: Identified on and Raised by are set when the row is created. Mitigating needs Trigger and Mitigation filled and a Due date for the next review; the review happens in the weekly routine, and whoever runs it updates Likelihood, Impact, Mitigation and the next Due. Realised is set when the Trigger is observed, and must create an OI. Retired needs a one-line reason in Mitigation. Mitigation is text on the row; there is no "mitigated by" link. Where the mitigation is a decision, Links carries "raised by DEC-nnn" or the DEC carries "raises", and that is enough.
 - Pain point: Raised on and Raised by are set when the row is created, from the person who said it. Confirmed means a second person, or the person whose work it is, agreed; it needs Impact. Addressed needs a REQ or DEC whose Links carry "addresses PPT-nnnn" (or "addressed by" on the pain point) and a Disposition naming it. Not pursued needs a Disposition giving the reason. A pain point that threatens delivery also raises a risk, written as "raises RSK-nnnn" in its Links.
+- Integration: Raised on and Raised by are set when the row is created, from the person who described it. An integration that exists today is created Current and links the system fact that describes it with "described in". A planned one is created Proposed. Agreed needs a REQ or DEC whose Links carry "specifies INT-nnnn". A planned integration becomes Current when it is live. Retired needs a REQ or DEC whose Links carry "retires INT-nnnn", or an INT whose Links carry "replaces INT-nnnn", and a Disposition. Not pursued needs a Disposition giving the reason.
 - Open item: Blocked needs Blocked by, either the id of the item it is waiting on or a short reason, and it is cleared when the item leaves Blocked. Closed needs a Resolution id and Closed on. If nothing was produced, the Resolution says "No record: <reason>" and that is acceptable but should be rare.
 
 ### 4.5 When to write a decision
@@ -140,9 +145,15 @@ Links are written as `<relationship> <ID>`, several per item separated by semico
 | REQ | replaces | A current-state claim, PRC-nnn.sN, PRC-nnn.nN or SYS-nnn.fN (the requirement changes what happens today) |
 | REQ | preserves | A current-state claim (the requirement keeps something that works today) |
 | OI | clarifies | A current-state claim that is Hedged or Contested, or a question on a process |
-| PPT | felt in | A process or system, or a claim on one: PRC-nnn, PRC-nnn.sN, PRC-nnn.nN, SYS-nnn or SYS-nnn.fN |
+| PPT | felt in | A process or system, or a claim on one: PRC-nnn, PRC-nnn.sN, PRC-nnn.nN, SYS-nnn or SYS-nnn.fN; or an INT |
 | REQ, DEC | addresses | PPT (the requirement or decision removes or reduces the pain) |
 | PPT | raises | RSK |
+| INT | described in | A system or a system fact, SYS-nnn or SYS-nnn.fN (the current-state record says the integration exists today) |
+| INT | used in | A process step, PRC-nnn.sN (the step in which one system hands work to the other) |
+| INT | replaces | INT (a planned integration takes over from a current one) |
+| REQ, DEC | specifies | INT (the requirement or decision calls for the integration) |
+| REQ, DEC | retires | INT (the requirement or decision switches the integration off) |
+| LIM | constrains | INT |
 
 Current-state claims live in the engagement's current-state record, defined in `extraction-solution-design.md` section 4. A `replaces` or `preserves` link may target only a claim in Current or Current, not needed.
 
@@ -152,7 +163,7 @@ Removed in 2.17. Items carry no Scope. A way of filtering the registers by servi
 
 ## 7. Register layout
 
-One file per item, named by its id, in a folder per type: `requirements/REQ-0004.md`, `decisions/DEC-0001.md`, `limitations/`, `risks/`, `pain-points/`, `open-items/`. The file opens with a YAML frontmatter block holding the header fields in 4.1 that apply to the type and the short type-specific fields, in kebab-case (`raised-on`, `implemented-by`, `vendor-ref`, `links` as a list). Long fields sit in the body under fixed headings: Source (one citation per line), Rationale, Impact, Options, Trigger, Mitigation, Disposition, Next action, Resolution, Notes. A change to one item is therefore a change to one file, and the item's history is the file's history in version control. Only requirements and open items carry an Owner. Requirements, because it names who can say the need is met; open items, because they are the work. Every other type carries Raised by instead, and the work that moves it lives on an open item. Risks carry Due as a review date but no Next action. Decisions carry no Vendor ref. Open items carry no Source; Raised on and Raised by do that job.
+One file per item, named by its id, in a folder per type: `requirements/REQ-0004.md`, `decisions/DEC-0001.md`, `limitations/`, `risks/`, `pain-points/`, `integrations/`, `open-items/`. The file opens with a YAML frontmatter block holding the header fields in 4.1 that apply to the type and the short type-specific fields, in kebab-case (`raised-on`, `implemented-by`, `vendor-ref`, `links` as a list). Long fields sit in the body under fixed headings: Source (one citation per line), Rationale, Impact, Options, Trigger, Mitigation, Disposition, Next action, Resolution, Notes. A change to one item is therefore a change to one file, and the item's history is the file's history in version control. Only requirements and open items carry an Owner. Requirements, because it names who can say the need is met; open items, because they are the work. Every other type carries Raised by instead, and the work that moves it lives on an open item. Risks carry Due as a review date but no Next action. Decisions carry no Vendor ref. Open items carry no Source; Raised on and Raised by do that job.
 
 The meeting view is a set of generated index tables, one per type, rendered from the frontmatter and never edited by hand. Their columns are:
 
@@ -163,6 +174,7 @@ The meeting view is a set of generated index tables, one per type, rendered from
 | Limitations | ID, Title, Status, Identified on, Chosen option, Disposition record, Implemented by, Vendor ref, Links, Updated |
 | Risks | ID, Title, Status, Identified on, Raised by, Likelihood, Impact, Links, Due, Updated |
 | Pain points | ID, Title, Status, Raised on, Raised by, Severity, Affects, Links, Updated |
+| Integrations | ID, Title, Status, From, To, Direction, Mechanism, Data, Links, Updated |
 | Open items | ID, Title, Status, Owner, Raised on, Raised by, Blocked by, Links, Resolution, Next action, Due, Closed on, Updated |
 
 One supporting page sits beside the indexes: a conventions page that condenses sections 2 to 5 and 8 for people adding items by hand. Field values are plain text. Ids in Links are plain text ids. Status values are exactly the strings in 4.2.
@@ -177,6 +189,7 @@ The meeting view is:
 4. Decisions in Proposed older than 14 days.
 5. Requirements in Draft older than 14 days, measured from Raised on.
 6. Pain points in Raised or Confirmed, severity H first, with where each is felt and the requirements and decisions that address it so far.
+7. Integrations in Proposed or Agreed, with the requirements and decisions that specify them so far.
 
 Requirements whose Phase is later than the current phase are excluded from this view and appear on a separate later-phase view, reviewed at phase planning rather than in the weekly meeting.
 
@@ -190,7 +203,7 @@ Run against a proposed set of registers before writing them, and on request duri
 |---|---|
 | I1 Unique ids | No id appears twice across all registers. |
 | I2 Valid status | Every status is an exact 4.2 value for its type. Every requirement has a MoSCoW value and a Raised on date. Every limitation has an Identified on date; Impact once it is past Identified; and at least two Options and a Chosen option once it is Accepted. Every risk has an Identified on date, and Trigger and Mitigation once it is Mitigating. |
-| I3 Owner present | Every non-terminal requirement and open item has an Owner that is a person, "Vendor: <name>" or "Joint". Every decision, limitation, risk and pain point has Raised by. Decisions and limitations are exempt from Owner, but a decision in Proposed, a requirement in Draft and a limitation in Under assessment must each have an open item in Links whose Owner is set. |
+| I3 Owner present | Every non-terminal requirement and open item has an Owner that is a person, "Vendor: <name>" or "Joint". Every decision, limitation, risk, pain point and integration has Raised by. Decisions and limitations are exempt from Owner, but a decision in Proposed, a requirement in Draft and a limitation in Under assessment must each have an open item in Links whose Owner is set. |
 | I4 Next action present | Every open item not Closed has Next action. Due is a warning rather than a failure on open items and risks: it is wanted, but a missing review date does not block a write. |
 | I5 Phase valid | Every requirement's Phase is a name in the engagement's Phases list. |
 | I6 Link targets exist | Every id in Links exists in some register, or is a process or system in the current-state record. |
@@ -205,7 +218,7 @@ Run against a proposed set of registers before writing them, and on request duri
 | I15 Stale proposals | DEC in Proposed and REQ in Draft older than 14 days are listed as warnings. |
 | I16 Decision without requirement | A DEC with no "addresses REQ" link and no "accepts" wording in its Rationale is listed as a warning: it usually means an unstated requirement or an unrecorded constraint. |
 | I17 | Removed in 2.18 (was Deferred change request). |
-| I18 Current-state links | Every link to a claim (`replaces`, `preserves`, `clarifies`, `felt in`), whether a step, a process fact or a system fact, names a claim that exists in the current-state record, and no `replaces` or `preserves` target is Retired or Withdrawn. |
+| I18 Current-state links | Every link to a claim (`replaces`, `preserves`, `clarifies`, `felt in`, `described in`, `used in`), whether a step, a process fact or a system fact, names a claim that exists in the current-state record, and no `replaces` or `preserves` target is Retired or Withdrawn. |
 | I19 Known stakeholder | Every person named in Owner, Raised by, Approved by and Consulted resolves to a row in the engagement's stakeholder register, or is "Vendor: <name>", "Joint" or a Forum row. A row with Role Mentioned cannot be Owner. |
 | I21 Flow links | Every `follows` on a process step names a step in the same process, never itself and never a process fact. Every `hands-to` names an existing process. |
 | I22 Process fact kind | Every process fact has Kind Rule, Volume, Timing or Pain point. |
@@ -213,8 +226,10 @@ Run against a proposed set of registers before writing them, and on request duri
 | I24 Withdrawn replaced | Every process or claim in Withdrawn has a `replaced-by` naming a process or claim that exists. |
 | I25 Pain point fields | Every pain point has Raised on, and Impact once it is past Raised. Severity, when set, is L, M or H. |
 | I26 Pain point disposition | Every PPT in Addressed is named by a REQ or DEC with an "addresses" link to it, or carries "addressed by REQ-nnnn" or "addressed by DEC-nnnn" itself. Every PPT in Addressed or Not pursued has a Disposition. |
+| I27 Integration fields | Every integration has Raised on, From, To, Direction and Mechanism. From and To are systems in the current-state record and are not the same system. Direction is One-way or Two-way; Mechanism is API, File, Queue, Event or Database; Frequency, when set, is Real-time, Scheduled or On demand; Implemented by, when set, is Vendor, Internal or Both. |
+| I28 Integration basis | Every INT in Agreed is named by a REQ or DEC with a "specifies" link to it. Every INT in Retired is named by a REQ or DEC with a "retires" link to it, or by an INT with a "replaces" link to it. Every INT in Retired or Not pursued has a Disposition. |
 
-I1 to I9, I11 to I14, I18, I19, I21, I22 and I24 to I26 are failures. I15 and I16 are warnings. I23 is a failure on a proposed process and a warning on a written one.
+I1 to I9, I11 to I14, I18, I19, I21, I22 and I24 to I28 are failures. I15 and I16 are warnings. I23 is a failure on a proposed process and a warning on a written one.
 
 ## 10. Maintenance routine
 

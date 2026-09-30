@@ -53,6 +53,6 @@ awk '/^## Attendees/ { on=1 } /^## New/ { on=0 } on && /^\| / && !/Speaker tag/ 
   fm_list "$f" sessions | grep -qx "$tid" && continue
   fm_list_add "$f" sessions "$tid"; fm_set "$f" updated "$TODAY"; logrow "$s" updated "stakeholders/$s.md" "sessions extended"
 done
-awk -v d="$TODAY" '!done && /^- Dossier completed by:/ { print; print "- Stakeholders written on: " d; done=1; next } { print }' "$log" > "$log.tmp" && mv "$log.tmp" "$log"
+awk -v d="$TODAY" '!done && /^- Dossier completed by:/ { print; print "- Stakeholders written on: " d; done=1; next } { print }' "$log" > "$log.tmp" && mv "$log.tmp" "$log" || die "cannot write $log"
 printf 's1-stakeholders: %s accepted row(s): %s file(s) created, %s skipped for the reason named above; see %s\n' "$na" "$nc" "$(( na - nc ))" "$log"
 eng_log "$eng" "$tid session sheet signed by $(header_field "$sheet" Approver); $na accepted stakeholder row(s), $nc file(s) written; S1 open."

@@ -1,6 +1,6 @@
 # Processes: {{TID}}
 
-Version 0.2, {{DATE}}.
+Version 0.3, {{DATE}}.
 
 - Transcript: {{TID}}
 - Session date: {{SESSION_DATE}}
@@ -14,7 +14,7 @@ Version 0.2, {{DATE}}.
 
 ## How to review
 
-Each section is one process, read from the whole session. Its Flow table is the process as assembled: a trigger, steps in order with the actor on each, and an outcome. Read the table first and ask whether that is what happens, in that order, as the people who do the work would say it. Write `Accept`, `Edit` or `Reject` on the section's `- Flow verdict:` line. To correct the flow, edit the items (reorder by changing `- Follows:`, split or merge steps, change a step's `- Process:`) and write `Edit`. A Reject writes nothing from that section. Then give a Verdict to every item graded Needs a human; Confident items in a section with `Bulk accept:` count as accepted once the Flow verdict is Accept or Edit. A mutation's Gist says what each changed field was before. Second-hand steps are graded Needs a human: standing unclear, because the speaker described another team's work; accepting one records it as Second-hand and it stays on the walkthrough agenda. Questions need no answer to be accepted. Every Pain point fact is followed by a PPT item, the pain point as a register item, raised by the person who feels it. When every Flow verdict and item verdict is filled the file is complete and S4 writes it.
+Each section is one process, read from the whole session. Its Flow table is the process as assembled: a trigger, steps in order with the actor on each, and an outcome. Read the table first and ask whether that is what happens, in that order, as the people who do the work would say it. Write `Accept`, `Edit` or `Reject` on the section's `- Flow verdict:` line. To correct the flow, edit the items (reorder by changing `- Follows:`, split or merge steps, change a step's `- Process:`) and write `Edit`. A Reject writes nothing from that section. Then give a Verdict to every item graded Needs a human; Confident items in a section with `Bulk accept:` count as accepted once the Flow verdict is Accept or Edit. A mutation's Gist says what each changed field was before. Second-hand steps are graded Needs a human: standing unclear, because the speaker described another team's work; accepting one records it as Second-hand and it stays on the walkthrough agenda. Questions need no answer to be accepted. Every Pain point fact is followed by a PPT item, the pain point as a register item, raised by the person who feels it. A step where one system hands work to another may be followed by an INT item, new or a mutation adding `used in item nn`, so the integration register says which steps use it. When every Flow verdict and item verdict is filled the file is complete and S4 writes it.
 
 ## {{TID}}-P01 Example process title
 

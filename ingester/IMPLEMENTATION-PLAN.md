@@ -1,6 +1,6 @@
 # Ingester implementation plan
 
-Version 0.8, 29 September 2026.
+Version 0.9, 30 September 2026.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: use superpowers:executing-plans to implement this plan step by step. Steps use checkbox (`- [ ]`) syntax for tracking. Commit after every numbered step. Nothing is pushed.
 
@@ -566,3 +566,15 @@ Added 29 September 2026 at George Beatty's direction. Register model 2.22 (PPT, 
 - **Promotion.** `bin/promote-pain-points <engagement>` writes a PPT per Current Pain point fact not yet named in any PPT's `felt in`. Deterministic, so there is no review file; the backfill that follows proposes the judgement calls.
 - **Stage.** `stage <eng> <Tnnn> backfill <KIND> [check]`: refuses unless status is `done` and the backfill is not written; with no file, says the reading is the skill's; `check` runs citations and integrity on the file; otherwise gates the file and runs `s3-write --backfill`.
 - **Summary.** A PPT backfill is measured on its own window, from the first `/ingest-transcript Tnnn --backfill` command to the backfill run log, and reported under PPT backfill with `ppt_` metrics.
+
+## Addendum E: integrations (ingester 0.14.0)
+
+Added 30 September 2026 at George Beatty's direction. Register model 2.23 (INT, I27, I28), rules 1.9 (R27), design 1.12, runbook backfill 0.2.
+
+- **Formats.** F4 and F13 gain the kind INT. F15 takes `INT` as a kind, and its link-only mutations may now target PPT and INT as well. The INT item file is `templates/items/INT.md`: frontmatter id, title, status, from, to, direction, mechanism, data, frequency, raised-on, raised-by, implemented-by, vendor-ref, links, created, updated; body Disposition, Source, Notes, History.
+- **Layout.** `item_dir INT` is `integrations`; `new-engagement` creates it; `s3-write` snapshots it, and makes the folder of any register type an older engagement lacks the first time it writes one.
+- **Writing.** `s3-write` writes INT on the REQ, DEC, LIM, RSK, PPT and OI path, new or mutation, at S3, S4 and backfill. `s3-write --backfill INT` is the PPT backfill with the kind changed; there is no promote script, because system facts carry no integration kind.
+- **Integrity.** INT joins the type loop, states and terminal states. I27 and I28 as the model says; From and To resolve through the item map, so a new SYS in the same file can be named as `item nn`. I3 requires Raised by on an INT; I6 checks links to INT ids.
+- **Index.** `index/integrations.md`; `outstanding.md` section 8 lists integrations Proposed or Agreed with the REQ and DEC that specify them; `changes.md` reads INT History.
+- **Summary.** Each backfill kind is measured on its own window, from the first `/ingest-transcript Tnnn --backfill <KIND>` command to that kind's backfill run log, and reported under its own section with `ppt_` or `int_` metrics. The window now matches the kind, so a PPT and an INT backfill of the same transcript are not mixed.
+- **Failed writes.** `render-index`, `s3-write`, `s1-stakeholders`, `s0-prepare`, `check-integrity`, `summary`, `summary-table`, `tasks`, `score` and `dossier2episodes` guard every write that `set -e` in `/bin/sh` does not catch (README, Scripts). In `lib.sh`, `body_set` and `claim_list_add` write each stage to a file and return the status of the write, and `log_run`, `fill_template` and `set_list` no longer hide a failed write. The two mutation loops in `s3-write` read a here-document, so a failed write inside them stops the stage and the rollback runs.

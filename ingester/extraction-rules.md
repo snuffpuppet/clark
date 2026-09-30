@@ -1,8 +1,8 @@
 # Extraction rules
 
-Version 1.8, 29 September 2026.
+Version 1.9, 30 September 2026.
 
-These rules are the method. The skill reads them before S1 and applies them to every exchange. Each rule carries the failure modes that map to it (design Q4) and a table of test passages. When a run report tags a failure against a rule, the fix is made here: the statement is edited and the failing passage is added as a test passage under the rule, with the run that found it. A rule change that lowers any kind's Right count on an earlier reference is a regression and is reverted or explained in the change log. Every test passage citation passes `ingester/bin/check-citations` against its own engagement: passages added in 1.0 are from `puppy-gloves` T001, and passages added in 1.4 are from `techm-bss` T001 and T002, and passages added in 1.6 from `techm-bss` T003, and passages added in 1.7 from `techm-bss` T004, and passages added in 1.8 from `techm-bss` T004 and T007.
+These rules are the method. The skill reads them before S1 and applies them to every exchange. Each rule carries the failure modes that map to it (design Q4) and a table of test passages. When a run report tags a failure against a rule, the fix is made here: the statement is edited and the failing passage is added as a test passage under the rule, with the run that found it. A rule change that lowers any kind's Right count on an earlier reference is a regression and is reverted or explained in the change log. Every test passage citation passes `ingester/bin/check-citations` against its own engagement: passages added in 1.0 are from `puppy-gloves` T001, and passages added in 1.4 are from `techm-bss` T001 and T002, and passages added in 1.6 from `techm-bss` T003, and passages added in 1.7 from `techm-bss` T004, and passages added in 1.8 from `techm-bss` T004 and T007, and passages added in 1.9 from `techm-bss` T005 and T006.
 
 ## Roles and standing
 
@@ -307,7 +307,7 @@ A handoff to another function is a process boundary: where the work passes to a 
 
 ### R22 Statements about a process are facts
 
-A statement about a process that is not an action is a PRC.fact with Kind Rule (a condition, a routing rule, an SLA), Volume, Timing (a duration or a wait) or Pain point, and names in `follows` the step it qualifies when there is one. It is never a step. A Pain point fact is always paired with a PPT item in the same processes file, new or a mutation of an existing one linking it with `felt in` (R26). A pain point that threatens delivery also yields a RSK candidate as today.
+A statement about a process that is not an action is a PRC.fact with Kind Rule (a condition, a routing rule, an SLA), Volume, Timing (a duration or a wait) or Pain point, and names in `follows` the step it qualifies when there is one. It is never a step. A Pain point fact is always paired with a PPT item in the same processes file, new or a mutation of an existing one linking it with `felt in` (R26). A pain point that threatens delivery also yields a RSK candidate as today. A step in which one system hands work to another may also carry an INT mutation adding `used in` the step (R27); unlike the pain point pairing, this is optional.
 
 **Failure modes:** statement-as-step
 
@@ -370,6 +370,19 @@ A statement by someone who does the work that something about today hurts (it is
 | T007 | answered \| T007/8154:0-1 \| Kerryn Wilkinson \| 01:10:28 \| "Probably one of the biggest pain points for CMS is the way that payment plans are set up, because..." | PPT, Raised by Kerryn Wilkinson, felt in the CMS system file, Severity H ("biggest"). Written by 0.11.0 as nothing in processes, systems or risks, so promotion cannot find it; the backfill must. | 1.8 | PPT backfill |
 | T004 | answered \| T004/11186:0-2 \| Mitch Mansell \| 01:34:36 \| "The one thing I want to touch on, Jason, was the hardware provisioning because it's a big pain point is at the moment it's just all manual and there's no way to like create shells and all that kind of stuff." | PPT felt in PRC-0018.n9, paired with that PRC.fact of Kind Pain point. Written by 0.11.0 as the fact alone; promotion makes the PPT, and the backfill proposes nothing new for it. | 1.8 | PPT backfill |
 
+### R27 A connection between systems is an integration
+
+A statement that one system sends to, calls, reads from or writes to another, with no person in between, is an INT, Raised by the speaker, with From and To the two systems, Direction, Mechanism (API, File, Queue, Event or Database) and Data, and Frequency when it is said. A connection that exists today has Status Current and sits beside the SYS.fact the same passage yields, citing the same range (R11) and linked `described in item nn`. A commitment to a future connection is the REQ or DEC as R2 and R12 say, plus an INT in Proposed that the REQ or DEC `specifies`. The same integration said again, in this session or a later one, is a mutation of the existing INT, never a new one. A person moving data between systems by hand (downloading, re-keying, uploading) is not an integration: it is a SYS.fact, and a PPT when someone complains of it (R26). "X has no integration with Y" is not an INT either; it is a SYS.fact of Kind Cannot, and a LIM or PPT when it hurts. A route described with a hedge ("I think it goes through Telflow") is Needs a human: the INT is proposed with a Question (R3).
+
+**Failure modes:** integration-missed, integration-duplicated, manual-transfer-as-integration
+
+**Test passages:**
+
+| Transcript | Citation | Expected | Added in | Note |
+|---|---|---|---|---|
+| T006 | answered \| T006/3805:0-3, 3810:0 \| Yaseen Muzamil \| 00:29:43 \| "Well, not all billing systems integrate. Some of them have to be manually downloaded from the billing system and manually uploaded. So there is, however, an API with CMS and some of the other platforms, but some of them are completely Not integrating and required manual." | INT Current, From SYS-0003 (CMS), To SYS-0048 (NetSuite), One-way, API, Raised by Yaseen Muzamil, `described in SYS-0048.f5`. The manual download and upload for the other billing systems is not an INT. Written by 0.13.0 as the SYS.fact alone. | 1.9 | INT backfill |
+| T005 | answered \| T005/8896:0-1 \| Nicki Degani \| 01:14:35 \| "But some part of it that we had integrated into our CMS, they had to do it manually, the updates. There was no API integrations." | No INT: a statement that there is no integration, so the SYS.fact of Kind Cannot (SYS-0045.f2) stands alone. Proposing an INT here is manual-transfer-as-integration. | 1.9 | INT backfill |
+
 ## Grading conditions
 
 An item is **Confident** only when every condition holds (design Q3, R16):
@@ -428,11 +441,15 @@ The controlled list for run reports. Each maps to one rule.
 | req-without-approval-oi | R2 |
 | pain-point-missed | R26 |
 | pain-point-duplicated | R26 |
+| integration-missed | R27 |
+| integration-duplicated | R27 |
+| manual-transfer-as-integration | R27 |
 
 ## Change log
 
 | Version | Date | Change |
 |---|---|---|
+| 1.9 | 30 September 2026 | Integrations become a register type (INT, register model 2.23). R27 added: a connection between systems with no person in between is an INT, Current beside the system fact that describes it or Proposed beside the REQ or DEC that specifies it, and the same integration said again is a mutation. A manual transfer and a missing integration are not integrations. R22 notes the optional `used in` link from S4. Tags integration-missed, integration-duplicated and manual-transfer-as-integration added. Test passages from techm-bss T005 and T006. At George Beatty's direction. |
 | 1.8 | 29 September 2026 | Pain points become a register type (PPT, register model 2.22). R26 added: a complaint by someone who does the work is a PPT, raised by them and linked to where it is felt, and the same pain said again is a mutation. R22 now pairs every Pain point fact with a PPT. Tags pain-point-missed and pain-point-duplicated added. Test passages from techm-bss T004 and T007. At George Beatty's direction. |
 | 1.7 | 23 September 2026 | From T004 run 01 (techm-bss): tags transcription-noise-unglossed (R10) and req-without-approval-oi (R2) added. R10 now requires a garbled form of a known term to be glossed in the Gist and never raised as a conflict on the garbled wording; R2 now requires every Draft requirement to link an open item in the same dossier that tracks its agreement, so integrity rule I3 passes before review. Test passages from T004 items 53 and 79, edited at review, and reference item 144, added after review. Tags given by Adam Moyes. |
 | 1.6 | 23 September 2026 | From T003 run 01 (techm-bss): tags non-source-requirement (R2) and unknown-term-kept (R10) added; R10 now keeps an unidentifiable name out of any claim until a Question identifies it; test passages from T003 items 48, 52 and 60, all rejected at review. Tags given by Adam Moyes. |

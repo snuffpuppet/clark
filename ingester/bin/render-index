@@ -16,28 +16,29 @@ links_of() { fm_list "$1" links | paste -sd';' - | sed 's/;/; /g'; }
 render_type() { type=$1; title=$2; shift 2; out="$d/index/$(item_dir "$type").md"
   { header "$title"; row "$@"; sep "$@"
     for f in "$d/$(item_dir "$type")"/$type-*.md; do [ -f "$f" ] || continue
-      set --; for k in $KEYS; do case $k in links) v=$(links_of "$f") ;; *) v=$(fm "$f" "$k") ;; esac; set -- "$@" "$v"; done; row "$@"; done; } > "$out"; }
+      set --; for k in $KEYS; do case $k in links) v=$(links_of "$f") ;; *) v=$(fm "$f" "$k") ;; esac; set -- "$@" "$v"; done; row "$@"; done; } > "$out" || die "cannot write $out"; }
 KEYS="id title status moscow phase raised-on owner implemented-by vendor-ref links updated"; render_type REQ Requirements ID Title Status MoSCoW Phase "Raised on" Owner "Implemented by" "Vendor ref" Links Updated
 KEYS="id title status raised-by consulted approved-by decided-on implemented-by links updated"; render_type DEC Decisions ID Title Status "Raised by" Consulted "Approved by" "Decided on" "Implemented by" Links Updated
 KEYS="id title status identified-on chosen-option disposition-record implemented-by vendor-ref links updated"; render_type LIM Limitations ID Title Status "Identified on" "Chosen option" "Disposition record" "Implemented by" "Vendor ref" Links Updated
 KEYS="id title status identified-on raised-by likelihood impact links due updated"; render_type RSK Risks ID Title Status "Identified on" "Raised by" Likelihood Impact Links Due Updated
 KEYS="id title status raised-on raised-by severity affects links updated"; render_type PPT "Pain points" ID Title Status "Raised on" "Raised by" Severity Affects Links Updated
+KEYS="id title status from to direction mechanism data links updated"; render_type INT Integrations ID Title Status From To Direction Mechanism Data Links Updated
 KEYS="id title status owner raised-on blocked-by links resolution due closed-on updated"; render_type OI "Open items" ID Title Status Owner "Raised on" "Blocked by" Links Resolution Due "Closed on" Updated
 KEYS="id name organisation role segment department standing decides status sessions updated"
 { header Stakeholders; row ID Name Organisation Role Segment Department Standing Decides Status Sessions Updated; sep 1 2 3 4 5 6 7 8 9 10 11
   for f in "$d"/stakeholders/STK-*.md; do [ -f "$f" ] || continue; row "$(fm "$f" id)" "$(fm "$f" name)" "$(fm "$f" organisation)" "$(fm "$f" role)" "$(fm "$f" segment)" "$(fm "$f" department)" "$(fm "$f" standing)" "$(fm "$f" decides)" "$(fm "$f" status)" "$(fm_list "$f" sessions | paste -sd, - | sed 's/,/, /g')" "$(fm "$f" updated)"; done
-  printf '\nDepartments in use: %s\n' "$(for f in "$d"/stakeholders/STK-*.md; do [ -f "$f" ] && fm "$f" department; done | grep . | sort -u | paste -sd, - | sed 's/,/, /g')"; } > "$d/index/stakeholders.md"
+  printf '\nDepartments in use: %s\n' "$(for f in "$d"/stakeholders/STK-*.md; do [ -f "$f" ] && fm "$f" department; done | grep . | sort -u | paste -sd, - | sed 's/,/, /g')"; } > "$d/index/stakeholders.md" || die "cannot write $d/index/stakeholders.md"
 { header Topics; row ID Title Episodes "Open items" "Closed by" Updated; sep 1 2 3 4 5 6
-  for f in "$d"/topics/TOP-*.md; do [ -f "$f" ] || continue; row "$(fm "$f" id)" "$(fm "$f" title)" "$(fm_list "$f" episodes | paste -sd, - | sed 's/,/, /g')" "$(fm_list "$f" open-items | paste -sd, - | sed 's/,/, /g')" "$(fm_list "$f" closed-by | paste -sd, - | sed 's/,/, /g')" "$(fm "$f" updated)"; done; } > "$d/index/topics.md"
+  for f in "$d"/topics/TOP-*.md; do [ -f "$f" ] || continue; row "$(fm "$f" id)" "$(fm "$f" title)" "$(fm_list "$f" episodes | paste -sd, - | sed 's/,/, /g')" "$(fm_list "$f" open-items | paste -sd, - | sed 's/,/, /g')" "$(fm_list "$f" closed-by | paste -sd, - | sed 's/,/, /g')" "$(fm "$f" updated)"; done; } > "$d/index/topics.md" || die "cannot write $d/index/topics.md"
 { header Transcripts; row ID File "Session date" Title "Meeting subject" Attendees Domain "Sheet approved" "Dossier completed" "Ingester" "Rules"; sep 1 2 3 4 5 6 7 8 9 10 11
-  for f in "$d"/transcripts/T[0-9]*.md; do [ -f "$f" ] || continue; row "$(fm "$f" id)" "$(fm "$f" file)" "$(fm "$f" session-date)" "$(fm "$f" title)" "$(fm "$f" meeting-subject)" "$(fm_list "$f" attendees | paste -sd, - | sed 's/,/, /g')" "$(fm "$f" domain)" "$(fm "$f" session-sheet-approver) $(fm "$f" session-sheet-approved-on)" "$(fm "$f" dossier-completed-by) $(fm "$f" dossier-completed-on)" "$(fm "$f" ingester-version)" "$(fm "$f" rules-version)"; done; } > "$d/index/transcripts.md"
+  for f in "$d"/transcripts/T[0-9]*.md; do [ -f "$f" ] || continue; row "$(fm "$f" id)" "$(fm "$f" file)" "$(fm "$f" session-date)" "$(fm "$f" title)" "$(fm "$f" meeting-subject)" "$(fm_list "$f" attendees | paste -sd, - | sed 's/,/, /g')" "$(fm "$f" domain)" "$(fm "$f" session-sheet-approver) $(fm "$f" session-sheet-approved-on)" "$(fm "$f" dossier-completed-by) $(fm "$f" dossier-completed-on)" "$(fm "$f" ingester-version)" "$(fm "$f" rules-version)"; done; } > "$d/index/transcripts.md" || die "cannot write $d/index/transcripts.md"
 claims_index() { type=$1; title=$2; out="$d/index/$(item_dir "$type").md"
   { header "$title"; if [ "$type" = SYS ]; then row ID Name Domain "Operated by" Claim Kind Description Status Confidence "Asserted by" Episode; sep 1 2 3 4 5 6 7 8 9 10 11
     else row ID Title Domain Trigger "Performed by" Frequency Step Description "Performed by" System Status Confidence Episode; sep 1 2 3 4 5 6 7 8 9 10 11 12 13; fi
     for f in "$d/$(item_dir "$type")"/$type-*.md; do [ -f "$f" ] || continue; id=$(fm "$f" id)
       for s in $(claim_sections "$f"); do desc=$(awk -v s="$s" '$1 == "##" && $2 == s { $1=""; $2=""; sub(/^ +/, ""); print; exit }' "$f")
         if [ "$type" = SYS ]; then row "$id" "$(fm "$f" name)" "$(fm "$f" domain)" "$(fm "$f" operated-by)" "$id.$s" "$(claim_field "$f" "$s" kind)" "$desc" "$(claim_field "$f" "$s" status)" "$(claim_field "$f" "$s" confidence)" "$(claim_field "$f" "$s" asserted-by)" "$(claim_field "$f" "$s" episode)"
-        else row "$id" "$(fm "$f" title)" "$(fm "$f" domain)" "$(fm "$f" trigger)" "$(fm "$f" performed-by)" "$(fm "$f" frequency)" "$id.$s" "$desc" "$(claim_field "$f" "$s" performed-by)" "$(claim_field "$f" "$s" system)" "$(claim_field "$f" "$s" status)" "$(claim_field "$f" "$s" confidence)" "$(claim_field "$f" "$s" episode)"; fi; done; done; } > "$out"; }
+        else row "$id" "$(fm "$f" title)" "$(fm "$f" domain)" "$(fm "$f" trigger)" "$(fm "$f" performed-by)" "$(fm "$f" frequency)" "$id.$s" "$desc" "$(claim_field "$f" "$s" performed-by)" "$(claim_field "$f" "$s" system)" "$(claim_field "$f" "$s" status)" "$(claim_field "$f" "$s" confidence)" "$(claim_field "$f" "$s" episode)"; fi; done; done; } > "$out" || die "cannot write $out"; }
 claims_index SYS Systems
 # Processes (design 4.1): one section per process, steps in flow order (a walk of follows from the steps that
 # follow nothing, ties by section number), variants shown by when, then facts, then withdrawn claims.
@@ -69,7 +70,7 @@ flow_rows() { awk '
     printf '\n## %s %s\n\n' "$id" "$(fm "$f" title)"
     printf -- '- Status: %s\n- Trigger: %s\n- Outcome: %s\n- Performed by: %s\n- Systems: %s\n- Upstream: %s\n- Downstream: %s\n' "$(fm "$f" status)" "$(fm "$f" trigger)" "$(fm "$f" outcome)" "$(fm "$f" performed-by)" "$(fm "$f" systems)" "$(fm "$f" upstream)" "$(fm "$f" downstream)"
     [ -n "$(fm "$f" replaced-by)" ] && printf -- '- Replaced by: %s\n' "$(fm "$f" replaced-by)"
-    printf '\n'; flow_rows "$f"; done; } > "$d/index/processes.md"
+    printf '\n'; flow_rows "$f"; done; } > "$d/index/processes.md" || die "cannot write $d/index/processes.md"
 # Walkthrough agenda (F14): open questions on processes across the engagement, for the next session.
 { header "Walkthrough agenda"
   printf 'What the next sessions need to hear about each process, from the people who do the work. Open items that clarify a process claim, grouped by process; the per-session agendas list the questions in full.\n\n'
@@ -78,7 +79,7 @@ flow_rows() { awk '
     l=$(fm_list "$f" links | grep -o 'clarifies PRC-[0-9]*' | head -1 | sed 's/clarifies //'); [ -n "$l" ] || continue
     na=$(awk '/^## Next action/ { on=1; next } /^## / { on=0 } on && NF { print; exit }' "$f")
     printf '%s\t' "$l"; row "$l" "$(fm "$f" id)" "$(fm "$f" title)" "$(fm "$f" owner)" "$na" "$(fm "$f" due)"; done | sort | cut -f2-
-  printf '\nSession agendas: %s\n' "$(ls "$d"/sessions/*/T*.walkthrough-agenda.md 2>/dev/null | sed "s#^$d/##" | paste -sd, - | sed 's/,/, /g')"; } > "$d/index/walkthrough-agenda.md"
+  printf '\nSession agendas: %s\n' "$(ls "$d"/sessions/*/T*.walkthrough-agenda.md 2>/dev/null | sed "s#^$d/##" | paste -sd, - | sed 's/,/, /g')"; } > "$d/index/walkthrough-agenda.md" || die "cannot write $d/index/walkthrough-agenda.md"
 
 # Outstanding view (model section 8).
 { header Outstanding
@@ -99,18 +100,23 @@ flow_rows() { awk '
       desc=$(awk -v s="$s" '$1 == "##" && $2 == s { $1=""; $2=""; sub(/^ +/, ""); print; exit }' "$f")
       row "$id.$s" "$el" "$desc" "$(claim_field "$f" "$s" kind)" "$(claim_field "$f" "$s" status)" "$c" "$(claim_field "$f" "$s" asserted-by)" "$(claim_field "$f" "$s" episode)"; done; done
   printf '\n## 7. Pain points Raised or Confirmed, severity H first\n\n'; row ID Title Status Severity Affects "Felt in" "Addressed by"; sep 1 2 3 4 5 6 7
-  for f in "$d"/requirements/REQ-*.md "$d"/decisions/DEC-*.md; do [ -f "$f" ] || continue; fm_list "$f" links | grep -o 'addresses PPT-[0-9]*' | sed "s/addresses //; s/\$/ $(fm "$f" id)/"; done > "$d/index/.addr"
+  for f in "$d"/requirements/REQ-*.md "$d"/decisions/DEC-*.md; do [ -f "$f" ] || continue; fm_list "$f" links | grep -o 'addresses PPT-[0-9]*' | sed "s/addresses //; s/\$/ $(fm "$f" id)/"; done > "$d/index/.addr" || die "cannot write $d/index/.addr"
   for f in "$d"/pain-points/PPT-*.md; do [ -f "$f" ] || continue; st=$(fm "$f" status); case $st in Raised|Confirmed) ;; *) continue;; esac; id=$(fm "$f" id)
     sv=$(fm "$f" severity); case $sv in H) k=1;; M) k=2;; L) k=3;; *) k=4;; esac
     printf '%s\t' "$k"; row "$id" "$(fm "$f" title)" "$st" "$sv" "$(fm "$f" affects)" "$(fm_list "$f" links | grep '^felt in ' | sed 's/^felt in //' | paste -sd';' - | sed 's/;/; /g')" "$(awk -v p="$id" '$1 == p { print $2 }' "$d/index/.addr" | paste -sd, - | sed 's/,/, /g')"; done | sort -t "$TAB" -k1,1 -s | cut -f2-
   rm -f "$d/index/.addr"
-  printf '\nSections 4 and 5 list every Proposed decision and Draft requirement; the model flags those older than 14 days, which `check-integrity` reports as I15 warnings. Section 6 is the set R17 reads to build the next session'"'"'s outstanding claims; a Hedged or Contested claim is complete work, cleared by a later session or a reviewer answer, not by a verdict at S2. Section 7 lists every pain point not yet Addressed or Not pursued, with the requirements and decisions that address it so far.\n'; } > "$d/index/outstanding.md"
+  printf '\n## 8. Integrations Proposed or Agreed\n\n'; row ID Title Status From To Mechanism "Specified by"; sep 1 2 3 4 5 6 7
+  for f in "$d"/requirements/REQ-*.md "$d"/decisions/DEC-*.md; do [ -f "$f" ] || continue; fm_list "$f" links | grep -o 'specifies INT-[0-9]*' | sed "s/specifies //; s/\$/ $(fm "$f" id)/"; done > "$d/index/.spec" || die "cannot write $d/index/.spec"
+  for f in "$d"/integrations/INT-*.md; do [ -f "$f" ] || continue; st=$(fm "$f" status); case $st in Proposed|Agreed) ;; *) continue;; esac; id=$(fm "$f" id)
+    row "$id" "$(fm "$f" title)" "$st" "$(fm "$f" from)" "$(fm "$f" to)" "$(fm "$f" mechanism)" "$(awk -v p="$id" '$1 == p { print $2 }' "$d/index/.spec" | paste -sd, - | sed 's/,/, /g')"; done
+  rm -f "$d/index/.spec"
+  printf '\nSections 4 and 5 list every Proposed decision and Draft requirement; the model flags those older than 14 days, which `check-integrity` reports as I15 warnings. Section 6 is the set R17 reads to build the next session'"'"'s outstanding claims; a Hedged or Contested claim is complete work, cleared by a later session or a reviewer answer, not by a verdict at S2. Section 7 lists every pain point not yet Addressed or Not pursued, with the requirements and decisions that address it so far. Section 8 lists every integration planned but not yet live, with the requirements and decisions that specify it.\n'; } > "$d/index/outstanding.md" || die "cannot write $d/index/outstanding.md"
 # Changes (F10): every History line on a register item and every history entry on a claim, oldest first.
 { header Changes; printf 'One row per change to an existing item or claim, from the History section of each item file and the history list of each claim. A new item has no row here; see the session logs.\n\n'
   row Id Date Source Change Evidence; sep 1 2 3 4 5
-  for f in "$d"/requirements/REQ-*.md "$d"/decisions/DEC-*.md "$d"/limitations/LIM-*.md "$d"/risks/RSK-*.md "$d"/pain-points/PPT-*.md "$d"/open-items/OI-*.md; do [ -f "$f" ] || continue
+  for f in "$d"/requirements/REQ-*.md "$d"/decisions/DEC-*.md "$d"/limitations/LIM-*.md "$d"/risks/RSK-*.md "$d"/pain-points/PPT-*.md "$d"/integrations/INT-*.md "$d"/open-items/OI-*.md; do [ -f "$f" ] || continue
     body_section "$f" History | grep '^- ' | sed 's/^- //' | while IFS= read -r l; do row "$(fm "$f" id)" "$(printf '%s' "$l" | cut -d'|' -f1 | sed 's/ *$//')" "$(printf '%s' "$l" | cut -d'|' -f2 | sed 's/^ *//; s/ *$//')" "$(printf '%s' "$l" | cut -d'|' -f3 | sed 's/^ *//; s/ *$//')" "$(printf '%s' "$l" | cut -d'|' -f4- | sed 's/^ *//')"; done; done
   for f in "$d"/systems/SYS-*.md "$d"/processes/PRC-*.md; do [ -f "$f" ] || continue; id=$(fm "$f" id)
     for sec in $(claim_sections "$f"); do awk -v s="$sec" '/^## / { on = ($2 == s) } on && $0 == "- history:" { inl = 1; next } on && inl && /^  - / { sub(/^  - /, ""); print; next } { inl = 0 }' "$f" | while IFS= read -r l; do
-      row "$id.$sec" "$(printf '%s' "$l" | cut -d'|' -f1 | sed 's/ *$//')" "$(printf '%s' "$l" | cut -d'|' -f2 | sed 's/^ *//; s/ *$//')" "$(printf '%s' "$l" | cut -d'|' -f3 | sed 's/^ *//; s/ *$//')" "$(printf '%s' "$l" | cut -d'|' -f4- | sed 's/^ *//')"; done; done; done; } > "$d/index/changes.md"
+      row "$id.$sec" "$(printf '%s' "$l" | cut -d'|' -f1 | sed 's/ *$//')" "$(printf '%s' "$l" | cut -d'|' -f2 | sed 's/^ *//; s/ *$//')" "$(printf '%s' "$l" | cut -d'|' -f3 | sed 's/^ *//; s/ *$//')" "$(printf '%s' "$l" | cut -d'|' -f4- | sed 's/^ *//')"; done; done; done; } > "$d/index/changes.md" || die "cannot write $d/index/changes.md"
 printf 'index: %s tables under %s\n' "$(ls "$d/index" | grep -c '\.md$')" "$d/index"

@@ -55,7 +55,7 @@ printf '%s\n' "$parts" | while IFS= read -r p; do k=$((k + 1))
   uoff=$(tail -1 "$body.part" | cut -f1)
   soff=$(awk -F'\t' '{ split($4, a, ":"); s = a[1] * 3600 + a[2] * 60 + a[3]; if (s > m) m = s } END { printf "%.3f", m }' "$body")
   rm -f "$body.part"; done || { rm -f "$body" "$body.part" "$partlines"; exit 1; }
-{ printf 'utterance\tfragment\tstart\tend\tspeaker\ttext\n'; cat "$body"; } > "$tsv"; rm -f "$body"
+{ printf 'utterance\tfragment\tstart\tend\tspeaker\ttext\n'; cat "$body"; } > "$tsv" || die "cannot write $tsv"; rm -f "$body"
 rows=$(( $(wc -l < "$tsv") - 1 ))
 [ "$rows" -gt 0 ] || { rm -f "$tsv" "$partlines"; die "no cues parsed from $tid"; }
 
@@ -73,7 +73,7 @@ if [ "$nparts" -gt 1 ]; then
       if (NR > 1) gap = gap sprintf("- Recording gap: between utterance %d (%s) and utterance %d. The recording stopped and started again. Its length is not recorded and the clock does not count it. What was said in the gap is not in the transcript, so part %d may open part way through a discussion.\n", pu, pt, $4, $1)
       pu = $5; pt = $7 }
     END { printf "%s", gap }' "$partlines" > "$sheet.parts"
-  awk -v pf="$sheet.parts" '{ print } /^- SHA-256:/ { while ((getline l < pf) > 0) print l }' "$sheet" > "$sheet.tmp" && mv "$sheet.tmp" "$sheet"
+  awk -v pf="$sheet.parts" '{ print } /^- SHA-256:/ { while ((getline l < pf) > 0) print l }' "$sheet" > "$sheet.tmp" && mv "$sheet.tmp" "$sheet" || die "cannot write $sheet"
   rm -f "$sheet.parts"; fi
 rm -f "$partlines"
 
@@ -91,7 +91,7 @@ awk -v att="$sheet.att" -v nr="$sheet.new" '
   { print }
   /^\| Speaker tag \|/ { getline; print; while ((getline l < att) > 0) print l }
   /^\| Proposed \|/ { getline; print; while ((getline l < nr) > 0) print l }
-' "$sheet" > "$sheet.tmp" && mv "$sheet.tmp" "$sheet"
+' "$sheet" > "$sheet.tmp" && mv "$sheet.tmp" "$sheet" || die "cannot write $sheet"
 rm -f "$sheet.att" "$sheet.new"
 
 printf 'S0: %s cues, %s speakers, %s not in the stakeholder register\n' "$rows" "$(printf '%s\n' "$attendees" | wc -l | tr -d ' ')" "$(printf '%s\n' "$newrows" | grep -c '^| new')"

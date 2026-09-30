@@ -1,6 +1,6 @@
 # Extracting solution records from discovery transcripts: solution design
 
-Version 1.11, 30 September 2026. Approved for implementation by Adam Moyes: 1.0 on 10 September 2026, with the 1.1 to 1.6 changes made at his direction the same day and 1.7 to 1.9 on 23 September 2026. 1.10 made at George Beatty's direction on 29 September 2026, and 1.11 on 30 September 2026. Owner: Adam Moyes. Responds to `BRIEF.md` version 1.0 and `solution-register-model.md` version 2.18.
+Version 1.12, 30 September 2026. Approved for implementation by Adam Moyes: 1.0 on 10 September 2026, with the 1.1 to 1.6 changes made at his direction the same day and 1.7 to 1.9 on 23 September 2026. 1.10 made at George Beatty's direction on 29 September 2026, and 1.11 and 1.12 on 30 September 2026. Owner: Adam Moyes. Responds to `BRIEF.md` version 1.0 and `solution-register-model.md` version 2.18.
 
 This document answers the four questions in the brief, defines the current-state record and the session structures around it, and then proposes the extraction method. Section 6 shows worked examples taken from `T001-SANITISED-TechnicalSyncUp.vtt` so that each rule can be checked against real speech. Section 7 describes the split between the ingester, which holds the mechanism, and the engagements, which hold everything produced for a client. Section 10 records the assumptions and the decisions made at approval. Section 11 is the change log.
 
@@ -188,6 +188,8 @@ Two relationship words are added to section 5 of the register model, proposed as
 A link may target only a claim in Current or Current, not needed. Linking to a Retired or Withdrawn claim fails integrity rule I18 (below). Open items that exist to resolve a Hedged or Contested claim, or a question on a process, carry the claim id in Links as `clarifies PRC-nnn.sN`.
 
 A pain point (PPT, register model 2.22) carries `felt in` naming where the pain is felt: a process fact of Kind Pain point when S4 recorded one, else a step, a process, a system fact or a system. The fact stays in the record as a statement of how the process runs today; the PPT is the register item that says who feels it and whether a requirement or decision addresses it (`addresses PPT-nnnn` on the REQ or DEC).
+
+An integration (INT, register model 2.23) is a register item, not an element of the record, because it runs from today into the design: a current one is linked to the system fact that states it with `described in SYS-nnnn.fN` and to the steps that use it with `used in PRC-nnnn.sN`, and a planned one is named by the REQ or DEC that `specifies` it. The system fact stays in the record as a statement of what the system does today; the INT says which two systems connect, how, and whether the design keeps, adds or retires the connection.
 
 One integrity rule is added: **I18 Current-state links.** Every `replaces`, `preserves` and `clarifies` target exists in the current-state record, and no `replaces` or `preserves` target is Retired or Withdrawn. Failure.
 
@@ -441,8 +443,8 @@ clark/                            the git repository
       processes/PRC-nnnn.md          current-state record (4), one file each
       systems/SYS-nnnn.md
       topics/TOP-nnnn.md             topic ledger (5.4), one file each
-      requirements/ decisions/ limitations/ risks/ pain-points/ open-items/
-                                     the five registers, one file per item
+      requirements/ decisions/ limitations/ risks/ pain-points/
+      integrations/ open-items/      the registers, one file per item
       index/                         generated tables, never edited
       sessions/T001/                 utterance table, session sheet, exchanges,
                                      episodes, dossier, session log
@@ -523,7 +525,7 @@ Applied to `solution-register-model.md` on approval of this design, 10 September
 | `engagements/<name>/transcripts/Tnnn.md` | engagement | Transcript register, one file per transcript | Written at registration, completed by S3 |
 | `engagements/<name>/topics/TOP-nnnn.md` | engagement | Topic ledger, one file per topic | Written and extended by S3 |
 | `engagements/<name>/processes/PRC-nnnn.md`, `systems/SYS-nnnn.md` | engagement | Current-state record, one file per element with claims as sections | Written and extended by S3 |
-| `engagements/<name>/requirements/`, `decisions/`, `limitations/`, `risks/`, `pain-points/`, `open-items/` | engagement | Six registers, one file per item | Written and edited by S3 |
+| `engagements/<name>/requirements/`, `decisions/`, `limitations/`, `risks/`, `pain-points/`, `integrations/`, `open-items/` | engagement | Seven registers, one file per item | Written and edited by S3 |
 | `engagements/<name>/index/*.md` | engagement | Generated index tables and the outstanding view | Regenerated after every S3 and on request; never edited |
 | `engagements/<name>/sessions/Tnnn/` | engagement | Utterance table, session sheet, exchanges, episodes, dossier versions, session log | Each file carries its own version |
 | `engagements/<name>/evaluation/` | engagement | Reference marking, run reports and one ingestion summary per transcript | Reference versioned; runs numbered; a summary is regenerated, never edited |
@@ -574,3 +576,4 @@ The next step is the implementation plan covering the folder layout, the skill, 
 | 1.9 | 23 September 2026 | Processes rebuilt as flows. A process is defined by its trigger and its outcome (4.1), and gains Outcome, Upstream and Downstream. A step is one actor and one action, ordered by `follows`, with `when` for variants and `hands-to` for the next process. Statements about a process that are not actions become process facts (`PRC-nnn.nN`, Kind Rule, Volume, Timing or Pain point). Confidence on a step follows whose work it is. A new stage S4 (5.5) builds processes from the whole transcript after S3, and S1 no longer produces them, because the audit of all 17 techm-bss processes (`process-audit-T001-T002.md`) found flows told in fragments across up to nine episodes and extraction by exchange turning them into statements. Rules R20 to R25, integrity rules I21 to I24 (register model 2.21). Made at Adam Moyes's direction. Ingester 0.10.0. |
 | 1.10 | 29 September 2026 | Pain points become a register type, PPT (register model 2.22), linked to the record by `felt in` (4.4). A Pain point process fact stays in the record and is paired with a PPT, so the record says where the pain is felt and the register tracks whether the design addresses it. S1 raises pain points from any passage, S4 pairs them with process facts, and a backfill (runbook backfill) adds them to transcripts written before the type existed. Rule R26, integrity rules I25 and I26. Made at George Beatty's direction. Ingester 0.12.0. |
 | 1.11 | 30 September 2026 | A stakeholder's Segment (4.6) may hold several segments, separated by `, ` in the order Residential, BE&G, Wholesale, because most Finance SMEs work across two or three. Blank now means no customer segment only; the whole business is written as all three. `s1-stakeholders`, `s3-write` (STK.edit) and `check-integrity` share one check. Made at George Beatty's direction. Ingester 0.13.0. |
+| 1.12 | 30 September 2026 | Integrations become a register type, INT (register model 2.23), for any system-to-system connection today or in the target design, linked to the record by `described in` and `used in` and to the design by `specifies` and `retires` (4.4). S1 raises integrations beside the system facts that describe them, S4 may link them to the steps that use them, and a backfill (runbook backfill) adds them to transcripts written before the type existed, by reading only, since system facts carry no integration kind. Rule R27, integrity rules I27 and I28. Made at George Beatty's direction. Ingester 0.14.0. |

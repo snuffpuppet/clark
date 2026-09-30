@@ -30,6 +30,6 @@ items=$(mktemp "${TMPDIR:-/tmp}/ing.XXXXXXXX")
     printf '\n## %s %s\n\n- Title: %s\n- Span: %s\n- Topic: %s\n- Subject: %s\n- Outcome: %s\n- Outputs: %s\n' \
       "$id" "$title" "$title" "$span" "$topic" "$subject" "$outcome" "$outputs"
   done
-} > "$out"
+} > "$out" || die "cannot write $out"
 rm -f "$items"
 printf 'dossier2episodes: %s episode(s) written to %s\n' "$("$INGESTER_DIR/bin/dossier2tsv" -e "$dossier" | grep -c .)" "$out"
