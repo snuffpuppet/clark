@@ -1,6 +1,6 @@
 # The ingester
 
-Version 0.18, 30 September 2026.
+Version 0.19, 1 October 2026.
 
 ## Purpose
 
@@ -110,7 +110,7 @@ Every script runs under `set -e`, and `set -e` in `/bin/sh` misses three kinds o
 | `render-index` | `render-index <engagement>` | Regenerates the tables under `index/`, including `pain-points.md`, `integrations.md`, `outstanding.md` (section 7 is pain points still open, section 8 integrations planned but not live), `changes.md`, `processes.md` in flow order and `walkthrough-agenda.md`. |
 | `score` | `score <engagement> <Tnnn> <reference> [<dossier>]` | Writes `evaluation/Tnnn-run-nn.md` with the counts from design Q4. |
 | `score-flow` | `score-flow <engagement> <Tnnn> <reference> [<processes file>]`, or `score ... --flow` | Writes `evaluation/Tnnn-flow-run-nn.md`: step recall, order agreement, compound, misfiled and fact-as-step counts against a flow reference (runbook evaluate). |
-| `summary` | `summary <engagement> <Tnnn> [<from> <to>]` | After S3, writes `evaluation/Tnnn-summary.md` (F11): the model, elapsed, active and waiting minutes, tokens per model call from the Claude Code session files under `~/.claude/projects/` and their cost at the list prices in `pricing.tsv`, items and verdict outcomes from the dossier, and a comparison with the latest earlier summary, and each backfill (PPT, INT) measured on its own window. Also `stage <engagement> <Tnnn> summary`. |
+| `summary` | `summary <engagement> <Tnnn> [<from> <to>]` | After S3, writes `evaluation/Tnnn-summary.md` (F11): the model, elapsed, active and waiting minutes, tokens per model call from the Claude Code session files under `~/.claude/projects/` and their cost at the list prices in `pricing.tsv`, items and verdict outcomes from the dossier, and a comparison with the latest earlier summary, and each backfill (PPT, INT) measured on its own window. When the S0 to S3 session files are gone, keeps the figures already in the summary and rebuilds only its backfill sections (runbook summary). Also `stage <engagement> <Tnnn> summary`. |
 | `summary-table` | `summary-table <engagement> [--write \| <label>=<file> ...]` | Prints the comparison table from ingestion summaries: every summary in the engagement by default, or the files given. `--write` writes `evaluation/ingestions.md` (F12). Called by `summary`. |
 | `stage` | `stage <engagement> <Tnnn> <status\|tasks\|S0\|S1\|S3\|S4\|check\|score\|summary\|backfill <KIND> [check]>` | Driver. Reports the state, runs a stage, refuses a stage whose predecessor is unsigned, writes a run log. `backfill` runs only on a transcript whose S4 is written. |
 | `tasks` | `tasks <engagement> <Tnnn>` | Prints the ingestion checklist for one transcript with each step marked from the files on disk, and writes `sessions/Tnnn/TASKS.md`. Also `stage <engagement> <Tnnn> tasks`. |

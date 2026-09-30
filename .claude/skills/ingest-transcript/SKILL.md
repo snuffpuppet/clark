@@ -5,7 +5,7 @@ description: Ingest a discovery transcript (WebVTT or the Webex text export, in 
 
 # ingest-transcript
 
-Version 0.14.0 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `$ROOT/ingester/bin/` do every deterministic step; you do the reading.
+Version 0.14.2 (with the ingester; see `ingester/VERSION`). You are the judgement half of the ingester described in `ingester/README.md` and `ingester/extraction-solution-design.md`. Shell scripts under `$ROOT/ingester/bin/` do every deterministic step; you do the reading.
 
 **The runbooks under `ingester/runbooks/` are the source of truth for what each stage reads, produces, checks and reports.** This file says only how you, in a Claude Code session, operate them: where you run, what you never do, how you show progress, how you find the current stage, and how you take verdicts in the terminal. When this file and a runbook disagree, the runbook wins and this file is wrong.
 

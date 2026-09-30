@@ -1,6 +1,6 @@
 # Runbook: ingestion summary
 
-Version 0.5, 30 September 2026.
+Version 0.6, 1 October 2026.
 
 ## Purpose
 
@@ -45,6 +45,7 @@ Or, as the skill: straight after S3 reports it has written, in the same turn.
 - **S4** is measured on its own window, from the first `/ingest-transcript` command for the transcript after S3 to the last S4 run log, which the S4 write leaves. It is kept out of the S0 to S3 figures and reported under S4 processes with `s4_` metrics. Until S4 is written the section says so; rerun `stage <engagement> Tnnn summary` after the S4 write to fill it.
 - **PPT backfill** is measured the same way, from the first `/ingest-transcript Tnnn --backfill PPT` command to the backfill run log that `s3-write --backfill PPT` leaves (runbook backfill). It is reported under PPT backfill with `ppt_` metrics, and kept out of every other figure.
 - **INT backfill** is measured the same way, from the first `/ingest-transcript Tnnn --backfill INT` command to the backfill run log that `s3-write --backfill INT` leaves, and reported under INT backfill with `int_` metrics. Each backfill's window starts at a command naming its own kind, so one kind's backfill never counts in the other's figures.
+- **Figures kept.** A backfill usually runs days after S0 to S3, and by then the Claude Code session files for that window may be gone. When the S0 to S3 window has no model calls left to measure and the transcript already has a summary, the summary is updated in place: every figure measured over the S0 to S3 and S4 windows is kept as written, the PPT backfill and INT backfill sections and their `ppt_` and `int_` metrics are rebuilt (added before Output in a summary written before those sections existed), and one line under Caveats says what was kept and why. With no summary yet there is nothing to keep, and the summary stops with the error.
 - **Accuracy** is read from the signed dossier. Changed means Edit or Reject. A blank verdict on a Confident item in a bulk-accepted episode is an Accept. A Confident item the reviewer changed is the design's Confident-but-wrong count.
 
 ## Automatic checks

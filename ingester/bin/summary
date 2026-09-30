@@ -114,7 +114,7 @@ elif [ -n "$(pu samples_from)" ]; then
 else
   usage_text="Not recorded: there is no \`$ulog\`. The status line writes it (runbook summary, What the figures mean); until it does, \`/usage\` in the session shows the share."
 fi
-[ "$(u calls)" -gt 0 ] || die "no model calls found between $from and $to"
+[ "$(u calls)" -gt 0 ] || { echo "no model calls found between $from and $to"; return 1; }
 
 { cat "$M/events"; printf '%s\tE\n' "$(u hi)"; } | sort -t "$(printf '\t')" -k1,1n -k2,2r | awk -F'\t' -v s3s="$(u s3start)" -v hi="$(u hi)" '
   $1 > hi + 0 { if ($2 == "U") next }
@@ -125,14 +125,19 @@ fi
 t() { grep "^$1=" "$M/time" | sed "s/^$1=//"; }
 printf "%s" "$usage_text" > "$M/usage_text"
 }
-measure "$from" "$to" "$eng $tid S3" "$W/main"
+# The S0 to S3 window. Its session files may be gone by the time a later stage, such as a backfill, reruns the
+# summary. Then the summary already written keeps every figure measured over the S0 to S3 and S4 windows, and
+# only the backfill sections are rebuilt (below). With no summary yet there is nothing to keep, so it stops.
+out="$d/evaluation/$tid-summary.md"; keep=""
+if ! measure "$from" "$to" "$eng $tid S3" "$W/main" > "$W/main.err"; then
+  keep=$(tail -1 "$W/main.err"); [ -f "$out" ] || die "$keep"; fi
 main_from=$from; main_to=$to
 
 # S4, measured on its own once it has been written: from the first /ingest-transcript command for this
 # transcript after S3 to the last S4 run log, which s4-write leaves. A failure here never stops the summary.
 slog="$sdir/$tid.session-log.md"; procs="$sdir/$tid.processes.md"
 s4log=$(ls "$d/logs" 2>/dev/null | grep -- "-$tid-S4.md$" | tail -1 || true); s4state=none
-if [ -n "$s4log" ] && [ -f "$slog" ] && grep -q '^- S4 written on:' "$slog"; then
+if [ -z "$keep" ] && [ -n "$s4log" ] && [ -f "$slog" ] && grep -q '^- S4 written on:' "$slog"; then
   s4to=$(iso "${s4log%%-*}")
   s4from=$(while IFS= read -r f; do awk -v tid="$tid" -v after="$main_to" '
       /"type":"user"/ && /ingest-transcript/ && index($0, tid) && !/"type":"tool_result"/ {
@@ -140,7 +145,7 @@ if [ -n "$s4log" ] && [ -f "$slog" ] && grep -q '^- S4 written on:' "$slog"; the
   [ -n "$s4from" ] || s4from=$main_to
   if ( measure "$s4from" "$s4to" "$eng $tid S4" "$W/s4" ) > "$W/s4.err" 2>&1; then s4state=measured; else s4state=failed; fi
 fi
-M=$W/main; from=$main_from; to=$main_to; usage_text=$(cat "$W/main/usage_text")
+M=$W/main; from=$main_from; to=$main_to; usage_text=$(cat "$W/main/usage_text" 2>/dev/null || true)
 s4v() { grep "^$2=" "$W/s4/$1" 2>/dev/null | sed "s/^$2=//"; }
 if [ "$s4state" = measured ]; then
   awk '/^### Item / { n++; nh = ($0 ~ /Needs a human/); if (nh) nhc++; isnh[n] = nh }
@@ -202,6 +207,40 @@ EOT
   else printf 'No %s backfill has been written for this transcript.\n' "$k" > "$B.text"; fi; }
 backfill PPT ppt "pain points"; backfill INT int integrations
 bf_text=$(cat "$W/bf-PPT.text"); bf_metrics=$(cat "$W/bf-PPT.metrics"); bfint_text=$(cat "$W/bf-INT.text"); bfint_metrics=$(cat "$W/bf-INT.metrics")
+
+# Keep mode: the S0 to S3 window cannot be measured again, so the summary on disk is updated in place. Its PPT
+# and INT backfill sections are replaced (or added before Output, in a summary written before they existed), their
+# ppt_ and int_ metrics are replaced, and one caveat says what was kept and why. Nothing else in it changes.
+if [ -n "$keep" ]; then
+  tpl="$INGESTER_DIR/templates/ingestion-summary.md"
+  intro() { awk -v h="## $1" '$0 == h { on = 1 } on && /^\{\{[A-Z_]+\}\}$/ { exit } on' "$tpl"; }
+  { intro "PPT backfill"; printf '%s\n\n' "$bf_text"; intro "INT backfill"; printf '%s\n\n' "$bfint_text"; } > "$W/bf-sections" || die "cannot write $W/bf-sections"
+  { printf '%s\n' "$bf_metrics"; printf '%s\n' "$bfint_metrics"; } | grep . > "$W/bf-metrics" || : > "$W/bf-metrics"
+  why="- The S0 to S3 and S4 figures are kept from an earlier run of this summary, because the session files for their windows are no longer on disk ($keep). Only the backfill sections and their metrics were rebuilt, on $(today)."
+  awk -v secs="$W/bf-sections" -v mets="$W/bf-metrics" -v why="$why" '
+    function flush_secs() { while ((getline l < secs) > 0) print l; close(secs); done_secs = 1 }
+    /^## / { skip = ($0 == "## PPT backfill" || $0 == "## INT backfill")
+      if ($0 == "## Output" && !done_secs) flush_secs()
+      if (inmet) { while ((getline l < mets) > 0) print l; close(mets); inmet = 0 }
+      if ($0 == "## Metrics") inmet = 1
+      if (skip) next }
+    skip { next }
+    /^- The S0 to S3 and S4 figures are kept from an earlier run/ { next }
+    $0 == "## Caveats" { print; incav = 1; next }
+    incav && /^- / { lastcav = 1 }
+    incav && !/^- / && lastcav && !done_why { print why; done_why = 1 }
+    inmet && /^- (ppt|int)_/ { next }
+    { print }
+    END { if (inmet) while ((getline l < mets) > 0) print l
+      if (!done_secs) print "summary: no ## Output heading to place the backfill sections before" > "/dev/stderr" }' "$out" > "$W/kept" || die "cannot rebuild $out"
+  grep -q '^## Output' "$out" || die "$out has no ## Output section; rebuild it by hand"
+  ver=$(doc_version "$out" | awk -F. '{ printf "%d.%d", $1, $2 + 1 }')
+  sed "s/^Version [0-9][0-9.]*, [^.]*\./Version $ver, $(today)./" "$W/kept" > "$out" || die "cannot write $out"
+  "$INGESTER_DIR/bin/summary-table" "$eng" --write > /dev/null
+  log_run "$eng" "$tid" summary "backfill sections rebuilt; S0 to S3 and S4 figures kept: $keep" "$(tr '\n' ' ' < "$W/files")" "evaluation/$tid-summary.md evaluation/ingestions.md" > /dev/null
+  printf 'summary: %s; S0 to S3 and S4 figures kept (%s); PPT and INT backfill sections rebuilt\n' "$out" "$keep"
+  exit 0
+fi
 
 # The transcript.
 awk -F'\t' 'NR > 1 { cues++; if (!($1 in U)) { U[$1] = 1; utt++ }; if (!($5 in S)) { S[$5] = 1; spk++ }; e = $4 }
