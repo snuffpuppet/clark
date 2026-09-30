@@ -173,7 +173,7 @@ awk -F'\t' -v today="$(today)" '
           if (v == "") fail("I27", id, "no " k); else if (v !~ /^SYS-[0-9a-z]+$/ || !(v in ELEM)) fail("I27", id, k " \"" F[id, k] "\" is not a system in the current-state record") }
         if (has(id, "From") && rid(F[id, "From"]) == rid(F[id, "To"])) fail("I27", id, "From and To are the same system")
         if (F[id, "Direction"] !~ /^(One-way|Two-way)$/) fail("I27", id, "Direction must be One-way or Two-way")
-        if (F[id, "Mechanism"] !~ /^(API|File|Queue|Event|Database)$/) fail("I27", id, "Mechanism must be API, File, Queue, Event or Database")
+        if (has(id, "Mechanism") && F[id, "Mechanism"] !~ /^(API|File|Queue|Event|Database)$/) fail("I27", id, "Mechanism must be API, File, Queue, Event or Database")
         if (has(id, "Frequency") && F[id, "Frequency"] !~ /^(Real-time|Scheduled|On demand)$/) fail("I27", id, "Frequency must be Real-time, Scheduled or On demand")
         if (st == "Agreed" && !(id in SPEC)) fail("I28", id, "Agreed needs a REQ or DEC with a specifies link to it")
         if (has(id, "Implemented by") && F[id, "Implemented by"] !~ /^(Vendor|Internal|Both)$/) fail("I27", id, "Implemented by must be Vendor, Internal or Both")

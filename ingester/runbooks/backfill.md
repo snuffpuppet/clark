@@ -1,6 +1,6 @@
 # Runbook: backfill
 
-Version 0.2, 30 September 2026.
+Version 0.3, 1 October 2026.
 
 ## Purpose
 
@@ -111,7 +111,7 @@ A manual transfer between systems, and a statement that two systems do not integ
 
 Write `sessions/Tnnn/Tnnn.backfill-INT.md` from `ingester/templates/dossier.md`: the same header with the title `# Backfill INT: Tnnn`, `- Backfill: INT`, and the dossier's episode headings for the episodes that yield something, in order. Items are F4 blocks numbered from 01. The kinds allowed are INT, Question, and link-only mutations of REQ, DEC, LIM, RSK, PPT or OI (only `Links`, `Title` and `Gist` lines). The write refuses anything else.
 
-A new INT carries Title, Status (Current or Proposed), From and To (SYS ids), Direction (One-way or Two-way), Mechanism (API, File, Queue, Event or Database), Data, Frequency when the passage gives it, Raised on (the session date), Raised by (the person who described it, from the stakeholder register) and Links. Build every quote with `ingester/bin/quote`.
+A new INT carries Title, Status (Current or Proposed), From and To (SYS ids), Direction (One-way or Two-way), Data, Mechanism (API, File, Queue, Event or Database) and Frequency when the passage gives them (blank otherwise, never guessed), Raised on (the session date), Raised by (the person who described it, from the stakeholder register) and Links. Build every quote with `ingester/bin/quote`.
 
 Grade every item under the grading conditions. An INT whose route is hedged, or whose speaker describes another team's system from outside it, is Needs a human.
 
