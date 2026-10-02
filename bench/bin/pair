@@ -1,0 +1,13 @@
+#!/bin/sh
+# pair <items-x> <items-y>
+# Candidate pairs between two arms' items (rows from bin/items): every X item and Y item whose cited
+# utterances overlap, of any kind, with the number of utterances they share. Hints for the judge only.
+#   x-item  y-item  shared
+set -e
+. "$(dirname "$0")/lib.sh"
+[ $# -eq 2 ] || die "usage: pair <items-x> <items-y>"
+awk -F'\t' '
+  FNR == 1 { f++ }
+  f == 1 { nx++; xi[nx] = $1; xu[nx] = $5; next }
+  { n = split($5, u, " "); for (i = 1; i <= nx; i++) { c = 0; for (j = 1; j <= n; j++) if (index(xu[i], " " u[j] " ")) c++
+      if (c) printf "%s\t%s\t%d\n", xi[i], $1, c } }' "$1" "$2"

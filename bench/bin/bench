@@ -1,0 +1,56 @@
+#!/bin/sh
+# bench
+# Runs the head-to-head: builds a fixture per arm under $TMPDIR/clark-bench/<run>/, runs both arms headless
+# to the T001 dossier gate in parallel, has the judge compare the two drafts in two blinded passes, prints
+# the report, and tears everything down, including the Claude Code session files the arms left.
+# KEEP=1 keeps the run folder and session files for debugging. EFFORT=<level> sets --effort on both arms.
+# bench --resume <run> continues a kept run whose arms were cut off (a usage limit, say), then judges.
+set -e
+. "$(dirname "$0")/lib.sh"
+command -v claude > /dev/null || die "no claude on the PATH"
+[ -x "$BENCH_DIR/bin/run-arm" ] || die "bench/bin/run-arm is missing; see bench/README.md, The arm runner"
+[ -f "$ROOT_DIR/engagements/$ENG/transcripts/processed/$VTT" ] || die "no $VTT under engagements/$ENG/transcripts/processed/"
+[ -f "$ROOT_DIR/engagements/$ENG/engagement.md" ] || die "no engagements/$ENG/engagement.md"
+[ -n "$SESSION_DATE" ] || die "no session-date in engagements/$ENG/transcripts/$TID.md"
+if [ "${1:-}" = --resume ]; then
+  # A kept run whose arms were cut off: send each unfinished arm one more message, then judge as usual.
+  resume=yes; run=${2:-}; run_ok "$run" || die "usage: bench --resume <kept run folder under $BENCH_TMP>"
+  run=$p; [ -f "$run/arms.models" ] || die "$run has no arms.models; it is not a run folder bench made"
+else
+  resume=no; mkdir -p "$BENCH_TMP"; run="$BENCH_TMP/$(date -u +%Y%m%dT%H%MZ)-$TID"; [ ! -e "$run" ] || die "$run exists; wait a minute"
+  mkdir "$run"
+fi
+
+teardown() {
+  [ "${KEEP:-}" = 1 ] && { say "kept $run"; return; }
+  rm_sessions "$run" || true
+  rm_run "$run"; }
+trap teardown EXIT
+trap 'exit 130' INT TERM
+
+say "run $run"
+if [ $resume = no ]; then
+  printf '%s\n' "$ARMS" | awk '{ print $1 }' > "$run/arms"; new_seed > "$run/seed"
+  printf '%s\n' "$ARMS" | while read -r arm model; do "$BENCH_DIR/bin/prepare" "$run" "$arm" > /dev/null; done
+  printf '%s\n' "$ARMS" > "$run/arms.models"
+fi
+pids=""
+while read -r arm model; do
+  if [ $resume = yes ]; then
+    [ "$(awk -F'\t' '$1 == "finished" { print $2 }' "$run/$arm/metrics.tsv" 2>/dev/null)" = yes ] && { say "$arm: already at the dossier gate"; continue; }
+    "$BENCH_DIR/bin/run-arm" --resume "$run" "$arm" "$model" < /dev/null & pids="$pids $!"
+  else "$BENCH_DIR/bin/run-arm" "$run" "$arm" "$model" < /dev/null & pids="$pids $!"; fi
+done < "$run/arms.models"
+ok=1; for p in $pids; do wait "$p" || ok=0; done
+for arm in $(cat "$run/arms"); do [ "$(awk -F'\t' '$1 == "finished" { print $2 }' "$run/$arm/metrics.tsv" 2>/dev/null)" = yes ] || ok=0; done
+
+A=$(sed -n 1p "$run/arms"); B=$(sed -n 2p "$run/arms")
+ua="$run/$A/engagements/$ENG/sessions/$TID/$TID.utterances.tsv"; ub="$run/$B/engagements/$ENG/sessions/$TID/$TID.utterances.tsv"
+if [ $ok = 1 ]; then
+  [ "$(shasum < "$ua")" = "$(shasum < "$ub")" ] || die "the two arms' utterance tables differ, so their citations cannot be compared"
+  cp "$ua" "$run/utterances.tsv"; mkdir -p "$run/items"
+  for arm in $A $B; do "$BENCH_DIR/bin/items" "$run/$arm/engagements/$ENG/sessions/$TID/$TID.dossier.draft.md" "$run/utterances.tsv" "$WINDOW" > "$run/items/$arm.tsv"; done
+  "$BENCH_DIR/bin/pair" "$run/items/$A.tsv" "$run/items/$B.tsv" > "$run/pairs.tsv"
+  rm -rf -- "$run/judge"; "$BENCH_DIR/bin/judge-windows" "$run" 1; "$BENCH_DIR/bin/judge-windows" "$run" 2
+fi
+"$BENCH_DIR/bin/aggregate" "$run"

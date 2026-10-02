@@ -1,0 +1,76 @@
+#!/bin/sh
+# judge-windows <run-dir> <pass>
+# Judges every window of the run for one pass. Reads <run>/arms (the two arm names, A then B),
+# <run>/items/<arm>.tsv (from bin/items), <run>/pairs.tsv (from bin/pair, A as the first column),
+# <run>/utterances.tsv and <run>/seed. In pass 1 each window gets X and Y at random; pass 2 swaps them.
+# Writes <run>/judge/p<pass>-w<nn>.tsv (validated rows, blinded), .cost, and appends to <run>/judge/map.tsv:
+#   pass  window  x-arm  y-arm
+# A window whose output fails validation is asked once more, then marked unjudged in .err.
+# JUDGE_CMD, when set, is run instead of claude with the input on stdin and prints the reply (for selftest).
+set -e
+. "$(dirname "$0")/lib.sh"
+[ $# -eq 2 ] || die "usage: judge-windows <run-dir> <pass>"
+run=$1; pass=$2; run_ok "$run" || die "not a run folder: $run"
+A=$(sed -n 1p "$run/arms"); B=$(sed -n 2p "$run/arms"); J="$run/judge"; mkdir -p "$J"
+nw=$(cut -f3 "$run/items/$A.tsv" "$run/items/$B.tsv" | sort -n | tail -1)
+seed=$(cat "$run/seed")
+# Pass 1: a coin per window from the run's seed. Pass 2: the other way round.
+awk -v n="$nw" -v s="$seed" -v p="$pass" -v a="$A" -v b="$B" 'BEGIN { srand(s); for (w = 0; w <= n; w++) { c = (rand() < 0.5); if (p == 2) c = !c
+  printf "%s\t%d\t%s\t%s\n", p, w, (c ? a : b), (c ? b : a) } }' >> "$J/map.tsv"
+
+# The judge's input for one window: instructions, rules, utterances, both sides' items, candidate pairs.
+build() { w=$1; x=$2; y=$3; out=$4
+  { cat "$BENCH_DIR/prompts/judge.md"; printf '\n## Extraction rules\n\n'; cat "$ROOT_DIR/ingester/extraction-rules.md"
+    printf '\n## Utterances\n\nutterance\tstart\tspeaker\ttext\n'
+    awk -F'\t' -v w="$w" -v n="$WINDOW" 'FNR == 1 { f++ }
+      f <= 2 && $3 == w { m = split($5, u, " "); for (i = 1; i <= m; i++) want[u[i]] = 1; next }
+      f <= 2 { next }
+      FNR == 1 { next }
+      !($1 in row) { row[$1] = ++r }
+      int((row[$1] - 1) / n) + 1 == w || ($1 in want) { t[$1] = t[$1] (t[$1] == "" ? "" : " ") $6; if (!($1 in s)) { s[$1] = $3; sp[$1] = $5; ord[++o] = $1 } }
+      END { for (i = 1; i <= o; i++) printf "%s\t%s\t%s\t%s\n", ord[i], s[ord[i]], sp[ord[i]], t[ord[i]] }' "$run/items/$x.tsv" "$run/items/$y.tsv" "$run/utterances.tsv"
+    for side in X Y; do arm=$x; [ $side = Y ] && arm=$y; printf '\n## Items from %s\n\n' "$side"
+      awk -F'\t' -v w="$w" -v L="$side" '$3 == w { b = $6; sub(/^### Item [0-9]+/, "### " L "-" $1, b); gsub(/\001/, "\n", b); print b; print "" }' "$run/items/$arm.tsv"; done
+    printf '\n## Candidate pairs\n\nx_item\ty_item\tshared utterances\n'
+    awk -F'\t' -v w="$w" -v xa="$x" -v A="$A" 'FNR == 1 { f++ } f == 1 { if ($3 == w) wa[$1] = 1; next } f == 2 { if ($3 == w) wb[$1] = 1; next }
+      ($1 in wa) && ($2 in wb) { if (xa == A) printf "X-%s\tY-%s\t%s\n", $1, $2, $3; else printf "X-%s\tY-%s\t%s\n", $2, $1, $3 }' "$run/items/$A.tsv" "$run/items/$B.tsv" "$run/pairs.tsv"
+  } > "$out"; }
+
+# The reply text of a claude --output-format json result, unescaped.
+reply() { awk 'BEGIN { RS = "\001" } { i = index($0, "\"result\":\""); if (!i) exit 1; s = substr($0, i + 10); o = ""
+  for (k = 1; k <= length(s); k++) { c = substr(s, k, 1)
+    if (c == "\\") { k++; d = substr(s, k, 1); if (d == "n") o = o "\n"; else if (d == "t") o = o "\t"; else if (d == "u") { o = o "?"; k += 4 } else o = o d; continue }
+    if (c == "\"") break; o = o c }
+  printf "%s\n", o }' "$1"; }
+
+# Rows between the markers, checked against the window's labels. Prints the problem and exits 1 when bad.
+validate() { w=$1; x=$2; y=$3; txt=$4; rows=$5
+  awk '/^BEGIN TSV/ { on = 1; next } /^END TSV/ { on = 0; done = 1 } on && NF' "$txt" | awk -F'\t' '$1 != "group"' > "$rows"
+  awk -F'\t' -v w="$w" 'FNR == 1 { f++ } f == 1 && $3 == w { lab["X-" $1] = 0; next } f == 2 && $3 == w { lab["Y-" $1] = 0; next } f <= 2 { next }
+    NF != 11 { print "row " FNR " has " NF " columns, not 11"; bad = 1; next }
+    $2 !~ /^(same|overlap|only_x|only_y)$/ { print "row " FNR ": class " $2; bad = 1 }
+    { n = split($3 "," $4, l, ","); c = 0; for (i = 1; i <= n; i++) if (l[i] != "") { c++; if (!(l[i] in lab)) { print "row " FNR ": unknown label " l[i]; bad = 1 } else lab[l[i]]++ }
+      if (!c) { print "row " FNR ": no items"; bad = 1 } }
+    $2 ~ /^only/ && $10 !~ /^(valid|weak|invalid)$/ { print "row " FNR ": validity " $10; bad = 1 }
+    $2 !~ /^only/ { for (i = 5; i <= 9; i++) if ($i !~ /^(X|Y|tie)$/) { print "row " FNR ": criterion " $i; bad = 1 } }
+    END { for (k in lab) if (lab[k] != 1) { print k " appears " lab[k] " times"; bad = 1 }; exit bad }' \
+    "$run/items/$x.tsv" "$run/items/$y.tsv" "$rows"; }
+
+ask() { in=$1; base=$2
+  if [ -n "${JUDGE_CMD:-}" ]; then $JUDGE_CMD < "$in" > "$base.txt"; echo 0 > "$base.cost"; return; fi
+  claude -p --model "$JUDGE_MODEL" --tools "" --no-session-persistence --strict-mcp-config --output-format json < "$in" > "$base.json" 2> "$base.stderr" || true
+  reply "$base.json" > "$base.txt" || : > "$base.txt"; json_num "$(cat "$base.json")" total_cost_usd > "$base.cost"; }
+
+one() { w=$1; x=$(awk -F'\t' -v p="$pass" -v w="$w" '$1 == p && $2 == w { print $3 }' "$J/map.tsv"); y=$(awk -F'\t' -v p="$pass" -v w="$w" '$1 == p && $2 == w { print $4 }' "$J/map.tsv")
+  base="$J/p$pass-w$(printf '%02d' "$w")"; build "$w" "$x" "$y" "$base.in"
+  ask "$base.in" "$base"
+  if ! validate "$w" "$x" "$y" "$base.txt" "$base.tsv" > "$base.err"; then
+    cp "$base.cost" "$base.cost1"; { cat "$base.in"; printf '\n## Your previous table was refused\n\n'; cat "$base.err"; printf '\nWrite the whole table again, fixing these.\n'; } > "$base.in2"
+    ask "$base.in2" "$base"; awk '{ s += $1 } END { print s + 0 }' "$base.cost" "$base.cost1" > "$base.c" && mv "$base.c" "$base.cost"
+    if validate "$w" "$x" "$y" "$base.txt" "$base.tsv" > "$base.err"; then rm -f "$base.err"; else : > "$base.tsv"; say "pass $pass window $w unjudged: $(head -1 "$base.err")"; fi
+  else rm -f "$base.err"; fi; }
+
+w=0; while [ "$w" -le "$nw" ]; do
+  one "$w" & w=$((w + 1)); [ $(( w % ${JUDGE_JOBS:-4} )) -eq 0 ] && wait
+done; wait
+say "pass $pass: $((nw + 1)) windows judged, window 0 holding the SYS records"

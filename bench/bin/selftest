@@ -1,0 +1,51 @@
+#!/bin/sh
+# selftest
+# Runs everything except the models. Builds both fixtures, registers and flattens T001 in each with the
+# ingester's own scripts, checks the utterance tables match, makes two drafts from the signed T001 dossier
+# (B drops items 05 and 06), judges them with a fake judge that always prefers X on faithful (so every
+# faithful verdict flips between passes) and ties the rest, checks the report's counts, and checks that
+# teardown leaves nothing. selftest fake-judge is the fake judge.
+set -e
+. "$(dirname "$0")/lib.sh"
+if [ "${1:-}" = fake-judge ]; then
+  awk '/^### X-[0-9]+ \|/ { x[substr($2, 3)] = 1 } /^### Y-[0-9]+ \|/ { y[substr($2, 3)] = 1 }
+    END { print "BEGIN TSV"; print "group\tclass\tx_items\ty_items\tfaithful\tkind\tgrade\tfields\tcitations\tvalidity\treason"
+      for (k in x) if (k in y) printf "%d\tsame\tX-%s\tY-%s\tX\ttie\ttie\ttie\ttie\tna\tfake\n", ++g, k, k
+      for (k in x) if (!(k in y)) printf "%d\tonly_x\tX-%s\t\tna\tna\tna\tna\tna\tvalid\tfake\n", ++g, k
+      for (k in y) if (!(k in x)) printf "%d\tonly_y\t\tY-%s\tna\tna\tna\tna\tna\tvalid\tfake\n", ++g, k
+      print "END TSV" }'
+  exit 0
+fi
+fail() { say "selftest FAILED: $*"; exit 1; }
+mkdir -p "$BENCH_TMP"; run="$BENCH_TMP/selftest-$(date -u +%Y%m%dT%H%M%SZ)"; mkdir "$run"
+trap 'rm_run "$run"' EXIT
+printf 'a\nb\n' > "$run/arms"; new_seed > "$run/seed"
+signed="$ROOT_DIR/engagements/$ENG/sessions/$TID/$TID.dossier.md"
+for arm in a b; do "$BENCH_DIR/bin/prepare" "$run" "$arm" > /dev/null; e="$run/$arm/engagements/$ENG"
+  "$run/$arm/ingester/bin/register-transcript" "$ENG" "$e/transcripts/unprocessed/$VTT" "$SUBJECT" > /dev/null
+  "$run/$arm/ingester/bin/stage" "$ENG" "$TID" S0 > /dev/null
+  [ "$("$run/$arm/ingester/bin/stage" "$ENG" "$TID" status)" = awaiting-session-sheet ] || fail "arm $arm is not at the session sheet after S0"
+  printf 'finished\tyes\nmodel_asked\tnone\nmodels_seen\tnone\ncost_usd\t0\n' > "$run/$arm/metrics.tsv"
+done
+ua="$run/a/engagements/$ENG/sessions/$TID/$TID.utterances.tsv"
+[ "$(shasum < "$ua")" = "$(shasum < "$run/b/engagements/$ENG/sessions/$TID/$TID.utterances.tsv")" ] || fail "utterance tables differ between arms"
+cp "$ua" "$run/utterances.tsv"
+cp "$signed" "$run/a/engagements/$ENG/sessions/$TID/$TID.dossier.draft.md"
+awk '/^### Item (05|06) \|/ { skip = 1; next } /^##/ { skip = 0 } !skip' "$signed" > "$run/b/engagements/$ENG/sessions/$TID/$TID.dossier.draft.md"
+mkdir -p "$run/items"
+for arm in a b; do "$BENCH_DIR/bin/items" "$run/$arm/engagements/$ENG/sessions/$TID/$TID.dossier.draft.md" "$run/utterances.tsv" "$WINDOW" > "$run/items/$arm.tsv"; done
+na=$(wc -l < "$run/items/a.tsv" | tr -d ' '); nb=$(wc -l < "$run/items/b.tsv" | tr -d ' ')
+[ $((na - nb)) -eq 2 ] || fail "expected B to have two items fewer than A, got $na and $nb"
+"$BENCH_DIR/bin/pair" "$run/items/a.tsv" "$run/items/b.tsv" > "$run/pairs.tsv"
+JUDGE_CMD="$BENCH_DIR/bin/selftest fake-judge"; export JUDGE_CMD
+"$BENCH_DIR/bin/judge-windows" "$run" 1 2> /dev/null; "$BENCH_DIR/bin/judge-windows" "$run" 2 2> /dev/null
+ls "$run"/judge/*.err > /dev/null 2>&1 && fail "a window failed validation: $(cat "$run"/judge/*.err | head -3)"
+"$BENCH_DIR/bin/aggregate" "$run" > "$run/report.md"
+grep -q "^Groups both passes agreed on: $na\. Groups the passes formed differently: 0\.$" "$run/report.md" || fail "alignment counts wrong: $(grep '^Groups' "$run/report.md")"
+grep -q "^| faithful | 0 | 0 | 0 | $nb |$" "$run/report.md" || fail "faithful should flip on all $nb pairs: $(grep '^| faithful' "$run/report.md")"
+grep -q "^| kind | 0 | 0 | $nb | 0 |$" "$run/report.md" || fail "kind should tie on all $nb pairs: $(grep '^| kind' "$run/report.md")"
+grep -q "^| Only a | 2 | 0 | 0 | 0 |$" "$run/report.md" || fail "A should have two valid unique finds: $(grep '^| Only a' "$run/report.md")"
+[ "${VERBOSE:-}" = 1 ] && cat "$run/report.md"
+[ "${KEEP:-}" = 1 ] && { trap - EXIT; say "kept $run"; exit 0; }
+trap - EXIT; rm_run "$run"; [ ! -e "$run" ] || fail "teardown left $run"
+say "selftest passed: $na and $nb items, $(ls "$BENCH_TMP" | grep -c selftest || true) selftest folders left under $BENCH_TMP"

@@ -1,12 +1,14 @@
 # Architecture
 
-Version 0.3, 30 September 2026.
+Version 0.4, 2 October 2026.
 
 Decisions about the shape of this repository that are not derivable from the files themselves. Read before changing where something lives or which document says what.
 
-## Two independent parts
+## Three independent parts
 
 `ingester/` is the mechanism. `engagements/<name>/` is what the mechanism produces for one client, and says nothing about how ingestion works. Nothing under `engagements/` is read to learn the method, and nothing under `ingester/` is written by a run.
+
+`bench/` compares two models running the mechanism on the same transcript. It reads `ingester/` and `engagements/` and writes to neither: every run happens in a copy under `$TMPDIR` that is removed when the run ends. A change to the benchmark is versioned in `bench/README.md` and never bumps `ingester/VERSION`.
 
 ## Which document owns what
 
@@ -21,6 +23,7 @@ Each fact about the mechanism has one home. Other documents point at it and do n
 | What each stage reads, produces, checks and reports | `ingester/runbooks/` |
 | How Claude Code operates the stages in a session | `.claude/skills/ingest-transcript/SKILL.md` |
 | The empty form of every engagement file | `ingester/templates/` |
+| How two models are compared on one transcript | `bench/README.md`, the judge's rubric in `bench/prompts/judge.md` |
 
 ## Runbooks are the source of truth for the stages
 

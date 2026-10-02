@@ -1,0 +1,95 @@
+#!/bin/sh
+# aggregate <run-dir>
+# Unblinds both judge passes, keeps what the two passes agree on, and prints the report to the terminal.
+# Reads <run>/arms, <run>/items/<arm>.tsv, <run>/judge/map.tsv and p<pass>-w<nn>.tsv, and each arm's
+# <arm>/metrics.tsv and drafted dossier. A group counts when both passes made the same group of items; a
+# verdict counts when both passes gave it to the same arm. The rest is reported as flipped.
+set -e
+. "$(dirname "$0")/lib.sh"
+[ $# -eq 1 ] || die "usage: aggregate <run-dir>"
+run=$1; [ -d "$run" ] || die "no run at $run"
+A=$(sed -n 1p "$run/arms"); B=$(sed -n 2p "$run/arms"); J="$run/judge"
+draft() { printf '%s/%s/engagements/%s/sessions/%s/%s.dossier.draft.md' "$run" "$1" "$ENG" "$TID" "$TID"; }
+denials() { awk '/^denial/ { n++ } END { print n + 0 }' "$run/$1/metrics.tsv" 2>/dev/null || echo 0; }
+met() { awk -F'\t' -v k="$2" '$1 == k { print $2; exit }' "$run/$1/metrics.tsv" 2>/dev/null; }
+# Commas every three digits.
+thou() { printf '%s\n' "${1:-0}" | awk '{ s = sprintf("%d", $1); o = ""; while (length(s) > 3) { o = "," substr(s, length(s) - 2) o; s = substr(s, 1, length(s) - 3) } print s o }'; }
+
+printf '\n# Benchmark: %s, %s vs %s\n\n' "$TID" "$A" "$B"
+printf 'Ingester %s, rules %s, judge %s.\n\n' "$(cat "$ROOT_DIR/ingester/VERSION")" "$(sed -n 's/^Version \([0-9.]*\),.*/\1/p' "$ROOT_DIR/ingester/extraction-rules.md" | head -1)" "$JUDGE_MODEL"
+
+printf '## Status\n\n'
+for arm in $A $B; do printf -- '- %s: %s' "$arm" "$( [ "$(met $arm finished)" = yes ] && echo "reached the dossier gate" || echo "stopped: $(met $arm stop)")"
+  printf '; asked for %s, answered by %s\n' "$(met $arm model_asked)" "$(met $arm models_seen)"; done
+
+printf '\n## Efficiency\n\n| | %s | %s |\n|---|---|---|\n' "$A" "$B"
+for r in "Calls:calls" "Calls cut off and resumed:interrupted" "Wall minutes:wall_minutes" "Turns:turns" "Output tokens:output_tokens" "Cache read tokens:cache_read_tokens" "Cache write tokens:cache_write_tokens" "Input tokens (uncached):input_tokens" "Cost, US\$:cost_usd" "Compactions:compactions" "Citation failures:citation_failures" "Effort:effort"; do
+  l=${r%%:*}; k=${r#*:}; va=$(met $A $k); vb=$(met $B $k)
+  case $k in *tokens) va=$(thou "$va"); vb=$(thou "$vb") ;; esac; printf '| %s | %s | %s |\n' "$l" "$va" "$vb"; done
+printf '| Permission denials | %s | %s |\n' "$(denials $A)" "$(denials $B)"
+jc=$(cat "$J"/*.cost 2>/dev/null | awk '{ s += $1 } END { printf "%.2f", s }')
+printf '\nJudge cost, both passes: US$%s.\n' "${jc:-0.00}"
+for arm in $A $B; do grep '^denial' "$run/$arm/metrics.tsv" 2>/dev/null | cut -f2- | sed "s/^/- $arm denied: /"; done
+
+[ "$(met $A finished)" = yes ] && [ "$(met $B finished)" = yes ] || { printf '\nAn arm did not reach the dossier gate, so there is no comparison.\n'; exit 0; }
+
+printf '\n## Volume\n\n| Kind | %s | %s |\n|---|---|---|\n' "$A" "$B"
+awk -F'\t' -v a="$A" 'FNR == 1 { f++ } { k[$2] = 1; n[f, $2]++; t[f]++; g = $6; sub(/\001.*/, "", g); if (g ~ /Needs a human/) h[f]++ }
+  END { for (x in k) printf "| %s | %d | %d |\n", x, n[1, x], n[2, x] | "sort"; close("sort")
+    printf "| All | %d | %d |\n| Needs a human share | %.1f%% | %.1f%% |\n", t[1], t[2], t[1] ? 100 * h[1] / t[1] : 0, t[2] ? 100 * h[2] / t[2] : 0 }' "$run/items/$A.tsv" "$run/items/$B.tsv"
+printf '| Episodes | %s | %s |\n' "$(grep -c '^## T[0-9]*-E[0-9]' "$(draft $A)")" "$(grep -c '^## T[0-9]*-E[0-9]' "$(draft $B)")"
+
+# Unblind every row to: pass  key  class  faithful kind grade fields citations  validity  reason  window
+# key is "A=01,03;B=05" with each side sorted, so the same group reads the same in both passes.
+U="$J/unblinded.tsv"
+for f in "$J"/p[12]-w*.tsv; do [ -s "$f" ] || continue; b=$(basename "$f" .tsv); p=${b%%-*}; p=${p#p}; w=${b#*-w}; w=$((1$w - 100))
+  x=$(awk -F'\t' -v p="$p" -v w="$w" '$1 == p && $2 == w { print $3 }' "$J/map.tsv")
+  awk -F'\t' -v OFS='\t' -v p="$p" -v w="$w" -v x="$x" -v A="$A" -v B="$B" '
+    # The reason names sides as X and Y, which mean different arms in each window and pass: name the arms.
+    function unb(s,   o, i, c, pr, nx) { o = ""; for (i = 1; i <= length(s); i++) { c = substr(s, i, 1); pr = substr(s, i - 1, 1); nx = substr(s, i + 1, 1)
+        if ((c == "X" || c == "Y") && pr !~ /[A-Za-z0-9]/ && nx !~ /[A-Za-z0-9]/) o = o ((c == "X") == (x == A) ? A : B); else o = o c } return o }
+    function side(l, want,   n, i, o, t, m, s, j, k) { n = split(l, t, ","); m = 0; for (i = 1; i <= n; i++) if (t[i] != "") { sub(/^[XY]-/, "", t[i]); s[++m] = t[i] }
+      for (i = 2; i <= m; i++) { k = s[i]; for (j = i - 1; j >= 1 && s[j] > k; j--) s[j + 1] = s[j]; s[j + 1] = k }
+      o = ""; for (i = 1; i <= m; i++) o = o (i > 1 ? "," : "") s[i]; return o }
+    function arm(v) { return v == "tie" || v == "na" ? v : ((v == "X") == (x == A) ? "A" : "B") }
+    { xa = side($3); ya = side($4); if (x == A) { ka = xa; kb = ya } else { ka = ya; kb = xa }
+      c = $2; if (c ~ /^only/) c = "only"
+      print p, "A=" ka ";B=" kb, c, arm($5), arm($6), arm($7), arm($8), arm($9), $10, unb($11), w }' "$f"
+done > "$U"
+
+awk -F'\t' -v a="$A" -v b="$B" -v ia="$run/items/$A.tsv" -v ib="$run/items/$B.tsv" '
+  BEGIN { while ((getline l < ia) > 0) { split(l, f, "\t"); kind["A", f[1]] = f[2]; t = f[6]; if (!sub(/.*\001- Title: /, "", t) && !sub(/.*\001- Name: /, "", t)) t = ""; sub(/\001.*/, "", t); title["A", f[1]] = t }
+          while ((getline l < ib) > 0) { split(l, f, "\t"); kind["B", f[1]] = f[2]; t = f[6]; if (!sub(/.*\001- Title: /, "", t) && !sub(/.*\001- Name: /, "", t)) t = ""; sub(/\001.*/, "", t); title["B", f[1]] = t }
+          crit[1] = "faithful"; crit[2] = "kind"; crit[3] = "grade"; crit[4] = "fields"; crit[5] = "citations"; name["A"] = a; name["B"] = b }
+  { key = $2; seen[$1, key] = 1; cls[$1, key] = $3; for (i = 1; i <= 5; i++) v[$1, key, i] = $(3 + i); val[$1, key] = $9; why[$1, key] = $10; keys[key] = 1 }
+  END {
+    for (k in keys) { if (!seen[1, k] || !seen[2, k] || cls[1, k] != cls[2, k]) { moved++; continue }
+      agreed++; c = cls[1, k]; split(k, s, ";"); sa = substr(s[1], 3); sb = substr(s[2], 3)
+      na = split(sa, la, ","); nb = split(sb, lb, ",")
+      for (i = 1; i <= na; i++) if (la[i] != "") al["A", kind["A", la[i]], c]++
+      for (i = 1; i <= nb; i++) if (lb[i] != "") al["B", kind["B", lb[i]], c]++
+      if (c != "only") { groups[c]++; for (i = 1; i <= 5; i++) { if (v[1, k, i] == v[2, k, i]) win[i, v[1, k, i]]++; else flip[i]++ } }
+      else { sd = (sa != "") ? "A" : "B"; id = (sd == "A") ? sa : sb
+        if (val[1, k] == val[2, k]) { vc[sd, val[1, k]]++; if (val[1, k] != "weak") list[sd, val[1, k]] = list[sd, val[1, k]] sprintf("  - %s %s: %s. %s\n", kind[sd, id], id, title[sd, id], why[1, k]) }
+        else vflip[sd]++ } }
+    printf "\n## Alignment\n\nItems by the group the judge put them in, where both passes made the same group.\n\n"
+    printf "| Kind | %s same | %s overlap | %s only | %s same | %s overlap | %s only |\n|---|---|---|---|---|---|---|\n", a, a, a, b, b, b
+    for (q in al) { split(q, z, SUBSEP); ks[z[2]] = 1 }
+    for (x in ks) printf "| %s | %d | %d | %d | %d | %d | %d |\n", x, al["A", x, "same"], al["A", x, "overlap"], al["A", x, "only"], al["B", x, "same"], al["B", x, "overlap"], al["B", x, "only"] | "sort"
+    close("sort")
+    printf "\nGroups both passes agreed on: %d. Groups the passes formed differently: %d.\n", agreed, moved
+    printf "\n## Quality\n\nOver %d same and %d overlap groups. Flipped means the two passes gave the verdict to different arms.\n\n", groups["same"], groups["overlap"]
+    printf "| Criterion | %s better | %s better | Tie | Flipped |\n|---|---|---|---|---|\n", a, b
+    for (i = 1; i <= 5; i++) printf "| %s | %d | %d | %d | %d |\n", crit[i], win[i, "A"], win[i, "B"], win[i, "tie"], flip[i]
+    printf "\n## Unique finds\n\n| | Valid | Weak | Invalid | Flipped |\n|---|---|---|---|---|\n"
+    for (j = 1; j <= 2; j++) { sd = j == 1 ? "A" : "B"; printf "| Only %s | %d | %d | %d | %d |\n", name[sd], vc[sd, "valid"], vc[sd, "weak"], vc[sd, "invalid"], vflip[sd] }
+    for (j = 1; j <= 2; j++) { sd = j == 1 ? "A" : "B"
+      printf "\n### Found only by %s\n\nValid:\n%s", name[sd], (list[sd, "valid"] != "" ? list[sd, "valid"] : "  - none\n")
+      printf "\nInvalid:\n%s", (list[sd, "invalid"] != "" ? list[sd, "invalid"] : "  - none\n") } }' "$U"
+
+unj=$(ls "$J"/*.err 2>/dev/null | sed 's#.*/##; s/\.err$//' | tr '\n' ' ')
+printf '\n## Caveats\n\n'
+printf -- '- One run per arm. A difference between the arms may be run-to-run variation.\n'
+printf -- '- The judge is %s. Labels were blind and swapped between passes, but it may still prefer output like its own.\n' "$JUDGE_MODEL"
+[ -n "$unj" ] && printf -- '- Unjudged windows: %s\n' "$unj"
+printf -- '- Each arm was run with the reviewer'"'"'s global CLAUDE.md, memory and hooks, as a real session is.\n'

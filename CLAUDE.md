@@ -1,6 +1,6 @@
 # clark
 
-This repository holds two independent parts. `ingester/` is the mechanism for turning discovery transcripts into register items and a current-state record. `engagements/<name>/` holds everything produced for one client and says nothing about how ingestion works.
+This repository holds three independent parts. `ingester/` is the mechanism for turning discovery transcripts into register items and a current-state record. `engagements/<name>/` holds everything produced for one client and says nothing about how ingestion works. `bench/` compares two models running the mechanism on the same transcript, in a throwaway copy; read `bench/README.md` before touching it.
 
 Ingestion runs as the `/ingest-transcript` skill from this root. Read `ingester/README.md` before touching the ingester: it lists every file, the formats the scripts parse, and the versioning rule. Read `ARCHITECTURE.md` before changing which document says what: the runbooks under `ingester/runbooks/` are the source of truth for the stages and the skill file only operates them. Shell scripts use awk, sed, grep, shasum and date only, and nothing is installed on the host.
 

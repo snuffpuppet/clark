@@ -1,0 +1,77 @@
+#!/bin/sh
+# run-arm <run-dir> <arm> <model>
+# Drives one arm headless: call 1 runs /ingest-transcript on the T001 vtt and stops at the session sheet;
+# call 2 resumes the same session with $GATE_REPLY ("accept all" and the session date), which signs the sheet
+# and runs S1 to the dossier gate.
+# Writes <arm>/session-id, call1.jsonl, call2.jsonl and metrics.tsv. Exit 0 when the arm reached the gate.
+set -e
+. "$(dirname "$0")/lib.sh"
+resume=no; [ "${1:-}" = --resume ] && { resume=yes; shift; }
+[ $# -eq 3 ] || die "usage: run-arm [--resume] <run-dir> <arm> <model>"
+run=$1; arm=$2; model=$3; run_ok "$run" || die "not a run folder: $run"
+a="$run/$arm"; e="$a/engagements/$ENG"; [ -d "$e" ] || die "no fixture at $e"
+if [ $resume = yes ]; then sid=$(cat "$a/session-id") || die "no session id for $arm"; else sid=$(new_uuid); printf '%s\n' "$sid" > "$a/session-id"; fi
+tools=$(grep -v '^#' "$BENCH_DIR/prompts/allowed-tools" | grep . | tr '\n' ',' | sed 's/,$//')
+# The sandbox is switched on for the call itself: Bash that runs inside it is approved without a prompt,
+# nothing may run outside it, and the call fails if the sandbox cannot start. The mode is manual, the CLI's
+# ordinary mode, because dontAsk denies anything without an allow rule, sandbox approval included. Anything
+# else not on the allowlist would prompt, and with no one to answer in -p it is denied.
+sandbox='{"sandbox":{"enabled":true,"autoAllowBashIfSandboxed":true,"allowUnsandboxedCommands":false,"failIfUnavailable":true}}'
+set -- --model "$model" --add-dir ../../ingester --permission-mode manual --allowedTools "$tools" \
+  --settings "$sandbox" --strict-mcp-config --output-format stream-json --verbose ${EFFORT:+--effort "$EFFORT"}
+status() { "$a/ingester/bin/stage" "$ENG" "$TID" status 2>/dev/null || echo needs-register; }
+
+# Wall minutes already spent by earlier calls, when resuming.
+prev=0; [ $resume = yes ] && prev=$(awk -F'\t' '$1 == "wall_minutes" { print $2 + 0 }' "$a/metrics.tsv" 2>/dev/null)
+start=$(date +%s)
+if [ $resume = yes ]; then
+  # One more message on the saved session, as the next call, after an arm was cut off (a usage limit, say).
+  n=$(ls "$a" | grep -c '^call[0-9]*\.jsonl$' || true); n=$((n + 1)); reached=call$n
+  ( cd "$e" && claude -p "$RESUME_REPLY" --resume "$sid" "$@" > "$a/call$n.jsonl" 2> "$a/call$n.err" ) || true
+else
+  ( cd "$e" && claude -p "/ingest-transcript \"transcripts/unprocessed/$VTT\" \"$SUBJECT\"" --session-id "$sid" "$@" \
+      > "$a/call1.jsonl" 2> "$a/call1.err" ) || true
+  reached=call1
+  if [ "$(status)" = awaiting-session-sheet ]; then
+    ( cd "$e" && claude -p "$GATE_REPLY" --resume "$sid" "$@" > "$a/call2.jsonl" 2> "$a/call2.err" ) || true
+    reached=call2
+  fi
+fi
+end=$(date +%s); s=$(status)
+fin=no; [ "$s" = awaiting-dossier ] && [ -f "$e/sessions/$TID/$TID.dossier.draft.md" ] && fin=yes
+
+# Figures from each call's result event, summed.
+cost=0; stop=""; den=""
+for c in $(ls "$a" | sed -n 's/^\(call[0-9]*\)\.jsonl$/\1/p' | sort -t l -k 3 -n); do f="$a/$c.jsonl"; [ -s "$f" ] || continue
+  # The last call decides the stop reason; earlier cut-offs are counted in interrupted.
+  calls=$(( ${calls:-0} + 1 )); [ -n "$stop" ] && interrupted=$(( ${interrupted:-0} + 1 )); stop=""
+  r=$(result_line "$f")
+  [ -n "$r" ] || { stop="$c ended with no result event: $(tail -c 300 "$a/$c.err" | tr '\n' ' ')"; continue; }
+  cost=$(awk -v x="$cost" -v y="$(json_num "$r" total_cost_usd)" 'BEGIN { printf "%.4f", x + y }')
+  for k in duration_ms num_turns input_tokens output_tokens cache_creation_input_tokens cache_read_input_tokens; do
+    v=$(json_num "$r" $k); eval "x_$k=\$(( \${x_$k:-0} + ${v:-0} ))"; done
+  sub=$(json_str "$r" subtype); [ "$sub" = success ] || stop="$c ended with $sub"
+  # A usage limit or API error still reports success; terminal_reason and the reply say what happened.
+  term=$(json_str "$r" terminal_reason)
+  [ -z "$term" ] || [ "$term" = completed ] || stop="$c ended with $term: $(json_str "$r" result | sed 's/\\n.*//' | cut -c1-160)"
+  den="$den$(printf '%s\n' "$r" | sed 's/.*"permission_denials":\[//' | awk -v c="$c" '{ gsub(/\{"tool_name":/, "\n&"); n = split($0, L, "\n")
+      for (i = 1; i <= n; i++) { s = L[i]; if (!match(s, /"tool_name":"[^"]*"/)) continue; t = substr(s, RSTART + 13, RLENGTH - 14); w = ""
+        if (match(s, /"(command|file_path)":"([^"\\]|\\.)*"/)) { w = substr(s, RSTART, RLENGTH); sub(/^"[a-z_]*":"/, "", w); sub(/"$/, "", w) }
+        printf "%s: %s %s\n", c, t, substr(w, 1, 160) } }')
+"
+done
+models=$(cat "$a"/call*.jsonl 2>/dev/null | grep -o '"model":"claude-[^"]*"' | sed 's/.*:"//; s/"$//' | sort | uniq -c \
+  | awk '{ printf "%s%s (%s)", (NR > 1 ? ", " : ""), $2, $1 }')
+compact=$(cat "$a"/call*.jsonl 2>/dev/null | grep -c compact_boundary || true)
+cites=n/a; [ $fin = yes ] && cites=$("$a/ingester/bin/check-citations" "$ENG" "$TID" "$e/sessions/$TID/$TID.dossier.draft.md" 2>&1 | grep -c '^FAIL' || true)
+[ $fin = yes ] || [ -n "$stop" ] || stop="stopped after $reached at status $s"
+
+{ printf 'arm\t%s\nmodel_asked\t%s\nmodels_seen\t%s\nfinished\t%s\nstatus\t%s\nstop\t%s\n' "$arm" "$model" "$models" "$fin" "$s" "$stop"
+  printf 'wall_minutes\t%s\nduration_ms\t%s\nturns\t%s\ncost_usd\t%s\n' "$(( prev + (end - start + 30) / 60 ))" "${x_duration_ms:-0}" "${x_num_turns:-0}" "$cost"
+  printf 'input_tokens\t%s\noutput_tokens\t%s\ncache_write_tokens\t%s\ncache_read_tokens\t%s\n' \
+    "${x_input_tokens:-0}" "${x_output_tokens:-0}" "${x_cache_creation_input_tokens:-0}" "${x_cache_read_input_tokens:-0}"
+  printf 'calls\t%s\ninterrupted\t%s\n' "${calls:-0}" "${interrupted:-0}"
+  printf 'compactions\t%s\ncitation_failures\t%s\neffort\t%s\n' "$compact" "$cites" "${EFFORT:-default}"
+  printf '%s' "$den" | grep . | sed 's/^/denial\t/' || true; } > "$a/metrics.tsv"
+say "$arm: finished $fin ($s), \$$cost"
+[ $fin = yes ]

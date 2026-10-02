@@ -1,0 +1,21 @@
+#!/bin/sh
+# prepare <run-dir> <arm>
+# Builds one arm's fixture under <run-dir>/<arm>/: a copy of ingester/ and of the ingest-transcript skill,
+# a fresh techm-bss engagement from new-engagement with today's engagement.md, and the T001 vtt in
+# transcripts/unprocessed/. Nothing under the repository is written.
+set -e
+. "$(dirname "$0")/lib.sh"
+[ $# -eq 2 ] || die "usage: prepare <run-dir> <arm>"
+run=$1; arm=$2; run_ok "$run" || die "not a run folder: $run"
+a="$run/$arm"; [ ! -e "$a" ] || die "$a already exists"
+mkdir -p "$a/.claude/skills"
+cp -R "$ROOT_DIR/ingester" "$a/ingester"
+cp -R "$ROOT_DIR/.claude/skills/ingest-transcript" "$a/.claude/skills/ingest-transcript"
+"$a/ingester/bin/new-engagement" "$ENG" > /dev/null
+e="$a/engagements/$ENG"
+# Today's engagement.md, with the glossary's SYS id column blanked: those ids name files that do not
+# exist in a fresh register.
+awk -F'|' -v OFS='|' '/^## Glossary of system names/ { g = 1 } /^## / && !/Glossary/ { g = 0 }
+  g && NF >= 6 && $5 ~ /SYS-[0-9]+/ { $5 = " " } { print }' "$ROOT_DIR/engagements/$ENG/engagement.md" > "$e/engagement.md"
+cp "$ROOT_DIR/engagements/$ENG/transcripts/processed/$VTT" "$e/transcripts/unprocessed/$VTT"
+printf '%s\n' "$e"

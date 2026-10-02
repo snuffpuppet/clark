@@ -1,0 +1,27 @@
+#!/bin/sh
+# items <dossier> <utterances.tsv> <window-size>
+# One row per item block of a drafted dossier, tab separated:
+#   item  kind  window  first-utterance  utterances  block
+# window is the row of the first cited utterance in the utterance table, divided by window-size, plus one;
+# an item with no citations of its own (a PRC record) takes the window of the item before it. Every SYS record
+# goes to window 0, so the two arms' records of the same system are judged side by side.
+# utterances is every cited utterance number, space separated. block is the item's F4 lines joined by \001,
+# with the Verdict and Episode lines dropped and the episode's title added, so nothing in it names an arm.
+set -e
+. "$(dirname "$0")/lib.sh"
+[ $# -eq 3 ] || die "usage: items <dossier> <utterances.tsv> <window-size>"
+awk -F'\t' -v w="$3" '
+  FILENAME == ARGV[1] { if (FNR > 1 && !($1 in row)) row[$1] = ++n; next }
+  function flush() { if (id == "") return; win = (first in row) ? int((row[first] - 1) / w) + 1 : (last ? last : 1)
+    if (kind == "SYS") win = 0; else last = win
+    printf "%s\t%s\t%d\t%s\t%s\t%s\n", id, kind, win, first, us, blk; id = "" }
+  /^## / { flush(); ep = $0; sub(/^## T[0-9]+-E[0-9]+ /, "", ep); if ($0 !~ /^## T[0-9]+-E[0-9]+ /) ep = ""; next }
+  /^### Item / { flush(); split($0, h, / *\| */); id = h[1]; sub(/^### Item /, "", id); kind = h[2]; first = ""; us = " "
+    blk = $0 "\001- Episode title: " ep; next }
+  id == "" { next }
+  /^- (Verdict|Episode):/ { next }
+  { blk = blk "\001" $0; s = $0
+    while (match(s, /T[0-9][0-9][0-9]\/[0-9][0-9:, -]*/)) { tok = substr(s, RSTART + 5, RLENGTH - 5); s = substr(s, RSTART + RLENGTH)
+      m = split(tok, p, /, */); for (j = 1; j <= m; j++) { u = p[j]; sub(/:.*/, "", u); gsub(/[^0-9]/, "", u); if (u == "") continue
+        if (first == "") first = u; if (index(us, " " u " ") == 0) us = us u " " } } }
+  END { flush() }' "$2" "$1"
