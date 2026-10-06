@@ -32,14 +32,25 @@ KEYS="id name organisation role segment department standing decides status sessi
   for f in "$d"/topics/TOP-*.md; do [ -f "$f" ] || continue; row "$(fm "$f" id)" "$(fm "$f" title)" "$(fm_list "$f" episodes | paste -sd, - | sed 's/,/, /g')" "$(fm_list "$f" open-items | paste -sd, - | sed 's/,/, /g')" "$(fm_list "$f" closed-by | paste -sd, - | sed 's/,/, /g')" "$(fm "$f" updated)"; done; } > "$d/index/topics.md" || die "cannot write $d/index/topics.md"
 { header Transcripts; row ID File "Session date" Title "Meeting subject" Attendees Domain "Sheet approved" "Dossier completed" "Ingester" "Rules"; sep 1 2 3 4 5 6 7 8 9 10 11
   for f in "$d"/transcripts/T[0-9]*.md; do [ -f "$f" ] || continue; row "$(fm "$f" id)" "$(fm "$f" file)" "$(fm "$f" session-date)" "$(fm "$f" title)" "$(fm "$f" meeting-subject)" "$(fm_list "$f" attendees | paste -sd, - | sed 's/,/, /g')" "$(fm "$f" domain)" "$(fm "$f" session-sheet-approver) $(fm "$f" session-sheet-approved-on)" "$(fm "$f" dossier-completed-by) $(fm "$f" dossier-completed-on)" "$(fm "$f" ingester-version)" "$(fm "$f" rules-version)"; done; } > "$d/index/transcripts.md" || die "cannot write $d/index/transcripts.md"
-claims_index() { type=$1; title=$2; out="$d/index/$(item_dir "$type").md"
-  { header "$title"; if [ "$type" = SYS ]; then row ID Name Domain "Operated by" Claim Kind Description Status Confidence "Asserted by" Episode; sep 1 2 3 4 5 6 7 8 9 10 11
-    else row ID Title Domain Trigger "Performed by" Frequency Step Description "Performed by" System Status Confidence Episode; sep 1 2 3 4 5 6 7 8 9 10 11 12 13; fi
-    for f in "$d/$(item_dir "$type")"/$type-*.md; do [ -f "$f" ] || continue; id=$(fm "$f" id)
-      for s in $(claim_sections "$f"); do desc=$(awk -v s="$s" '$1 == "##" && $2 == s { $1=""; $2=""; sub(/^ +/, ""); print; exit }' "$f")
-        if [ "$type" = SYS ]; then row "$id" "$(fm "$f" name)" "$(fm "$f" domain)" "$(fm "$f" operated-by)" "$id.$s" "$(claim_field "$f" "$s" kind)" "$desc" "$(claim_field "$f" "$s" status)" "$(claim_field "$f" "$s" confidence)" "$(claim_field "$f" "$s" asserted-by)" "$(claim_field "$f" "$s" episode)"
-        else row "$id" "$(fm "$f" title)" "$(fm "$f" domain)" "$(fm "$f" trigger)" "$(fm "$f" performed-by)" "$(fm "$f" frequency)" "$id.$s" "$desc" "$(claim_field "$f" "$s" performed-by)" "$(claim_field "$f" "$s" system)" "$(claim_field "$f" "$s" status)" "$(claim_field "$f" "$s" confidence)" "$(claim_field "$f" "$s" episode)"; fi; done; done; } > "$out" || die "cannot write $out"; }
-claims_index SYS Systems
+# Systems: a list of systems, then one section per system with its facts in section order, then withdrawn claims.
+sys_rows() { awk '
+  /^## [fsn][0-9]+ / { c = $2; n++; ord[n] = c; t = $0; sub(/^## [^ ]+ /, "", t); desc[c] = t; next }
+  /^## / { c = ""; next }
+  c != "" && /^- [a-z-]+: / { k = $0; sub(/^- /, "", k); sub(/:.*/, "", k); v = $0; sub(/^- [a-z-]+: */, "", v); f[c, k] = v }
+  function esc(s) { gsub(/\|/, "\\|", s); return s }
+  END {
+    printf "| Claim | Kind | Fact | Status | Confidence | Asserted by | Episode |\n|---|---|---|---|---|---|---|\n"
+    for (i = 1; i <= n; i++) { c = ord[i]; if (f[c, "status"] != "Withdrawn") printf "| %s | %s | %s | %s | %s | %s | %s |\n", c, f[c, "kind"], esc(desc[c]), f[c, "status"], f[c, "confidence"], esc(f[c, "asserted-by"]), f[c, "episode"] }
+    nw = 0; for (i = 1; i <= n; i++) if (f[ord[i], "status"] == "Withdrawn") nw++
+    if (nw) { printf "\nWithdrawn\n\n| Claim | Was | Replaced by |\n|---|---|---|\n"
+      for (i = 1; i <= n; i++) { c = ord[i]; if (f[c, "status"] == "Withdrawn") printf "| %s | %s | %s |\n", c, esc(desc[c]), f[c, "replaced-by"] } } }' "$1"; }
+{ header Systems
+  row ID Name Domain "Operated by" "Role today" Facts Updated; sep 1 2 3 4 5 6 7
+  for f in "$d"/systems/SYS-*.md; do [ -f "$f" ] || continue
+    nf=0; for s in $(claim_sections "$f"); do [ "$(claim_field "$f" "$s" status)" = Withdrawn ] || nf=$((nf + 1)); done
+    row "$(fm "$f" id)" "$(fm "$f" name)" "$(fm "$f" domain)" "$(fm "$f" operated-by)" "$(fm "$f" role-today)" "$nf" "$(fm "$f" updated)"; done
+  for f in "$d"/systems/SYS-*.md; do [ -f "$f" ] || continue
+    printf '\n## %s %s\n\n' "$(fm "$f" id)" "$(fm "$f" name)"; sys_rows "$f"; done; } > "$d/index/systems.md" || die "cannot write $d/index/systems.md"
 # Processes (design 4.1): one section per process, steps in flow order (a walk of follows from the steps that
 # follow nothing, ties by section number), variants shown by when, then facts, then withdrawn claims.
 flow_rows() { awk '
