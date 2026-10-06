@@ -77,6 +77,10 @@ flow_rows() { awk '
       for (i = 1; i <= n; i++) { c = ord[i]; if (f[c, "status"] == "Withdrawn") printf "| %s | %s | %s |\n", c, esc(desc[c]), f[c, "replaced-by"] } } }' "$1"; }
 { header Processes
   printf 'Each process in flow order: the steps as the people who do the work perform them, from the trigger to the outcome (design 4.1). Order is read from each step'"'"'s follows; a step that follows nothing starts the flow. Processes written before ingester 0.10.0 have no follows and are listed in section order until S4 rebuilds them.\n'
+  printf '\n'; row ID Title Domain Status Steps Facts Updated; sep 1 2 3 4 5 6 7
+  for f in "$d"/processes/PRC-*.md; do [ -f "$f" ] || continue; ns=0; nf=0
+    for s in $(claim_sections "$f"); do [ "$(claim_field "$f" "$s" status)" = Withdrawn ] && continue; case $s in s*) ns=$((ns + 1));; n*) nf=$((nf + 1));; esac; done
+    row "$(fm "$f" id)" "$(fm "$f" title)" "$(fm "$f" domain)" "$(fm "$f" status)" "$ns" "$nf" "$(fm "$f" updated)"; done
   for f in "$d"/processes/PRC-*.md; do [ -f "$f" ] || continue; id=$(fm "$f" id)
     printf '\n## %s %s\n\n' "$id" "$(fm "$f" title)"
     printf -- '- Status: %s\n- Trigger: %s\n- Outcome: %s\n- Performed by: %s\n- Systems: %s\n- Upstream: %s\n- Downstream: %s\n' "$(fm "$f" status)" "$(fm "$f" trigger)" "$(fm "$f" outcome)" "$(fm "$f" performed-by)" "$(fm "$f" systems)" "$(fm "$f" upstream)" "$(fm "$f" downstream)"
