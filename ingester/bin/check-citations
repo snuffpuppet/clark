@@ -1,37 +1,45 @@
 #!/bin/sh
-# check-citations <engagement> <Tnnn> <file>
+# check-citations <engagement> <Tnnn|Dnnn> <file>
 # Checks every F2 citation in the file against sessions/Tnnn/Tnnn.utterances.tsv:
 # the utterances exist, the speaker matches every cited fragment, the timestamp is the start of the first
 # cited fragment cut to seconds, and the quote (split on ...) is found in order in the concatenated text.
+# For a document (Dnnn) it checks document citations against sessions/Dnnn/Dnnn.fragments.tsv (F16) the
+# same way: the label is documented, the author is the Author on the document sheet, and the location is
+# the location of the first cited fragment.
 # Prints one FAIL line per bad citation and "OK n citations". Exit 1 on any failure.
 set -e
 . "$(dirname "$0")/lib.sh"
-[ $# -eq 3 ] || die "usage: check-citations <engagement> <Tnnn> <file>"
-eng=$1; tid=$2; file=$3; d=$(eng_dir "$eng")
-tsv="$d/sessions/$tid/$tid.utterances.tsv"
-[ -f "$tsv" ] || die "no utterance table at $tsv"
+[ $# -eq 3 ] || die "usage: check-citations <engagement> <Tnnn|Dnnn> <file>"
+eng=$1; tid=$2; file=$3; tsv=$(source_table "$eng" "$tid")
+[ -f "$tsv" ] || die "no source table at $tsv"
 [ -f "$file" ] || die "no such file $file"
+doc=0; author=""; at="[0-9][0-9]:[0-9][0-9]:[0-9][0-9]"
+if is_document "$tid"; then doc=1; at="[^|]*"
+  sheet=$(source_sheet "$eng" "$tid"); [ -f "$sheet" ] || die "no document sheet at $sheet"
+  author=$(header_field "$sheet" Author); [ -n "$author" ] || die "the document sheet has no Author; citations of $tid name it"; fi
 
-unescape_pipes < "$file" | grep -o "[a-z]* | $tid/[0-9][0-9:, -]* | [^|]* | [0-9][0-9]:[0-9][0-9]:[0-9][0-9] | \"[^\"]*\"" |
-awk -F' \\| ' -v tsv="$tsv" -v tid="$tid" '
-  BEGIN { while ((getline line < tsv) > 0) { split(line, f, "\t"); if (f[1] == "utterance") continue
-            key = f[1] ":" f[2]; text[key] = f[6]; spk[key] = f[5]; start[key] = f[3]; have[key] = 1 } }
+unescape_pipes < "$file" | grep -o "[a-z]* | $tid/[0-9][0-9:, -]* | [^|]* | $at | \"[^\"]*\"" |
+awk -F' \\| ' -v tsv="$tsv" -v tid="$tid" -v doc="$doc" -v author="$author" '
+  BEGIN { while ((getline line < tsv) > 0) { split(line, f, "\t"); if (f[1] == "utterance" || f[1] == "unit") continue
+            key = f[1] ":" f[2]; text[key] = f[6]; spk[key] = (doc ? author : f[5]); start[key] = f[3]; have[key] = 1 } }
   function norm(s) { gsub(/[ \t]+/, " ", s); gsub(/^ | $/, "", s); return s }
   {
     bad = ""
     n++; label = $1; ref = $2; speaker = $3; ts = $4; quote = $5
-    if (label !~ /^(asked|answered|proposed|restated|accepted|challenged|deferred|hedged|aside)$/) bad = bad "; unknown label " label
+    if (doc && label != "documented") bad = bad "; a document citation takes the label documented, not " label
+    if (!doc && label !~ /^(asked|answered|proposed|restated|accepted|challenged|deferred|hedged|aside)$/) bad = bad "; unknown label " label
     sub(/^"/, "", quote); sub(/"$/, "", quote)
     sub("^" tid "/", "", ref); nr = split(ref, ranges, /, */); cat = ""; first = ""
     for (i = 1; i <= nr; i++) {
       split(ranges[i], p, ":"); utt = p[1] + 0; lo = p[2]; hi = p[2]
       if (index(p[2], "-")) { split(p[2], q, "-"); lo = q[1]; hi = q[2] }
       for (fr = lo + 0; fr <= hi + 0; fr++) { k = utt ":" fr
-        if (!have[k]) { bad = bad "; no such utterance " k; continue }
-        if (spk[k] != speaker) bad = bad "; speaker mismatch at " k " (cue has " spk[k] ")"
+        if (!have[k]) { bad = bad "; no such " (doc ? "fragment " : "utterance ") k; continue }
+        if (spk[k] != speaker) bad = bad (doc ? "; author is not the Author on the document sheet (" spk[k] ")" : "; speaker mismatch at " k " (cue has " spk[k] ")")
         if (first == "") first = k
         cat = cat " " text[k] } }
-    if (first != "") { st = start[first]; sub(/\..*$/, "", st); if (st != ts) bad = bad "; timestamp mismatch (first fragment starts " st ")" }
+    if (first != "") { st = start[first]; if (!doc) sub(/\..*$/, "", st)
+      if (st != ts) bad = bad (doc ? "; location mismatch (first fragment is at " st ")" : "; timestamp mismatch (first fragment starts " st ")") }
     cat = norm(cat); pos = 1; np = split(quote, pieces, /\.\.\./)
     for (i = 1; i <= np; i++) { piece = norm(pieces[i]); if (piece == "") continue
       rest = substr(cat, pos); at = index(rest, piece)

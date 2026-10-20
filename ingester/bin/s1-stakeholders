@@ -1,14 +1,16 @@
 #!/bin/sh
-# s1-stakeholders <engagement> <Tnnn>
+# s1-stakeholders <engagement> <Tnnn|Dnnn>
 # Runs once the session sheet is signed, before S1 reads. Writes one stakeholders/STK-nnnn.md per accepted
 # New stakeholders row, adds Tnnn to sessions on known attendees, starts the session log and marks it so
-# this happens once. S3 calls it too, so a sheet signed and written by hand is still covered.
+# this happens once. S3 calls it too, so a sheet signed and written by hand is still covered. For a document
+# (Dnnn) it reads the document sheet (F17), which has no Attendees table: an accepted row with Role Author or
+# Attributed becomes a file, because the register cites what the document attributes to that person.
 set -e
 . "$(dirname "$0")/lib.sh"
-[ $# -eq 2 ] || die "usage: s1-stakeholders <engagement> <Tnnn>"
+[ $# -eq 2 ] || die "usage: s1-stakeholders <engagement> <Tnnn|Dnnn>"
 eng=$1; tid=$2; d=$(eng_dir "$eng"); sdir="$d/sessions/$tid"
-sheet="$sdir/$tid.session.md"; log="$sdir/$tid.session-log.md"; TODAY=$(today)
-[ -f "$sheet" ] || die "no session sheet"
+sheet=$(source_sheet "$eng" "$tid"); log="$sdir/$tid.session-log.md"; TODAY=$(today)
+[ -f "$sheet" ] || die "no session or document sheet"
 r=$(sheet_signed "$sheet") || die "gate: $r"
 if [ -f "$log" ] && grep -q '^- Stakeholders written on:' "$log"; then echo "stakeholders already written for $tid"; exit 0; fi
 [ -f "$log" ] || fill_template "$INGESTER_DIR/templates/session-log.md" "$log" "TID=$tid" "DATE=$TODAY" "INGESTER_VERSION=$(ingester_version)" "RULES_VERSION=$(rules_version)" "SHEET_APPROVER=$(header_field "$sheet" Approver)" "DOSSIER_COMPLETED_BY="

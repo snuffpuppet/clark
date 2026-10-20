@@ -1,0 +1,10 @@
+# The document flattener. The engagement is mounted read-only; only its sessions/ folder is writable, so the
+# flattener can write sessions/Dnnn/ and nothing else. ENG and ENGAGEMENTS_ROOT are set by make flatten.
+services:
+  flatten:
+    build: ./docker
+    image: clark-ingester-flatten
+    user: "${UID:-1000}:${GID:-1000}"
+    volumes:
+      - ${ENGAGEMENTS_ROOT:-../engagements}/${ENG:-none}:/engagements/${ENG:-none}:ro
+      - ${ENGAGEMENTS_ROOT:-../engagements}/${ENG:-none}/sessions:/sessions

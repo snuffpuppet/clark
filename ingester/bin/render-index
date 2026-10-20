@@ -1,6 +1,6 @@
 #!/bin/sh
 # render-index <engagement>
-# Writes the generated index tables under index/: one per item type, plus stakeholders, topics, transcripts,
+# Writes the generated index tables under index/: one per item type, plus stakeholders, topics, transcripts, documents,
 # systems, processes and outstanding.md (register model 2.18 sections 7 and 8). Never edited by hand.
 set -e
 . "$(dirname "$0")/lib.sh"
@@ -32,6 +32,22 @@ KEYS="id name organisation role segment department standing decides status sessi
   for f in "$d"/topics/TOP-*.md; do [ -f "$f" ] || continue; row "$(fm "$f" id)" "$(fm "$f" title)" "$(fm_list "$f" episodes | paste -sd, - | sed 's/,/, /g')" "$(fm_list "$f" open-items | paste -sd, - | sed 's/,/, /g')" "$(fm_list "$f" closed-by | paste -sd, - | sed 's/,/, /g')" "$(fm "$f" updated)"; done; } > "$d/index/topics.md" || die "cannot write $d/index/topics.md"
 { header Transcripts; row ID File "Session date" Title "Meeting subject" Attendees Domain "Sheet approved" "Dossier completed" "Ingester" "Rules"; sep 1 2 3 4 5 6 7 8 9 10 11
   for f in "$d"/transcripts/T[0-9]*.md; do [ -f "$f" ] || continue; row "$(fm "$f" id)" "$(fm "$f" file)" "$(fm "$f" session-date)" "$(fm "$f" title)" "$(fm "$f" meeting-subject)" "$(fm_list "$f" attendees | paste -sd, - | sed 's/,/, /g')" "$(fm "$f" domain)" "$(fm "$f" session-sheet-approver) $(fm "$f" session-sheet-approved-on)" "$(fm "$f" dossier-completed-by) $(fm "$f" dossier-completed-on)" "$(fm "$f" ingester-version)" "$(fm "$f" rules-version)"; done; } > "$d/index/transcripts.md" || die "cannot write $d/index/transcripts.md"
+# Documents (runbook D3): one row per document, then one row per section of each signed document sheet with
+# what its written dossier added, counted from the session log rows that name the section.
+if ls "$d"/documents/D[0-9]*.md > /dev/null 2>&1; then
+{ header Documents; row ID File Title Author Kind "Document date" "Sheet approved" "Sections written" Ingester Rules; sep 1 2 3 4 5 6 7 8 9 10
+  for f in "$d"/documents/D[0-9]*.md; do [ -f "$f" ] || continue; row "$(fm "$f" id)" "$(fm "$f" file)" "$(fm "$f" title)" "$(fm "$f" author)" "$(fm "$f" kind)" "$(fm "$f" document-date)" "$(fm "$f" document-sheet-approver) $(fm "$f" document-sheet-approved-on)" "$(fm_list "$f" sections-written | paste -sd, - | sed 's/,/, /g')" "$(fm "$f" ingester-version)" "$(fm "$f" rules-version)"; done
+  printf '\n## Sections\n\n'; row Document Section Slug Treatment Written Links Created Updated; sep 1 2 3 4 5 6 7 8
+  for f in "$d"/documents/D[0-9]*.md; do [ -f "$f" ] || continue; did=$(fm "$f" id); sh_=$(source_sheet "$eng" "$did"); lg="$d/sessions/$did/$did.session-log.md"; [ -f "$sh_" ] || continue
+    awk '/^## Sections/ { on=1; next } /^## / { on=0 } on && /^\| / && !/^\| *Section *\|/ && !/^\|[-| ]*$/' "$sh_" > "$d/index/.sections.tmp"
+    while IFS= read -r r; do s=$(cell "$r" 2); w=no; nl=""; nc=""; nu=""
+      if [ -f "$lg" ] && grep -q "^- Section $s written on:" "$lg"; then w=yes
+        nl=$(grep -c "| linked | .* from $did $s |" "$lg" || true)
+        df_="$d/sessions/$did/$did-$s.dossier.md"; nc=$(review_items "$df_" 2>/dev/null | awk -F'\t' '$5 == "new" && $2 != "Question" && $2 != "LINK"' | grep -c . || true)
+        nu=$(review_items "$df_" 2>/dev/null | awk -F'\t' '$5 != "new" && $2 != "LINK" && $2 != "Question"' | grep -c . || true); fi
+      row "$did" "$(cell "$r" 1)" "$s" "$(cell "$r" 4)" "$w" "$nl" "$nc" "$nu"; done < "$d/index/.sections.tmp"
+    rm -f "$d/index/.sections.tmp"; done; } > "$d/index/documents.md" || die "cannot write $d/index/documents.md"
+fi
 # Systems: a list of systems, then one section per system with its facts in section order, then withdrawn claims.
 sys_rows() { awk '
   /^## [fsn][0-9]+ / { c = $2; n++; ord[n] = c; t = $0; sub(/^## [^ ]+ /, "", t); desc[c] = t; next }

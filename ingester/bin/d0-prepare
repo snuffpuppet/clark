@@ -1,0 +1,32 @@
+#!/bin/sh
+# d0-prepare <engagement> <Dnnn>
+# The script half of D0, after the flattener (make flatten) has written the fragment table. Verifies the
+# document's SHA-256, checks the fragment table (F16) and its sections, and writes the document sheet (F17)
+# with one Sections row per section, Treatment and Verdict blank, and the Author proposed from the file's
+# metadata. The skill then fills the proposals (runbook D0).
+set -e
+. "$(dirname "$0")/lib.sh"
+[ $# -eq 2 ] || die "usage: d0-prepare <engagement> <Dnnn>"
+eng=$1; did=$2; d=$(eng_dir "$eng"); sdir="$d/sessions/$did"
+is_document "$did" || die "$did is not a document id"
+src=$(document_path "$eng" "$did"); df=$(item_path "$eng" "$did")
+tsv="$sdir/$did.fragments.tsv"; sec="$sdir/$did.sections.tsv"; meta="$sdir/$did.meta.tsv"; sheet="$sdir/$did.document-sheet.md"
+[ -f "$tsv" ] || die "no fragment table at $tsv; run: make -C ingester flatten ENG=$eng DOC=$did"
+[ -f "$sec" ] || die "no sections table at $sec; run the flattener again"
+[ ! -f "$sheet" ] || die "the document sheet already exists: $sheet"
+[ "$(head -1 "$tsv")" = "unit${TAB}fragment${TAB}location${TAB}section${TAB}kind${TAB}text" ] || die "$tsv does not start with the F16 header"
+# The flattener records the SHA-256 it read; a fragment table made from another copy of the file is refused.
+[ -f "$meta" ] && ms=$(awk -F'\t' '$1 == "sha256" { print $2 }' "$meta") && [ -n "$ms" ] && { [ "$ms" = "$(fm "$df" sha256)" ] || die "$tsv was made from a file whose SHA-256 is not the one registered in documents/$did.md"; }
+bad=$(awk -F'\t' 'NR > 1 && (NF != 6 || $1 !~ /^[0-9]+$/ || $2 !~ /^[0-9]+$/ || $3 == "" || $3 ~ /\|/) { n++ } END { print n + 0 }' "$tsv")
+[ "$bad" -eq 0 ] || die "$tsv has $bad malformed row(s): six columns, numeric unit and fragment, a location without a pipe"
+dup=$(awk -F'\t' 'NR > 1 { k = $1 ":" $2; if (k in s) n++; s[k] = 1 } END { print n + 0 }' "$tsv")
+[ "$dup" -eq 0 ] || die "$tsv has $dup repeated unit:fragment key(s)"
+metav() { [ -f "$meta" ] && awk -F'\t' -v k="$1" '$1 == k { print $2; exit }' "$meta"; }
+rows=$(awk -F'\t' 'NR > 1 { slug = $2; n = $3; st = $6; printf "| %s | %s | %s fragment(s)%s | | | |\n", $1, slug, n, (st != "" && st != "visible" ? ", " st : "") }' "$sec")
+vals; set_val DID "$did"; set_val FILE "$(fm "$df" file)"; set_val SHA256 "$(fm "$df" sha256)"; set_val TITLE "$(fm "$df" title)"
+set_val AUTHOR "$(metav author)"; set_val DOC_DATE "$(metav date)"; set_val INGESTER_VERSION "$(ingester_version)"; set_val DATE "$(today)"
+set_val SECTIONS "$rows"
+render "$INGESTER_DIR/templates/document-sheet.md" "$sheet"; vals_done
+n=$(($(wc -l < "$tsv") - 1)); ns=$(($(wc -l < "$sec") - 1))
+eng_log "$eng" "$did D0: fragment table of $n fragment(s) in $ns section(s); document sheet written, awaiting proposals and signature."
+printf 'D0: %s fragment(s) in %s section(s) from %s; document sheet %s\n' "$n" "$ns" "$(basename "$src")" "$sheet"

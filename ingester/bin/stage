@@ -1,5 +1,6 @@
 #!/bin/sh
 # stage <engagement> <Tnnn> <status|tasks|S0|S1|S3|S4|check|score <reference> [dossier]|summary [<from> <to>]|log <stage> "<outcome>"|backfill <KIND> [check]>
+# stage <engagement> <Dnnn> <status|tasks|D0|D1|D3 <slug>|check <slug>|log <stage> "<outcome>">
 # The driver. status prints one word for where the transcript is. Each stage refuses to start when its
 # predecessor is not signed. Every branch except status writes a run log under logs/.
 set -e
@@ -8,6 +9,55 @@ set -e
 eng=$1; tid=$2; cmd=$3; shift 3; d=$(eng_dir "$eng"); sdir="$d/sessions/$tid"
 sheet="$sdir/$tid.session.md"; dossier="$sdir/$tid.dossier.md"
 [ -f "$d/engagement.md" ] || die "no engagement at $d"
+
+# A document (Dnnn) runs D0, D1 and D3 per section (runbooks D0, D1, D3). Its status names the section it is
+# waiting on: needs-d1:<slug>, awaiting-dossier:<slug>, needs-d3:<slug>.
+if is_document "$tid"; then
+  sheet=$(source_sheet "$eng" "$tid"); log="$sdir/$tid.session-log.md"
+  dstatus() {
+    [ -f "$(item_path "$eng" "$tid")" ] || { echo needs-register; return; }
+    src=$(document_path "$eng" "$tid" 2>&1) || { echo "blocked: $src"; return; }
+    case "$src" in */processed/*) echo done; return ;; esac
+    [ -f "$sdir/$tid.fragments.tsv" ] || { echo needs-flatten; return; }
+    [ -f "$sheet" ] || { echo needs-d0; return; }
+    sheet_signed "$sheet" > /dev/null || { echo awaiting-document-sheet; return; }
+    [ -f "$log" ] && grep -q '^- Stakeholders written on:' "$log" || { echo needs-d1; return; }
+    # A section with a dossier comes first, signed before unsigned, so a section read out of sheet order is
+    # reported ready to write rather than hidden behind an earlier section not yet read.
+    first=""; waiting=""
+    for s in $(doc_sections "$eng" "$tid"); do grep -q "^- Section $s written on:" "$log" && continue
+      f="$sdir/$tid-$s.dossier.md"; [ -f "$f" ] || { [ -n "$first" ] || first=$s; continue; }
+      dossier_signed "$f" > /dev/null || { [ -n "$waiting" ] || waiting=$s; continue; }
+      echo "needs-d3:$s"; return; done
+    [ -z "$waiting" ] || { echo "awaiting-dossier:$waiting"; return; }
+    [ -z "$first" ] || { echo "needs-d1:$first"; return; }
+    echo done; }
+  case $cmd in
+    status) dstatus ;;
+    D0) s=$(dstatus); case $s in
+          needs-flatten) die "D0: no fragment table yet; run: make -C ingester flatten ENG=$eng DOC=$tid" ;;
+          needs-d0) "$INGESTER_DIR/bin/d0-prepare" "$eng" "$tid"; log_run "$eng" "$tid" D0 "prepared" "documents/$tid.md sessions/$tid/$tid.fragments.tsv" "sessions/$tid/$tid.document-sheet.md" > /dev/null ;;
+          *) die "D0 refused: state is $s" ;; esac ;;
+    D1) s=$(dstatus); case $s in
+          needs-d1) "$INGESTER_DIR/bin/s1-stakeholders" "$eng" "$tid"; echo "D1 gate open; next: $(dstatus)"; log_run "$eng" "$tid" D1 "gate open" "$sheet" "" > /dev/null ;;
+          needs-d1:*) echo "D1 is performed by the skill (runbook D1); next section: ${s#needs-d1:}" ;;
+          *) r=""; [ "$s" = awaiting-document-sheet ] && r=$(sheet_signed "$sheet" || true); die "D1 refused: state is $s${r:+ ($r)}" ;; esac ;;
+    D3) [ $# -ge 1 ] || die "usage: stage <eng> <Dnnn> D3 <slug>"
+        f="$sdir/$tid-$1.dossier.md"; [ -f "$f" ] || die "D3 refused: no dossier for section $1"
+        r=$(dossier_signed "$f") || die "D3 refused: $r"
+        "$INGESTER_DIR/bin/s3-write" "$eng" "$tid" --document "$1" ;;
+    check) [ $# -ge 1 ] || die "usage: stage <eng> <Dnnn> check <slug>"
+        f="$sdir/$tid-$1.dossier.md"; [ -f "$f" ] || die "no dossier for section $1"; rc=0
+        "$INGESTER_DIR/bin/check-citations" "$eng" "$tid" "$f" || rc=1
+        "$INGESTER_DIR/bin/check-integrity" "$eng" --proposed "$f" || rc=1
+        log_run "$eng" "$tid" "check-$1" "$([ $rc -eq 0 ] && echo passed || echo failed)" "$f" "" > /dev/null; exit $rc ;;
+    log) [ $# -ge 2 ] || die "usage: stage <eng> <Dnnn> log <stage> \"<outcome>\""; log_run "$eng" "$tid" "$1" "$2" "${3:-}" "${4:-}" ;;
+    tasks) "$INGESTER_DIR/bin/tasks" "$eng" "$tid" ;;
+    *) die "unknown command $cmd for a document; commands: status, D0, D1, D3 <slug>, check <slug>, log, tasks" ;;
+  esac
+  [ "$cmd" = tasks ] || [ "$cmd" = status ] || "$INGESTER_DIR/bin/tasks" "$eng" "$tid" > /dev/null 2>&1 || true
+  exit 0
+fi
 
 status() {
   [ -f "$(item_path "$eng" "$tid")" ] || { echo needs-register; return; }

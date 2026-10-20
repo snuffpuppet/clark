@@ -11,21 +11,37 @@
 # s3-write <engagement> <Tnnn> --backfill <KIND> writes a signed backfill file, sessions/Tnnn/Tnnn.backfill-<KIND>.md
 # (runbook backfill), after S4: items of one register type added to a transcript that is already written. It takes
 # only items of that kind, Questions, and link-only mutations of other register items, and writes nothing else.
+#
+# s3-write <engagement> <Dnnn> --document <slug> is stage D3 (runbook D3): it writes the signed dossier of one
+# section of a document, sessions/Dnnn/Dnnn-<slug>.dossier.md, after the document sheet is signed. Besides the
+# item blocks it writes the section's Links rows (F18): each adds its citation to the target's Source, Raised
+# by or evidence with a History line and changes nothing else. The document moves to documents/processed/
+# once every section the sheet does not Skip is written.
 set -e
 . "$(dirname "$0")/lib.sh"
-[ $# -eq 2 ] || { [ $# -eq 3 ] && [ "$3" = --processes ]; } || { [ $# -eq 4 ] && [ "$3" = --backfill ]; } || die "usage: s3-write <engagement> <Tnnn> [--processes | --backfill <KIND>]"
+[ $# -eq 2 ] || { [ $# -eq 3 ] && [ "$3" = --processes ]; } || { [ $# -eq 4 ] && { [ "$3" = --backfill ] || [ "$3" = --document ]; }; } || die "usage: s3-write <engagement> <Tnnn> [--processes | --backfill <KIND>], or s3-write <engagement> <Dnnn> --document <slug>"
 eng=$1; tid=$2; d=$(eng_dir "$eng"); sdir="$d/sessions/$tid"; mode=S3; [ "${3:-}" = --processes ] && mode=S4
 sheet="$sdir/$tid.session.md"; dossier="$sdir/$tid.dossier.md"; log="$sdir/$tid.session-log.md"
 [ "$mode" = S4 ] && dossier="$sdir/$tid.processes.md"
 bk=""; if [ "${3:-}" = --backfill ]; then mode=BF; bk=$4; case $bk in PPT|INT) ;; *) die "backfill of $bk is not supported; kinds: PPT, INT" ;; esac
   dossier="$sdir/$tid.backfill-$bk.md"; fi
+slug=""; if [ "${3:-}" = --document ]; then mode=DOC; slug=$4; is_document "$tid" || die "--document takes a document id (Dnnn), not $tid"
+  sheet=$(source_sheet "$eng" "$tid"); dossier="$sdir/$tid-$slug.dossier.md"; fi
+is_document "$tid" && [ "$mode" != DOC ] && die "a document is written one section at a time: s3-write $eng $tid --document <slug>"
 TODAY=$(today)
 
 # Gates.
-vtt=$(vtt_path "$eng" "$tid")
+vtt=$(source_path "$eng" "$tid")
 [ -f "$sheet" ] || die "no session sheet"
 r=$(sheet_signed "$sheet") || die "gate: $r"
-if [ "$mode" = S3 ]; then
+if [ "$mode" = DOC ]; then
+  case "$vtt" in */processed/*) die "$tid is already processed; nothing written" ;; esac
+  doc_sections "$eng" "$tid" | grep -qxF "$slug" || die "section $slug is not on the document sheet, or the sheet marks it Skip or Reject"
+  [ -f "$dossier" ] || die "no dossier for section $slug: $dossier"
+  [ "$(header_field "$dossier" Slug)" = "$slug" ] || die "$dossier names Slug \"$(header_field "$dossier" Slug)\", not $slug"
+  r=$(dossier_signed "$dossier") || die "gate: $r"
+  [ ! -f "$log" ] || ! grep -q "^- Section $slug written on:" "$log" || die "session log says section $slug of $tid has been written"
+elif [ "$mode" = S3 ]; then
   case "$vtt" in */processed/*) die "$tid is already processed; nothing written" ;; esac
   [ -f "$dossier" ] || die "no dossier"
   r=$(dossier_signed "$dossier") || die "gate: $r"
@@ -62,21 +78,29 @@ snap=$(mktemp -d "${TMPDIR:-/tmp}/ing.XXXXXXXX"); ok=0
 FOLDERS="requirements decisions limitations risks pain-points integrations open-items processes systems stakeholders topics index"
 for f in $FOLDERS; do [ -d "$d/$f" ] && cp -R "$d/$f" "$snap/$f"; done
 mkdir -p "$snap/transcripts"; cp "$d"/transcripts/T[0-9]*.md "$snap/transcripts/" 2>/dev/null || true
+mkdir -p "$snap/documents"; cp "$d"/documents/D[0-9]*.md "$snap/documents/" 2>/dev/null || true
 cp "$d/engagement.md" "$snap/engagement.md"; [ -f "$log" ] && cp "$log" "$snap/session-log"
+SRCDIR=transcripts; [ "$mode" = DOC ] && SRCDIR=documents
 rollback() { [ "$ok" = 1 ] && { rm -rf "$snap"; return; }
   for f in $FOLDERS; do rm -rf "$d/$f"; [ -d "$snap/$f" ] && cp -R "$snap/$f" "$d/$f"; done
-  cp "$snap"/transcripts/T[0-9]*.md "$d/transcripts/" 2>/dev/null || true; cp "$snap/engagement.md" "$d/engagement.md"
+  cp "$snap"/transcripts/T[0-9]*.md "$d/transcripts/" 2>/dev/null || true; cp "$snap"/documents/D[0-9]*.md "$d/documents/" 2>/dev/null || true; cp "$snap/engagement.md" "$d/engagement.md"
   if [ -f "$snap/session-log" ]; then cp "$snap/session-log" "$log"; else rm -f "$log"; fi
-  [ -f "$snap/moved" ] && while IFS= read -r m; do mv "$d/transcripts/processed/$m" "$d/transcripts/unprocessed/"; done < "$snap/moved"
+  [ -f "$snap/moved" ] && while IFS= read -r m; do mv "$d/$SRCDIR/processed/$m" "$d/$SRCDIR/unprocessed/"; done < "$snap/moved"
   rm -rf "$snap"; echo "$mode failed; the engagement was restored to its state before the write" >&2; }
 trap rollback EXIT
 
 session_date=$(header_field "$sheet" 'Session date' | sed 's/ (.*//'); domain=$(header_field "$sheet" Domain | sed 's/ (.*//')
+[ "$mode" = DOC ] && session_date=$(header_field "$sheet" 'Document date' | sed 's/ (.*//')
+# log_header_add "line": a header line of the session log, after the last one and before the table.
+log_header_add() { awk -v l="$1" '{ a[NR] = $0 } /^- / && !t { last = NR } /^\| Id \|/ && !t { t = NR }
+    END { for (i = 1; i <= NR; i++) { print a[i]; if (i == last) print l } }' "$log" > "$log.tmp" && mv "$log.tmp" "$log"; }
 sheet_appr=$(header_field "$sheet" Approver); sheet_on=$(header_field "$sheet" 'Approved on')
 dos_appr=$(header_field "$dossier" 'Completed by'); [ -n "$dos_appr" ] || dos_appr=$(header_field "$dossier" Approver)
 dos_on=$(header_field "$dossier" 'Completed on'); [ -n "$dos_on" ] || dos_on=$(header_field "$dossier" 'Approved on')
 if [ "$mode" = S3 ]; then "$INGESTER_DIR/bin/s1-stakeholders" "$eng" "$tid" > /dev/null
   sed -i '' "s/^- Dossier completed by: .*/- Dossier completed by: $dos_appr/" "$log"
+elif [ "$mode" = DOC ]; then "$INGESTER_DIR/bin/s1-stakeholders" "$eng" "$tid" > /dev/null
+  log_header_add "- Section $slug completed by: $dos_appr" || die "cannot write $log"
 elif [ "$mode" = BF ]; then awk -v by="$dos_appr" -v bk="$bk" '!done && /^- S4 written on:/ { print; print "- Backfill " bk " completed by: " by; done=1; next } { print }' "$log" > "$log.tmp" && mv "$log.tmp" "$log" || die "cannot write $log"
 else awk -v by="$dos_appr" '!done && /^- S3 written on:/ { print; print "- Processes completed by: " by; done=1; next } { print }' "$log" > "$log.tmp" && mv "$log.tmp" "$log" || die "cannot write $log"; fi
 logrow() { printf '| %s | %s | %s | %s | %s |\n' "$1" "$2" "$3" "$4" "$TODAY" >> "$log"; }
@@ -147,6 +171,9 @@ FIELDS
         printf '%s' "$fields" | tr '\001' '\n' | while IFS= read -r kv; do k=${kv%%=*}; v=${kv#*=}; [ "$k" = Gist ] && continue
           case $k in Systems|Upstream|Downstream) v=$(resolve_items "$v") ;; esac; set_val "$(upper_snake "$k")" "$v"; done
         render "$INGESTER_DIR/templates/items/$type.md" "$path"; vals_done
+        # A document's new element keeps its Gist as a note, as a note on an existing element does, so a vendor's
+        # proposal for it (ruling 1 on D001) is recorded on the element itself.
+        [ "$mode" = DOC ] && [ -n "$(fld "$fields" Gist)" ] && { printf '\n%s, item %s: %s\n' "$tid" "$item" "$(fld "$fields" Gist)" >> "$path" || die "cannot write $path"; }
         logrow "$id" created "$(item_dir "$type")/$id.md" "$(fld "$fields" Name)$(fld "$fields" Title)"
       elif [ "$type" = PRC ] && [ "$mode" = S4 ]; then
         # A process mutation (runbook S4 step 7): each field set in the frontmatter, one F10 History line.
@@ -163,7 +190,7 @@ FIELDS
       else [ -f "$path" ] || die "item $item targets $id, which does not exist"; fm_set "$path" updated "$TODAY"; printf '\n%s, item %s: %s\n' "$tid" "$item" "$(fld "$fields" Gist)" >> "$path"; logrow "$id" noted "$(item_dir "$type")/$id.md" "element note from item $item"
       fi ;;
     SYS.fact|PRC.step|PRC.fact)
-      [ "$mode" = S3 ] && [ "$type" = PRC ] && [ "$target" = new ] && die "item $item is a new $kind in a dossier; processes are written by S4 from a processes file (runbook S4)"
+      { [ "$mode" = S3 ] || [ "$mode" = DOC ]; } && [ "$type" = PRC ] && [ "$target" = new ] && die "item $item is a new $kind in a dossier; processes are written by S4 from a processes file (runbook S4)"
       parent=$(resolve_items "$(fld "$fields" System)$(fld "$fields" Process)"); [ "$type" = PRC ] && parent=$(resolve_items "$(fld "$fields" Process)")
       [ "$type" = SYS ] && parent=$(resolve_items "$(fld "$fields" System)")
       [ "$target" = new ] || parent=${target%.*}
@@ -212,6 +239,23 @@ FIELDS
       for v in $(fld "$fields" Variants | tr ',' '\n' | sed 's/^ *//; s/ /_/g'); do fm_list_add "$path" variants "$(printf '%s' "$v" | tr '_' ' ')"; done
       fm_set "$path" updated "$TODAY"; [ -n "$cites" ] && printf '%s\n' "$(cite_lines "$cites")" >> "$path"
       logrow "$target" updated "stakeholders/$target.md" "$(fld "$fields" Title)" ;;
+    LINK)
+      # A Links row (F18): the document says what the target already says. Its citation joins the target's
+      # evidence (a claim) or Source (Raised by on an open item) with a History line; no field changes.
+      [ "$mode" = DOC ] || die "item $item is a Links row; only a document dossier has Links (D3)"
+      case $target in
+        SYS-*.*|PRC-*.*) parent=${target%.*}; sec=${target##*.}; ppath=$(item_path "$eng" "$parent"); [ -f "$ppath" ] || die "link $item targets $target, whose element does not exist"
+          claim_sections "$ppath" | grep -qx "$sec" || die "link $item targets $target, which is not a claim in $parent"
+          claim_list_add "$ppath" "$sec" evidence "$cites" || die "cannot write $ppath"
+          claim_list_add "$ppath" "$sec" history "$TODAY | $tid link $item | corroborated by the document, no field changed | document $tid, $session_date" || die "cannot write $ppath"
+          fm_set "$ppath" updated "$TODAY"; logrow "$target" linked "$(item_dir "${parent%%-*}")/$parent.md" "evidence from $tid $slug" ;;
+        *) path=$(item_path "$eng" "$target"); [ -f "$path" ] || die "link $item targets $target, which does not exist"
+          sec=Source; case $target in OI-*) sec="Raised by" ;; esac
+          body_append "$path" "$sec" "- $cites" || die "cannot write $path"
+          fm_set "$path" updated "$TODAY"
+          history_add "$path" "$TODAY | $tid link $item | corroborated by the document, no field changed | $cites" || die "cannot write $path"
+          logrow "$target" linked "$(item_dir "${target%%-*}")/$target.md" "$sec from $tid $slug" ;;
+      esac ;;
     Question) ;;
   esac
 done < "$items"
@@ -239,6 +283,32 @@ if [ "$mode" = BF ]; then
   log_run "$eng" "$tid" "backfill-$bk" "written" "$sheet $dossier" "$(item_dir "$bk") index $log" > /dev/null
   eng_log "$eng" "$tid $bk backfill written: $n row(s) in the session log; backfill file signed by $dos_appr."
   printf 'Backfill %s: wrote %s id(s); see %s\n' "$bk" "$n" "$log"
+  exit 0
+fi
+
+if [ "$mode" = DOC ]; then
+  # Stage D3: one section of a document. The document file records the sheet and the sections written; the
+  # document moves to processed/ once every section the sheet does not Skip is written.
+  n=$(awk -v f="$RESTART" 'NR > f' "$log" | grep -c '^| [A-Z]' || true)
+  nl=$(awk -v f="$RESTART" 'NR > f' "$log" | grep -c '| linked |' || true)
+  log_header_add "- Section $slug written on: $TODAY, ingester $(ingester_version), rules $(rules_version)" || die "cannot write $log"
+  df=$(item_path "$eng" "$tid")
+  for k in Author Organisation Kind Domain; do fm_set "$df" "$(kebab "$k")" "$(header_field "$sheet" "$k")" || die "cannot write $df"; done
+  fm_set "$df" document-date "$session_date"; fm_set "$df" document-version "$(header_field "$sheet" 'Document version')"
+  fm_set "$df" document-sheet-approver "$sheet_appr"; fm_set "$df" document-sheet-approved-on "$sheet_on"
+  fm_set "$df" ingester-version "$(ingester_version)"; fm_set "$df" rules-version "$(rules_version)"
+  fm_list_add "$df" sections-written "$slug" || die "cannot write $df"
+  "$INGESTER_DIR/bin/render-index" "$eng" > /dev/null
+  rm -rf "$RES"; rm -f "$items"
+  left=$(doc_sections "$eng" "$tid" | while IFS= read -r s; do fm_list "$df" sections-written | grep -qxF "$s" || printf '%s ' "$s"; done)
+  if [ -z "$left" ]; then mkdir -p "$d/documents/processed"; mv "$vtt" "$d/documents/processed/"; basename "$vtt" >> "$snap/moved"
+    document_path "$eng" "$tid" > /dev/null || die "SHA-256 mismatch after move"; fi
+  ok=1
+  log_run "$eng" "$tid" "D3-$slug" "written" "$sheet $dossier" "$FOLDERS documents/$tid.md $log" > /dev/null
+  eng_log "$eng" "$tid D3 section $slug written: $n row(s) in the session log, $nl of them links; dossier signed by $dos_appr.${left:+ Sections still to write: $left}"
+  [ -z "$left" ] && eng_log "$eng" "$tid: every section written; document moved to processed/."
+  printf 'D3 %s: wrote %s id(s), %s link(s); see %s\n' "$slug" "$n" "$nl" "$log"
+  [ -n "$left" ] && printf 'Sections still to write: %s\n' "$left" || printf 'Every section written; %s moved to documents/processed/\n' "$tid"
   exit 0
 fi
 

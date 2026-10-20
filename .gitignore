@@ -1,3 +1,6 @@
 .obsidian/**
 engagements/
 .DS_Store
+
+# Machine-specific CA bundle exported from the keychain by ingester/Makefile.
+ingester/docker/corp-ca.crt

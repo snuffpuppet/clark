@@ -48,11 +48,11 @@ log_run() { d=$(eng_dir "$1"); mkdir -p "$d/logs"; f="$d/logs/$(utcstamp)-$2-$3.
 
 # ---- Items as files (register model 2.18 section 7) ----
 # item_dir TYPE: folder name for a type prefix.
-item_dir() { case $1 in REQ) echo requirements;; DEC) echo decisions;; LIM) echo limitations;; RSK) echo risks;; PPT) echo pain-points;; INT) echo integrations;; OI) echo open-items;; PRC) echo processes;; SYS) echo systems;; STK) echo stakeholders;; TOP) echo topics;; T) echo transcripts;; *) return 1;; esac; }
+item_dir() { case $1 in REQ) echo requirements;; DEC) echo decisions;; LIM) echo limitations;; RSK) echo risks;; PPT) echo pain-points;; INT) echo integrations;; OI) echo open-items;; PRC) echo processes;; SYS) echo systems;; STK) echo stakeholders;; TOP) echo topics;; T) echo transcripts;; D) echo documents;; *) return 1;; esac; }
 # item_path engagement ID: path of an item file from its id.
-item_path() { p=${2%%-*}; case $2 in T[0-9]*) p=T;; esac; printf '%s/%s/%s.md\n' "$(eng_dir "$1")" "$(item_dir "$p")" "$2"; }
-# next_id engagement PREFIX: next free id from the filenames in the type folder. Four digits; T is three.
-next_id() { dir="$(eng_dir "$1")/$(item_dir "$2")"; sep="-"; w=4; [ "$2" = T ] && { sep=""; w=3; }
+item_path() { p=${2%%-*}; case $2 in T[0-9]*) p=T;; D[0-9]*) p=D;; esac; printf '%s/%s/%s.md\n' "$(eng_dir "$1")" "$(item_dir "$p")" "$2"; }
+# next_id engagement PREFIX: next free id from the filenames in the type folder. Four digits; T and D are three.
+next_id() { dir="$(eng_dir "$1")/$(item_dir "$2")"; sep="-"; w=4; case $2 in T|D) sep=""; w=3 ;; esac
   n=$(ls "$dir" 2>/dev/null | grep -o "^$2$sep[0-9]*" | sed "s/^$2$sep//" | sort -n | tail -1 | sed 's/^0*//')
   printf "%s%s%0${w}d\n" "$2" "$sep" $(( ${n:-0} + 1 )); }
 # fm file key: scalar value from the frontmatter block.
@@ -99,6 +99,26 @@ transcript_paths() { d=$(eng_dir "$1"); where=""; pl=$(transcript_parts "$1" "$2
     printf '%s\n' "$found"; done; }; }
 # vtt_path engagement tid: the first part's path, which says whether the transcript is unprocessed or processed.
 vtt_path() { vp=$(transcript_paths "$1" "$2") || exit 1; printf '%s\n' "$vp" | head -1; }
+# is_document id: true for a document id (Dnnn), false for a transcript (Tnnn).
+is_document() { case $1 in D[0-9]*) return 0 ;; *) return 1 ;; esac; }
+# document_path engagement did: the registered document's path under documents/unprocessed/ or processed/,
+# checked against the SHA-256 in documents/Dnnn.md.
+document_path() { dp_f=$(item_path "$1" "$2"); [ -f "$dp_f" ] || die "$2 is not registered in documents/"
+  dp_s=$(fm "$dp_f" sha256); dp_n=$(fm "$dp_f" file)
+  for dp_w in unprocessed processed; do dp_p="$(eng_dir "$1")/documents/$dp_w/$dp_n"
+    if [ -f "$dp_p" ]; then [ "$(sha256 "$dp_p")" = "$dp_s" ] || die "SHA-256 of $dp_p does not match documents/$2.md"; printf '%s\n' "$dp_p"; return 0; fi; done
+  die "document file $dp_n not found under documents/"; }
+# source_path engagement id: vtt_path for a transcript, document_path for a document.
+source_path() { if is_document "$2"; then document_path "$1" "$2"; else vtt_path "$1" "$2"; fi; }
+# source_table engagement id: the table every citation of the id is checked against (F1 or F16).
+source_table() { if is_document "$2"; then printf '%s/sessions/%s/%s.fragments.tsv\n' "$(eng_dir "$1")" "$2" "$2"; else printf '%s/sessions/%s/%s.utterances.tsv\n' "$(eng_dir "$1")" "$2" "$2"; fi; }
+# source_sheet engagement id: the signed sheet that fixes standing, the session sheet or the document sheet (F17).
+source_sheet() { if is_document "$2"; then printf '%s/sessions/%s/%s.document-sheet.md\n' "$(eng_dir "$1")" "$2" "$2"; else printf '%s/sessions/%s/%s.session.md\n' "$(eng_dir "$1")" "$2" "$2"; fi; }
+# doc_sections engagement did: the slug of every section of a signed document sheet whose Treatment is not
+# Skip and whose Verdict is not Reject, one per line. These are the sections D3 must write before the move.
+doc_sections() { sh_=$(source_sheet "$1" "$2"); [ -f "$sh_" ] || return 0
+  awk '/^## Sections/ { on=1; next } /^## / { on=0 } on && /^\| / && !/^\| *Section *\|/ && !/^\|[-| ]*$/' "$sh_" | while IFS= read -r row; do
+    t=$(cell "$row" 4); v=$(cell "$row" 6); [ "$t" = Skip ] || [ "$v" = Reject ] || cell "$row" 2; done; }
 # stk_lookup engagement "name": prints the STK id whose name or variant matches, case-insensitive.
 stk_lookup() { lc=$(printf '%s' "$2" | tr 'A-Z' 'a-z'); for f in "$(eng_dir "$1")"/stakeholders/STK-*.md; do [ -f "$f" ] || continue
   n=$(fm "$f" name | tr 'A-Z' 'a-z'); if [ "$n" = "$lc" ] || fm_list "$f" variants | tr 'A-Z' 'a-z' | grep -qx "$lc"; then fm "$f" id; return 0; fi; done; return 1; }

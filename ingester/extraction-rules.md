@@ -1,6 +1,6 @@
 # Extraction rules
 
-Version 1.11, 2 October 2026.
+Version 1.12, 19 October 2026.
 
 These rules are the method. The skill reads them before S1 and applies them to every exchange. Each rule carries the failure modes that map to it (design Q4) and a table of test passages. When a run report tags a failure against a rule, the fix is made here: the statement is edited and the failing passage is added as a test passage under the rule, with the run that found it. A rule change that lowers any kind's Right count on an earlier reference is a regression and is reverted or explained in the change log. Every test passage citation passes `ingester/bin/check-citations` against its own engagement: passages added in 1.0 are from `puppy-gloves` T001, and passages added in 1.4 are from `techm-bss` T001 and T002, and passages added in 1.6 from `techm-bss` T003, and passages added in 1.7 from `techm-bss` T004, and passages added in 1.8 from `techm-bss` T004 and T007, and passages added in 1.9 from `techm-bss` T005 and T006.
 
@@ -383,6 +383,31 @@ A statement that one system sends to, calls, reads from or writes to another, wi
 | T006 | answered \| T006/3805:0-3, 3810:0 \| Yaseen Muzamil \| 00:29:43 \| "Well, not all billing systems integrate. Some of them have to be manually downloaded from the billing system and manually uploaded. So there is, however, an API with CMS and some of the other platforms, but some of them are completely Not integrating and required manual." | INT Current, From SYS-0003 (CMS), To SYS-0048 (NetSuite), One-way, API, Raised by Yaseen Muzamil, `described in SYS-0048.f5`. The manual download and upload for the other billing systems is not an INT. Written by 0.13.0 as the SYS.fact alone. | 1.9 | INT backfill |
 | T005 | answered \| T005/8896:0-1 \| Nicki Degani \| 01:14:35 \| "But some part of it that we had integrated into our CMS, they had to do it manually, the updates. There was no API integrations." | No INT: a statement that there is no integration, so the SYS.fact of Kind Cannot (SYS-0045.f2) stands alone. Proposing an INT here is manual-transfer-as-integration. | 1.9 | INT backfill |
 
+
+### R28 A document speaks as its Author, section by section
+
+A document is read under its signed document sheet (runbook D0), never under the reader's sense of who wrote it. Every document citation is `documented | Dnnn/<unit>:<frag>[-<frag>] | <Author> | <location> | "<quote>"`, the Author as the sheet gives it and the location of the first cited fragment, built with `ingester/bin/quote`. A quote never runs across two rows of a spreadsheet unless they are one statement split across cells of the same record. An Origin section has the Author's standing under Roles and standing and `engagement.md`: a vendor's statement about its own platform is Stated, about our systems or processes Second-hand, and its design intent a DEC candidate in Proposed; an ABB internal document by a business stakeholder has that person's standing. A document's date is Raised on or Identified on for what it raises. A document never accepts a decision, closes an open item or moves an item through its lifecycle by itself: those need a person with standing, in a session or in a document Attributed to them that says so.
+
+**Failure modes:** document-standing-overstated, document-citation-wrong
+
+**Test passages:** none yet; added from the first D001 dossier.
+
+### R29 An attributed row is the named person's statement, reported
+
+A row of an Attributed section is read as a statement by the person its attribution column names, reported by the Author. A claim from it is Second-hand with `asserted-by` the named person, an item from it is Raised by the named person (whose stakeholder file comes from the document sheet), and each such item, or each group of items from one person, carries an OI to confirm with them, Owner the person who will ask, unless the document sheet records under Notes that the author's collection is trusted, in which case no confirmation OI is raised and the Source citation is the record. A pain point from such a row is Raised, never Confirmed. Where the attribution names a session ("Ryan Morley, S1.") the row is the vendor's rendering of a session already ingested: it is read against what that transcript yielded, under R30, and raises nothing the transcript did not.
+
+**Failure modes:** attribution-taken-as-stated, attribution-confirmation-missing
+
+**Test passages:** none yet; added from the first D001 dossier.
+
+### R30 A document links to what is held before it raises anything
+
+Every row is read against the register and the current-state record first. A row that says what a held item or claim says is a Links row (F18) on that target: it adds the document's citation and a History line and changes nothing else, however firm the document sounds, so a Hedged claim stays Hedged and a Raised pain point stays Raised. A row that contradicts a held item or claim is a mutation only when the section's treatment gives standing on the subject, graded Needs a human (conflicts with an existing claim or item); otherwise it is a Question to the person who holds the subject. Only a row with nothing held becomes a new item. A Corroborate-only section never raises a new item and never mutates; a contradiction there is a Question. The same thing said in several rows is one item with several citations, or one Links row per target.
+
+**Failure modes:** document-duplicate-raised, corroboration-strengthened, document-contradiction-missed
+
+**Test passages:** none yet; added from the first D001 dossier.
+
 ## Grading conditions
 
 An item is **Confident** only when every condition holds (design Q3, R16):
@@ -444,11 +469,19 @@ The controlled list for run reports. Each maps to one rule.
 | integration-missed | R27 |
 | integration-duplicated | R27 |
 | manual-transfer-as-integration | R27 |
+| document-standing-overstated | R28 |
+| document-citation-wrong | R28 |
+| attribution-taken-as-stated | R29 |
+| attribution-confirmation-missing | R29 |
+| document-duplicate-raised | R30 |
+| corroboration-strengthened | R30 |
+| document-contradiction-missed | R30 |
 
 ## Change log
 
 | Version | Date | Change |
 |---|---|---|
+| 1.12 | 19 October 2026 | Documents become a source (ingester 0.16.0, runbooks D0, D1, D3). R28 added: a document speaks as the Author on its signed document sheet, section by section, with the documented citation form. R29 added: an attributed row is the named person's statement reported by the Author, Second-hand, with an OI to confirm unless the document sheet records the author's collection as trusted (ruled by George Beatty for D001 on 19 October 2026). R30 added: a row is linked to what the register holds before anything is raised, and a link changes nothing. Tags for each. Test passages to follow from the first D001 dossier. At George Beatty's direction. |
 | 1.11 | 2 October 2026 | R27: HTTP and ETL join the Mechanism list (register model 2.25). At George Beatty's direction, from the techm-bss mechanics review. |
 | 1.10 | 1 October 2026 | R27: Mechanism is optional on an integration, set only when the passage names it and never guessed (register model 2.24, I27). Speakers seldom say how two systems connect, and a required Mechanism left every such INT for rejection. At George Beatty's direction, from the techm-bss T001 INT backfill. |
 | 1.9 | 30 September 2026 | Integrations become a register type (INT, register model 2.23). R27 added: a connection between systems with no person in between is an INT, Current beside the system fact that describes it or Proposed beside the REQ or DEC that specifies it, and the same integration said again is a mutation. A manual transfer and a missing integration are not integrations. R22 notes the optional `used in` link from S4. Tags integration-missed, integration-duplicated and manual-transfer-as-integration added. Test passages from techm-bss T005 and T006. At George Beatty's direction. |

@@ -8,6 +8,8 @@
 # A second output mode, -e, prints one row per episode: id  title  span  topic  subject  outcome  bulk  flow.
 # A processes file (F13) is read the same way: a "## Tnnn-Pnn" heading is a section like an episode, and
 # flow is its "Flow verdict:" line (blank for a dossier episode).
+# A document dossier (Dnnn) has "## Dnnn-Enn" episodes and "## Dnnn-Lnn" link sections; each row of a Links
+# table (F18: | Link | Fragment | Target | Citation | Verdict |) is one item of kind LINK numbered Ln.
 set -e
 mode=items; [ "$1" = "-e" ] && { mode=episodes; shift; }
 [ $# -eq 1 ] && [ -f "$1" ] || { echo "usage: dossier2tsv [-e] <file>" >&2; exit 1; }
@@ -21,8 +23,16 @@ awk -v mode="$mode" '
   function flush_ep() {
     if (epid != "" && mode == "episodes") printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", epid, eptitle, span, topic, subject, outcome, bulk[epid], flow[epid]
   }
-  /^## / { flush(); flush_ep(); epid = ""; eptitle = ""; span = ""; topic = ""; subject = ""; outcome = ""
-           if ($2 ~ /^T[0-9][0-9][0-9]-[EP][0-9]+$/) { epid = $2; eptitle = $0; sub(/^## [^ ]+ /, "", eptitle) } ; next }
+  /^## / { flush(); flush_ep(); epid = ""; eptitle = ""; span = ""; topic = ""; subject = ""; outcome = ""; inlinks = 0
+           if ($2 ~ /^[TD][0-9][0-9][0-9]-[EPL][0-9]+$/) { epid = $2; eptitle = $0; sub(/^## [^ ]+ /, "", eptitle) } ; next }
+  # A Links table (F18) in a document dossier: one LINK row per corroboration, graded Confident so that the
+  # section'"'"'s Bulk accept covers a blank verdict, its citation the one F2 line it adds to the target.
+  /^\| *Link *\|/ { flush(); inlinks = 1; next }
+  inlinks && /^\|[-| ]*$/ { next }
+  inlinks && /^\|/ { s = $0; gsub(/\\\|/, "\004", s); n = split(s, lk, "|"); for (i = 2; i < n; i++) { lk[i] = trim(lk[i]); gsub(/\004/, "|", lk[i]) }
+      if (mode == "items") printf "L%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", lk[2], "LINK", "Confident", lk[6], lk[4], epid, bulk[epid], "Fragment=" lk[3], lk[5], flow[epid]
+      next }
+  inlinks && !/^\|/ { inlinks = 0 }
   /^### Item / { flush(); s = $0; sub(/^### Item +/, "", s); n = split(s, p, / *\| */)
                  item = trim(p[1]); kind = trim(p[2]); grade = trim(p[3]); inbody = 1; next }
   item != "" && /^  - / && incites { c = $0; sub(/^  - /, "", c); cites = cites (cites == "" ? "" : "\002") c; next }

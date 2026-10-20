@@ -1,0 +1,26 @@
+#!/bin/sh
+# register-document <engagement> <file> ["title"]
+# Copies the file unchanged into documents/unprocessed/ unless already there, writes documents/Dnnn.md with
+# the file name and SHA-256, and prints the id. The document counterpart of register-transcript (runbook D0).
+# Takes .xlsx, .pptx and .pdf, the formats the flattener reads.
+set -e
+. "$(dirname "$0")/lib.sh"
+[ $# -eq 2 ] || [ $# -eq 3 ] || die "usage: register-document <engagement> <file> [\"title\"]"
+eng=$1; src=$2; title=${3:-}; d=$(eng_dir "$eng")
+[ -f "$d/engagement.md" ] || die "no engagement at $d"
+[ -f "$src" ] || die "no such file $src"
+name=$(basename "$src")
+case $name in *.xlsx|*.XLSX|*.pptx|*.PPTX|*.pdf|*.PDF) ;; *) die "$name is not .xlsx, .pptx or .pdf" ;; esac
+case $name in *"|"*|*"	"*) die "$name has a pipe or a tab in its name; rename it before registering" ;; esac
+sum=$(sha256 "$src"); dest="$d/documents/unprocessed/$name"
+if [ -f "$dest" ]; then [ "$(sha256 "$dest")" = "$sum" ] || die "$dest exists with a different SHA-256; nothing changed"
+elif [ -f "$d/documents/processed/$name" ]; then die "$name is already processed; nothing changed"; fi
+for f in "$d"/documents/D[0-9]*.md; do [ -f "$f" ] || continue
+  [ "$(fm "$f" sha256)" = "$sum" ] && die "$name is already registered as $(fm "$f" id)"; done
+if [ ! -f "$dest" ]; then mkdir -p "$d/documents/unprocessed" "$d/documents/processed"
+  cp "$src" "$dest"; [ "$(sha256 "$dest")" = "$sum" ] || die "copy of $name failed its SHA-256 check"; fi
+did=$(next_id "$eng" D)
+vals; set_val ID "$did"; set_val FILE "$name"; set_val SHA256 "$sum"; set_val TITLE "$title"; set_val INGESTER_VERSION "$(ingester_version)"; set_val RULES_VERSION "$(rules_version)"; set_val DATE "$(today)"
+render "$INGESTER_DIR/templates/items/D.md" "$(item_path "$eng" "$did")"; vals_done
+eng_log "$eng" "$did registered from $name${title:+ (title: $title)}."
+printf '%s\n' "$did"

@@ -1,12 +1,14 @@
 # Engagement: {{ENGAGEMENT}}
 
-This folder holds everything produced for one client. Start Claude Code here to ingest a transcript:
+This folder holds everything produced for one client. Start Claude Code here to ingest a transcript or a document:
 
 ```
 claude --add-dir ../../ingester
 /ingest-transcript <path-to-vtt> ["meeting subject"]      first time for a transcript
 /ingest-transcript <part-1> <part-2> ["meeting subject"]  a meeting recorded in parts
 /ingest-transcript Tnnn                                    every later time
+/ingest-document <file> ["title"]                          first time for a document (xlsx, pptx, pdf)
+/ingest-document Dnnn [<slug>]                             every later time, one section at a time
 ```
 
 The skill is `.claude/skills/ingest-transcript/SKILL.md` at the repository root and carries the whole method. The mechanism it uses lives in `../../ingester/` (`README.md` there lists every script and format; `runbooks/` describe each stage for a person; `extraction-rules.md` is the method). Nothing under `../../ingester/` is written during ingestion.
@@ -18,6 +20,8 @@ The skill is `.claude/skills/ingest-transcript/SKILL.md` at the repository root 
 - One file per item: `requirements/`, `decisions/`, `limitations/`, `risks/`, `pain-points/`, `integrations/`, `open-items/`, `processes/`, `systems/`, `stakeholders/`, `topics/`, `transcripts/Tnnn.md`. Written by the write stage after a signed dossier; edit by hand only with a line under the file's History section in the F10 form, `- <date> | <your name> | <Field>: <old> to <new> |`.
 - `index/`: generated tables. Never edit; run `../../ingester/bin/render-index {{ENGAGEMENT}}` to refresh.
 - `transcripts/unprocessed/` and `transcripts/processed/`: transcript files (VTT or Webex text, one or more parts each) as received. Never edit, rename or delete.
+- `documents/Dnnn.md`, `documents/unprocessed/` and `documents/processed/`: documents as received and their register files. Never edit, rename or delete the documents.
+- `sessions/Dnnn/`: fragment table, document sheet, one dossier per section, session log, `TASKS.md`.
 - `sessions/Tnnn/`: utterance table, session sheet, exchanges, episodes, dossier, session log, `TASKS.md`.
 - `evaluation/`: hand-marked references, run reports, and one ingestion summary per transcript (`Tnnn-summary.md`: model, time, tokens and review outcomes, compared with the previous transcript; regenerate with `../../ingester/bin/stage {{ENGAGEMENT}} Tnnn summary`), and `ingestions.md`, the same figures with a column per transcript, rebuilt after every ingestion. `logs/`: one file per skill run.
 
@@ -26,3 +30,4 @@ The skill is `.claude/skills/ingest-transcript/SKILL.md` at the repository root 
 - Nothing is written to an item file without a signed session sheet and a signed dossier. Silence is not approval.
 - Never edit a signed session sheet or dossier.
 - Where a transcript is: `../../ingester/bin/stage {{ENGAGEMENT}} Tnnn tasks`.
+- Where a document is: `../../ingester/bin/stage {{ENGAGEMENT}} Dnnn tasks`.
