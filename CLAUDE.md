@@ -13,7 +13,7 @@ When the reviewer states a register item in chat (for example "there is an integ
 - Map their words onto the field lists the integrity rules allow (REST is Mechanism `API`) and leave a field blank rather than guess it. Say in Notes that it was entered by hand and what is not yet stated.
 - Source is one line: `- stated | <name> | <D Month YYYY> | Claude session, hand entry | "<their words>"`. History is one line: `- <D Month YYYY> | <name> | Created by hand entry: <fields set> |`.
 - Append `- <D Month YYYY>: <id> <title> entered by hand on <name>'s word.` to the engagement's `LOG.md`.
-- Run `ingester/bin/check-integrity <engagement>`, then `ingester/bin/render-index <engagement>`; both are slow, so run them in the background. Report the id, the fields set and the fields left blank.
+- Run `ingester/bin/check-integrity <engagement>`, then `ingester/bin/render-index <engagement>`; both take seconds. Report the id, the fields set and the fields left blank.
 
 ## Talking to the reviewer
 

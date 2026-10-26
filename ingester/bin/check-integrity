@@ -14,40 +14,43 @@ eng=$1; d=$(eng_dir "$eng"); dossier=""; [ "${2:-}" = "--proposed" ] && dossier=
 [ -f "$d/engagement.md" ] || die "no engagement at $d"
 facts=$(mktemp "${TMPDIR:-/tmp}/ing.XXXXXXXX")
 
+# over 'program' file...: runs the program in one awk pass over the files that exist, in the order given. Each read
+# below is one awk over all the files of a kind rather than one process per file or per field.
+over() { prog=$1; shift; i=$#; while [ "$i" -gt 0 ]; do f=$1; shift; [ -f "$f" ] && set -- "$@" "$f"; i=$((i - 1)); done
+  [ $# -gt 0 ] || return 0; awk "$prog" "$@"; }
+
 # Stream: TYPE <tab> ID <tab> KEY <tab> VALUE. Frontmatter keys become model field names; body sections too.
+# The item files keep their own reading of the frontmatter (values trimmed, a bare "key:" starts a list).
 for type in REQ DEC LIM RSK PPT INT OI; do dir="$d/$(item_dir "$type")"
-  for f in "$dir"/$type-*.md; do [ -f "$f" ] || continue
-    awk -v type="$type" '
-      function name(k) { gsub(/-/, " ", k); k = toupper(substr(k, 1, 1)) substr(k, 2); if (k == "Moscow") k = "MoSCoW"; return k }
-      function flush() { if (sec != "") { v = body; gsub(/^ +| +$/, "", v); printf "%s\t%s\t%s\t%s\n", type, id, sec, v } sec = ""; body = "" }
-      NR == 1 && $0 == "---" { infm = 1; next }
-      infm && $0 == "---" { infm = 0; if (listk != "") { printf "%s\t%s\t%s\t%s\n", type, id, name(listk), list }; listk = ""; next }
-      infm && /^  - / { v = $0; sub(/^  - /, "", v); list = list (list == "" ? "" : "; ") v; next }
-      infm { if (listk != "") { printf "%s\t%s\t%s\t%s\n", type, id, name(listk), list; listk = ""; list = "" }
-             k = $0; sub(/:.*/, "", k); v = $0; sub(/^[^:]*:/, "", v); gsub(/^ +| +$/, "", v)
-             if (k == "id") { id = v; printf "%s\t%s\tID\t%s\n", type, id, id; next }
-             if ($0 ~ /:$/) { listk = k; list = "" } else printf "%s\t%s\t%s\t%s\n", type, id, name(k), v; next }
-      /^## / { flush(); sec = $0; sub(/^## /, "", sec); next }
-      sec != "" { body = body " " $0 }
-      END { flush() }' "$f"
-  done
+  over "BEGIN { type = \"$type\" }"'
+    function name(k) { gsub(/-/, " ", k); k = toupper(substr(k, 1, 1)) substr(k, 2); if (k == "Moscow") k = "MoSCoW"; return k }
+    function flush() { if (sec != "") { v = body; gsub(/^ +| +$/, "", v); printf "%s\t%s\t%s\t%s\n", type, id, sec, v } sec = ""; body = "" }
+    FNR == 1 && NR > 1 { flush(); infm = 0; listk = ""; list = ""; id = "" }
+    FNR == 1 && $0 == "---" { infm = 1; next }
+    infm && $0 == "---" { infm = 0; if (listk != "") { printf "%s\t%s\t%s\t%s\n", type, id, name(listk), list }; listk = ""; next }
+    infm && /^  - / { v = $0; sub(/^  - /, "", v); list = list (list == "" ? "" : "; ") v; next }
+    infm { if (listk != "") { printf "%s\t%s\t%s\t%s\n", type, id, name(listk), list; listk = ""; list = "" }
+           k = $0; sub(/:.*/, "", k); v = $0; sub(/^[^:]*:/, "", v); gsub(/^ +| +$/, "", v)
+           if (k == "id") { id = v; printf "%s\t%s\tID\t%s\n", type, id, id; next }
+           if ($0 ~ /:$/) { listk = k; list = "" } else printf "%s\t%s\t%s\t%s\n", type, id, name(k), v; next }
+    /^## / { flush(); sec = $0; sub(/^## /, "", sec); next }
+    sec != "" { body = body " " $0 }
+    END { flush() }' "$dir"/$type-*.md
 done >> "$facts" || die "cannot write $facts"
-for f in "$d"/systems/SYS-*.md "$d"/processes/PRC-*.md; do [ -f "$f" ] || continue
-  id=$(fm "$f" id); printf 'ELEM\t%s\tID\t%s\n' "$id" "$id"
-  case $id in PRC-*) printf 'PEL\t%s\tStatus\t%s\nPEL\t%s\tOutcome\t%s\nPEL\t%s\tReplaced by\t%s\n' "$id" "$(fm "$f" status)" "$id" "$(fm "$f" outcome)" "$id" "$(fm "$f" replaced-by)" ;; esac
-  # One pass per file: every claim's status and flow keys (I18, I21 to I24).
-  awk -v el="$id" '
-    function out(k, v) { printf "CL\t%s\t%s\t%s\n", cid, k, v }
-    /^## [fsn][0-9]+ / { cid = el "." $2; printf "CLAIM\t%s\tStatus\t\n", cid; out("Parent", el); out("Pre", substr($2, 1, 1)); on = 1; next }
-    /^## / { on = 0; next }
-    on && /^- [a-z-]+: / { k = $0; sub(/^- /, "", k); sub(/:.*/, "", k); v = $0; sub(/^- [a-z-]+: */, "", v)
-      if (k == "status") { printf "CLAIM\t%s\tStatus\t%s\n", cid, v; out("Status", v) }
-      else if (k == "follows") out("Follows", v); else if (k == "hands-to") out("Hands to", v); else if (k == "kind") out("Kind", v); else if (k == "replaced-by") out("Replaced by", v) }' "$f"
-done >> "$facts" || die "cannot write $facts"
+# Systems and processes through the shared reader: the element, a process's own fields, then every claim's status
+# and flow keys (I18, I21 to I24), held in CB until the file is done so the element comes first.
+over "$FM_AWK"'
+  function out(k, v) { CB = CB sprintf("CL\t%s\t%s\t%s\n", cid, k, v) }
+  /^## [fsn][0-9]+ / { cid = FM["id"] "." $2; CB = CB sprintf("CLAIM\t%s\tStatus\t\n", cid); out("Parent", FM["id"]); out("Pre", substr($2, 1, 1)); on = 1; next }
+  /^## / { on = 0; next }
+  on && /^- [a-z-]+: / { k = $0; sub(/^- /, "", k); sub(/:.*/, "", k); v = $0; sub(/^- [a-z-]+: */, "", v)
+    if (k == "status") { CB = CB sprintf("CLAIM\t%s\tStatus\t%s\n", cid, v); out("Status", v) }
+    else if (k == "follows") out("Follows", v); else if (k == "hands-to") out("Hands to", v); else if (k == "kind") out("Kind", v); else if (k == "replaced-by") out("Replaced by", v) }
+  function fm_done(  id) { id = FM["id"]; printf "ELEM\t%s\tID\t%s\n", id, id
+    if (id ~ /^PRC-/) printf "PEL\t%s\tStatus\t%s\nPEL\t%s\tOutcome\t%s\nPEL\t%s\tReplaced by\t%s\n", id, FM["status"], id, FM["outcome"], id, FM["replaced-by"]
+    printf "%s", CB; CB = ""; cid = ""; on = 0 }' "$d"/systems/SYS-*.md "$d"/processes/PRC-*.md >> "$facts" || die "cannot write $facts"
 phases "$eng" | awk '{ printf "PHASE\t%s\tvalue\t%s\n", $0, $0 }' >> "$facts"
-for f in "$d"/stakeholders/STK-*.md; do [ -f "$f" ] || continue
-  id=$(fm "$f" id); printf 'STK\t%s\tName\t%s\nSTK\t%s\tVariants\t%s\nSTK\t%s\tRole\t%s\nSTK\t%s\tSegment\t%s\n' "$id" "$(fm "$f" name)" "$id" "$(fm_list "$f" variants | paste -sd, -)" "$id" "$(fm "$f" role)" "$id" "$(fm "$f" segment)"
-done >> "$facts" || die "cannot write $facts"
+over "$FM_AWK"'function fm_done(  id) { id = FM["id"]; printf "STK\t%s\tName\t%s\nSTK\t%s\tVariants\t%s\nSTK\t%s\tRole\t%s\nSTK\t%s\tSegment\t%s\n", id, FM["name"], id, fm_join("variants", ","), id, FM["role"], id, FM["segment"] }' "$d"/stakeholders/STK-*.md >> "$facts" || die "cannot write $facts"
 
 if [ -n "$dossier" ]; then
   [ -f "$dossier" ] || die "no such dossier $dossier"

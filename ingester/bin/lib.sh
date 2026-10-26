@@ -55,10 +55,14 @@ item_path() { p=${2%%-*}; case $2 in T[0-9]*) p=T;; D[0-9]*) p=D;; esac; printf 
 next_id() { dir="$(eng_dir "$1")/$(item_dir "$2")"; sep="-"; w=4; case $2 in T|D) sep=""; w=3 ;; esac
   n=$(ls "$dir" 2>/dev/null | grep -o "^$2$sep[0-9]*" | sed "s/^$2$sep//" | sort -n | tail -1 | sed 's/^0*//')
   printf "%s%s%0${w}d\n" "$2" "$sep" $(( ${n:-0} + 1 )); }
+# FM_AWK: the frontmatter reader in bin/fm.awk, which every read of frontmatter goes through. A caller's awk
+# program is "$FM_AWK" followed by its own text defining fm_done(); render-index reads many files in one pass.
+FM_AWK="$(cat "$INGESTER_DIR/bin/fm.awk")
+"
 # fm file key: scalar value from the frontmatter block.
-fm() { awk -v k="$2" 'NR==1 && $0 != "---" { exit } NR>1 && /^---$/ { exit } NR>1 && index($0, k ": ") == 1 { sub(/^[^:]*: */, ""); print; exit } NR>1 && $0 == k ":" { print ""; exit }' "$1"; }
+fm() { awk -v k="$2" "$FM_AWK"'function fm_done() { if (k in FM) print FM[k] }' "$1"; }
 # fm_list file key: list items under a key, one per line.
-fm_list() { awk -v k="$2" 'NR>1 && /^---$/ { exit } on && /^  - / { sub(/^  - /, ""); print; next } on && !/^  - / { exit } NR>1 && ($0 == k ":" || index($0, k ": ") == 1) { on=1 }' "$1"; }
+fm_list() { awk -v k="$2" "$FM_AWK"'function fm_done(  i) { for (i = 1; i <= FMN[k]; i++) print FML[k, i] }' "$1"; }
 # fm_set file key value: replace or add a scalar in the frontmatter.
 fm_set() { awk -v k="$2" -v v="$3" 'NR>1 && /^---$/ && !done { if (!seen) print k ": " v; done=1 } !done && NR>1 && (index($0, k ": ") == 1 || $0 == k ":") { print k ": " v; seen=1; next } { print }' "$1" > "$1.tmp" && mv "$1.tmp" "$1"; }
 # fm_list_add file key value: append an item to a list key (created if missing), unless already present.
